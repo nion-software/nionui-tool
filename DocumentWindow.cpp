@@ -1,0 +1,3320 @@
+/*
+ Copyright (c) 2012-2015 Nion Company.
+*/
+
+#include <stdint.h>
+
+#include <QtCore/QtGlobal>
+#include <QtCore/QAbstractListModel>
+#include <QtCore/QDateTime>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QMimeData>
+#include <QtCore/QQueue>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QSettings>
+#include <QtCore/QTextCodec>
+#include <QtCore/QThread>
+#include <QtCore/QTimer>
+#include <QtCore/QUrl>
+
+#include <QtGui/QPainter>
+
+#include <QtSvg/QSvgWidget>
+
+#include <QtWidgets/QAction>
+#include <QtWidgets/QCheckBox>
+#include <QtWidgets/QComboBox>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QGestureEvent>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QLineEdit>
+#include <QtWidgets/QMenuBar>
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QPushButton>
+#include <QtWidgets/QScrollArea>
+#include <QtWidgets/QScrollBar>
+#include <QtWidgets/QSlider>
+#include <QtWidgets/QSpacerItem>
+#include <QtWidgets/QSplitter>
+#include <QtWidgets/QStackedWidget>
+#include <QtWidgets/QTextEdit>
+#include <QtWidgets/QVBoxLayout>
+
+#include "Application.h"
+#include "DocumentWindow.h"
+
+#if !USE_THRIFT
+
+#include "PythonSupport.h"
+
+#ifdef _WIN32
+#define _USE_MATH_DEFINES
+#include <math.h>
+#endif
+
+#endif // !USE_THRIFT
+
+#define LOG_EXCEPTION(ctx) qDebug() << "EXCEPTION";
+
+Q_DECLARE_METATYPE(std::string)
+
+DocumentWindow::DocumentWindow(const QString &title, QWidget *parent)
+    : QMainWindow(parent)
+{
+    setAttribute(Qt::WA_DeleteOnClose, true);
+
+    setDockOptions(QMainWindow::AllowNestedDocks | QMainWindow::AllowTabbedDocks);
+
+    //setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::North);
+
+    //setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
+    //setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
+
+    // Set the window title plus the 'window modified placeholder'
+    if (!title.isEmpty())
+        setWindowTitle(title);
+
+    // Set sizing for widgets.
+    setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+
+    cleanDocument();
+}
+
+void DocumentWindow::initialize()
+{
+    // TODO: Setup periodic timer
+    m_periodic_timer = new QTimer(this);
+    connect(m_periodic_timer, SIGNAL(timeout()), this, SLOT(periodic()));
+    m_periodic_timer->start(1000.0/50.0);    // 50 times per second
+
+    // reset it here until it is really modified
+    cleanDocument();
+}
+
+Application *DocumentWindow::application() const
+{
+    return dynamic_cast<Application *>(QCoreApplication::instance());
+}
+
+void DocumentWindow::periodic()
+{
+    if (isVisible())
+        application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
+}
+
+void DocumentWindow::showEvent(QShowEvent *show_event)
+{
+    QMainWindow::showEvent(show_event);
+
+    // tell python we're closing.
+#if !USE_THRIFT
+    application()->dispatchPyMethod(m_py_object, "aboutToShow", QVariantList());
+#else
+    application()->callbacks->DocumentWindow_aboutToShow(m_py_object.value<int64_t>());
+#endif
+
+    setFocus();
+}
+
+void DocumentWindow::changeEvent(QEvent *event)
+{
+    QMainWindow::changeEvent(event);
+
+    switch(event->type())
+    {
+        case QEvent::ActivationChange:
+#if !USE_THRIFT
+            application()->dispatchPyMethod(m_py_object, "activationChanged", QVariantList() << isActiveWindow());
+#else
+            application()->callbacks->DocumentWindow_activationChanged(m_py_object.value<int64_t>(), isActiveWindow());
+#endif
+            break;
+        default:
+            break;
+    }
+}
+
+void DocumentWindow::closeEvent(QCloseEvent *close_event)
+{
+    QString geometry = QString(saveGeometry().toHex().data());
+    QString state = QString(saveState().toHex().data());
+
+    // tell python we're closing.
+#if !USE_THRIFT
+    application()->dispatchPyMethod(m_py_object, "aboutToClose", QVariantList() << geometry << state);
+#else
+    application()->callbacks->DocumentWindow_aboutToClose(m_py_object.value<int64_t>(), geometry.toStdString(), state.toStdString());
+#endif
+
+    close_event->accept();
+    hide();
+}
+
+void DocumentWindow::cleanDocument()
+{
+    setWindowModified(false);
+}
+
+PyPushButton::PyPushButton()
+{
+    connect(this, SIGNAL(clicked()), this, SLOT(clicked()));
+}
+
+void PyPushButton::clicked()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "clicked", QVariantList());
+#else
+        app->callbacks->PushButton_clicked(m_py_object.value<int64_t>());
+#endif
+    }
+}
+
+PyCheckBox::PyCheckBox()
+{
+    connect(this, SIGNAL(stateChanged(int)), this, SLOT(stateChanged(int)));
+}
+
+void PyCheckBox::stateChanged(int state)
+{
+    if (m_py_object.isValid())
+    {
+        QStringList state_names;
+        state_names << "unchecked" << "partial" << "checked";
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "stateChanged", QVariantList() << state_names[state]);
+#else
+        app->callbacks->CheckBox_stateChanged(m_py_object.value<int64_t>(), state_names[state].toStdString());
+#endif
+    }
+}
+
+PyComboBox::PyComboBox()
+{
+    connect(this, SIGNAL(currentTextChanged(QString)), this, SLOT(currentTextChanged(QString)));
+}
+
+void PyComboBox::currentTextChanged(const QString &currentText)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "currentTextChanged", QVariantList() << currentText);
+#else
+        app->callbacks->ComboBox_currentTextChanged(m_py_object.value<int64_t>(), currentText.toStdString());
+#endif
+    }
+}
+
+PySlider::PySlider()
+{
+    setOrientation(Qt::Horizontal);
+    setTracking(true);
+    connect(this, SIGNAL(valueChanged(int)), this, SLOT(valueChanged(int)));
+    connect(this, SIGNAL(sliderPressed()), this, SLOT(sliderPressed()));
+    connect(this, SIGNAL(sliderReleased()), this, SLOT(sliderReleased()));
+    connect(this, SIGNAL(sliderMoved(int)), this, SLOT(sliderMoved(int)));
+}
+
+void PySlider::valueChanged(int value)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "value_changed", QVariantList() << value);
+#else
+        app->callbacks->Slider_valueChanged(m_py_object.value<int64_t>(), value);
+#endif
+    }
+}
+
+void PySlider::sliderPressed()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "slider_pressed", QVariantList());
+#else
+        app->callbacks->Slider_pressed(m_py_object.value<int64_t>());
+#endif
+    }
+}
+
+void PySlider::sliderReleased()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "slider_released", QVariantList());
+#else
+        app->callbacks->Slider_released(m_py_object.value<int64_t>());
+#endif
+    }
+}
+
+void PySlider::sliderMoved(int value)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "slider_moved", QVariantList() << value);
+#else
+        app->callbacks->Slider_moved(m_py_object.value<int64_t>(), value);
+#endif
+    }
+}
+
+PyLineEdit::PyLineEdit()
+{
+    connect(this, SIGNAL(editingFinished()), this, SLOT(editingFinished()));
+    connect(this, SIGNAL(textEdited(QString)), this, SLOT(textEdited(QString)));
+}
+
+void PyLineEdit::editingFinished()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "editing_finished", QVariantList() << text());
+#else
+        app->callbacks->LineEdit_editingFinished(m_py_object.value<int64_t>(), text().toStdString());
+#endif
+    }
+}
+
+void PyLineEdit::textEdited(const QString &text)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "text_edited", QVariantList() << text);
+#else
+        app->callbacks->LineEdit_textEdited(m_py_object.value<int64_t>(), text.toStdString());
+#endif
+    }
+}
+
+void PyLineEdit::keyPressEvent(QKeyEvent *key_event)
+{
+    if (key_event->type() == QEvent::KeyPress)
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        if (key_event->key() == Qt::Key_Escape)
+        {
+            if (m_py_object.isValid())
+            {
+#if !USE_THRIFT
+                if (app->dispatchPyMethod(m_py_object, "escapePressed", QVariantList()).toBool())
+                {
+                    key_event->accept();
+                    return;
+                }
+#else
+                if (app->callbacks->LineEdit_escapePressed(m_py_object.value<int64_t>()))
+                {
+                    key_event->accept();
+                    return;
+                }
+#endif
+            }
+        }
+        else if (key_event->key() == Qt::Key_Return)
+        {
+            if (m_py_object.isValid())
+            {
+#if !USE_THRIFT
+                if (app->dispatchPyMethod(m_py_object, "returnPressed", QVariantList()).toBool())
+                {
+                    key_event->accept();
+                    return;
+                }
+#else
+                if (app->callbacks->LineEdit_returnPressed(m_py_object.value<int64_t>()))
+                {
+                    key_event->accept();
+                    return;
+                }
+#endif
+            }
+        }
+    }
+
+    QLineEdit::keyPressEvent(key_event);
+}
+
+PyTextEdit::PyTextEdit()
+{
+    connect(this, SIGNAL(textChanged()), this, SLOT(textChanged()));
+}
+
+void PyTextEdit::textChanged()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "textChanged", QVariantList());
+#else
+        app->callbacks->TextEdit_textChanged(m_py_object.value<int64_t>());
+#endif
+    }
+}
+
+void PyTextEdit::focusInEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "focusIn", QVariantList());
+#else
+        app->callbacks->Widget_focusIn(m_py_object.value<int64_t>());
+#endif
+    }
+
+    QTextEdit::focusInEvent(event);
+}
+
+void PyTextEdit::focusOutEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "focusOut", QVariantList());
+#else
+        app->callbacks->Widget_focusOut(m_py_object.value<int64_t>());
+#endif
+    }
+
+    QTextEdit::focusOutEvent(event);
+}
+
+Overlay::Overlay(QWidget *parent, QWidget *child)
+    : QWidget(parent)
+    , m_child(child)
+{
+    parent->installEventFilter(this);
+
+    setPalette(Qt::transparent);
+    setAttribute(Qt::WA_TransparentForMouseEvents);
+
+    if (m_child)
+    {
+        m_child->setPalette(Qt::transparent);
+        m_child->setAttribute(Qt::WA_TransparentForMouseEvents);
+        m_child->setParent(this);
+    }
+}
+
+bool Overlay::eventFilter(QObject *obj, QEvent *event)
+{
+    if (event->type() == QEvent::Resize && obj == parent())
+    {
+        QResizeEvent *resizeEvent = static_cast<QResizeEvent*>(event);
+        resize(resizeEvent->size());
+    }
+    return QWidget::eventFilter(obj, event);
+}
+
+void Overlay::resizeEvent(QResizeEvent *event)
+{
+    if (m_child)
+        m_child->resize(event->size());
+    QWidget::resizeEvent(event);
+}
+
+PyScrollArea::PyScrollArea()
+{
+    setWidgetResizable(true);  // do not set this, otherwise appearance of scroll bars reduces viewport size
+
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    setAlignment(Qt::AlignCenter);
+
+    viewport()->installEventFilter(this); // make sure we detect initial resize
+
+    connect(horizontalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(scrollBarChanged(int)));
+    connect(verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(scrollBarChanged(int)));
+}
+
+bool PyScrollArea::eventFilter(QObject *obj, QEvent *event)
+{
+    bool result = QScrollArea::eventFilter(obj, event);
+    if (event->type() == QEvent::Resize && obj == viewport())
+    {
+        notifyViewportChanged();
+    }
+    return result;
+}
+
+void PyScrollArea::notifyViewportChanged()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        QPoint offset = widget()->mapFrom(viewport(), QPoint(0, 0));
+        QRect viewport_rect = viewport()->rect().translated(offset.x(), offset.y());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "viewportChanged", QVariantList() << viewport_rect.left() << viewport_rect.top() << viewport_rect.width() << viewport_rect.height());
+#else
+        app->callbacks->ScrollArea_viewportChanged(m_py_object.value<int64_t>(), viewport_rect.left(), viewport_rect.top(), viewport_rect.width(), viewport_rect.height());
+#endif
+    }
+}
+
+void PyScrollArea::scrollBarChanged(int value)
+{
+    Q_UNUSED(value)
+
+    notifyViewportChanged();
+}
+
+void PyScrollArea::resizeEvent(QResizeEvent *event)
+{
+    QScrollArea::resizeEvent(event);
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << event->size().width() << event->size().height());
+#else
+        app->callbacks->ScrollArea_sizeChanged(m_py_object.value<int64_t>(), event->size().width(), event->size().height());
+#endif
+        notifyViewportChanged();
+    }
+}
+
+PyTabWidget::PyTabWidget()
+{
+    connect(this, SIGNAL(currentChanged(int)), this, SLOT(currentChanged(int)));
+}
+
+void PyTabWidget::currentChanged(int index)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "currentTabChanged", QVariantList() << index);
+#else
+        app->callbacks->TabWidget_currentTabChanged(m_py_object.value<int64_t>(), index);
+#endif
+    }
+}
+
+PyCanvas::PyCanvas()
+    : m_pressed(false)
+    , m_grab_mouse_count(0)
+{
+    setMouseTracking(true);
+    setAcceptDrops(true);
+}
+
+void PyCanvas::focusInEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "focusIn", QVariantList());
+#else
+        app->callbacks->Widget_focusIn(m_py_object.value<int64_t>());
+#endif
+    }
+
+    QWidget::focusInEvent(event);
+}
+
+void PyCanvas::focusOutEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "focusOut", QVariantList());
+#else
+        app->callbacks->Widget_focusOut(m_py_object.value<int64_t>());
+#endif
+    }
+
+    QWidget::focusOutEvent(event);
+}
+
+// see http://www.mathopenref.com/coordtrianglearea.html
+static inline float triangleArea(const QPointF &p1, const QPointF &p2, const QPointF &p3)
+{
+    return fabs(0.5 * (p1.x() * (p2.y() - p3.y()) + p2.x() * (p3.y() - p1.y()) + p3.x() * (p1.y() - p2.y())));
+}
+
+// see http://www.dbp-consulting.com/tutorials/canvas/CanvasArcTo.html
+void addArcToPath(QPainterPath &path, float x, float y, float radius, float start_angle_radians, float end_angle_radians, bool counter_clockwise)
+{
+    // qDebug() << "arc " << x << "," << y << "," << radius << "," << start_angle_radians << "," << end_angle_radians << "," << counter_clockwise;
+    double x_start = x - radius;
+    double y_start = y - radius;
+    double width  = radius * 2;
+    double height = radius * 2;
+    bool clockwise = !counter_clockwise;
+
+    // first check if drawing more than the circumference of the circle
+    if (clockwise && (end_angle_radians - start_angle_radians >= 2 * M_PI))
+    {
+        end_angle_radians = start_angle_radians + 2 * M_PI;
+    }
+    else if (!clockwise && (start_angle_radians - end_angle_radians >= 2 * M_PI))
+    {
+        start_angle_radians = end_angle_radians - 2 * M_PI;
+    }
+
+    // on canvas, angles and sweep_length are in degrees clockwise from positive x-axis
+    // in Qt, angles are counter-clockwise from positive x-axis; position sweep_length draws counter-clockwise
+    // calculate accordingly.
+
+    double start_angle_degrees = -180 * start_angle_radians / M_PI;
+    double end_angle_degrees = -180 * end_angle_radians / M_PI;
+
+    double sweep_angle_degrees = 0.0;
+
+    if (clockwise)
+    {
+        // clockwise from 10 to 20 (canvas) => -10 to -20 (qt) => -10 + -10 (qt)
+        // clockwise from -20 to -10 (canvas) => 20 to 10 (qt) => 20 + -10 (qt)
+        // clockwise from 10 to -20 (canvas) => -10 to 20 (qt) => -10 to 340 => -10 - 330 (qt)
+        // remember, degrees have already been negated here, i.e. in qt degrees.
+        if (start_angle_degrees < end_angle_degrees)
+            sweep_angle_degrees = end_angle_degrees - start_angle_degrees - 360.0;
+        else
+            sweep_angle_degrees = end_angle_degrees - start_angle_degrees;
+    }
+    else
+    {
+        // counterclockwise from 20 to 10 (canvas) => -20 to -10 (qt) => -20 + 10 (qt)
+        // counterclockwise from -20 to -10 (canvas) => 20 to 10 (qt) => 20 + 350 (qt)
+        // counterclockwise from 10 to -20 (canvas) => -10 to 20 (qt) => -10 + 30 (qt)
+        // remember, degrees have already been negated here, i.e. in qt degrees.
+        if (end_angle_degrees < start_angle_degrees)
+            sweep_angle_degrees = end_angle_degrees - start_angle_degrees + 360.0;
+        else
+            sweep_angle_degrees = end_angle_degrees - start_angle_degrees;
+    }
+
+    if (radius == 0.0)
+    {
+        // just draw the center point
+        path.lineTo(x, y);
+    }
+    else
+    {
+        // arcTo angle is counter-clockwise from positive x-axis; position sweep_length draws counter-clockwise
+        path.arcTo(x_start, y_start, width, height, start_angle_degrees, sweep_angle_degrees);
+    }
+}
+
+void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &commands, PaintImageCache *image_cache)
+{
+    QPainterPath path;
+
+    if (image_cache)
+    {
+        Q_FOREACH(int image_id, image_cache->keys())
+        {
+            PaintImageCacheEntry &entry = (*image_cache)[image_id];
+            entry.used = false;
+        }
+    }
+
+    QColor fill_color(Qt::transparent);
+    int fill_gradient = -1;
+
+    QColor line_color(Qt::black);
+    float line_width = 1.0;
+    float line_dash = 0.0;
+    Qt::PenCapStyle line_cap = Qt::SquareCap;
+    Qt::PenJoinStyle line_join = Qt::BevelJoin;
+
+    QFont text_font;
+    int text_baseline = 4; // alphabetic
+    int text_align = 1; // start
+
+    QMap<int, QGradient> gradients;
+
+    painter.fillRect(painter.viewport(), QBrush(fill_color));
+
+    //qDebug() << "BEGIN";
+
+    QVariantList stack;
+
+    Q_FOREACH(const CanvasDrawingCommand &command, commands)
+    {
+        QVariantList args = command.arguments;
+        QString cmd = command.command;
+
+        //qDebug() << cmd << ": " << args;
+
+        if (cmd == "save")
+        {
+            QVariantList values;
+            values << fill_color << fill_gradient;
+            values << line_color << line_width << line_dash << line_cap << line_join;
+            values << text_font << text_baseline << text_align;
+            stack.push_back(values);
+            painter.save();
+        }
+        else if (cmd == "restore")
+        {
+            QVariantList values = stack.takeFirst().toList();
+            fill_color = values.takeFirst().value<QColor>();
+            fill_gradient = values.takeFirst().toInt();
+            line_color = values.takeFirst().value<QColor>();
+            line_width = values.takeFirst().toFloat();
+            line_dash = values.takeFirst().toFloat();
+            line_cap = static_cast<Qt::PenCapStyle>(values.takeFirst().toInt());
+            line_join = static_cast<Qt::PenJoinStyle>(values.takeFirst().toInt());
+            text_font = values.takeFirst().value<QFont>();
+            text_baseline = values.takeFirst().toInt();
+            text_align = values.takeFirst().toInt();
+            painter.restore();
+        }
+        else if (cmd == "beginPath")
+        {
+            path = QPainterPath();
+        }
+        else if (cmd == "closePath")
+        {
+            path.closeSubpath();
+        }
+        else if (cmd == "clip")
+        {
+            painter.setClipRect(args[0].toFloat(), args[1].toFloat(), args[2].toFloat(), args[3].toFloat(), Qt::IntersectClip);
+        }
+        else if (cmd == "translate")
+        {
+            painter.translate(args[0].toFloat(), args[1].toFloat());
+        }
+        else if (cmd == "scale")
+        {
+            painter.scale(args[0].toFloat(), args[1].toFloat());
+        }
+        else if (cmd == "rotate")
+        {
+            painter.rotate(args[0].toFloat());
+        }
+        else if (cmd == "moveTo")
+        {
+            path.moveTo(args[0].toFloat(), args[1].toFloat());
+        }
+        else if (cmd == "lineTo")
+        {
+            path.lineTo(args[0].toFloat(), args[1].toFloat());
+        }
+        else if (cmd == "rect")
+        {
+            path.addRect(args[0].toFloat(), args[1].toFloat(), args[2].toFloat(), args[3].toFloat());
+        }
+        else if (cmd == "arc")
+        {
+            // see http://www.w3.org/TR/2dcontext/#dom-context-2d-arc
+            // see https://qt.gitorious.org/qt/qtdeclarative/source/e3eba2902fcf645bf88764f5272e2987e8992cd4:src/quick/items/context2d/qquickcontext2d.cpp#L3801-3815
+
+            float x = args[0].toFloat();
+            float y = args[1].toFloat();
+            float radius = args[2].toFloat();
+            float start_angle_radians = args[3].toFloat();
+            float end_angle_radians = args[4].toFloat();
+            bool clockwise = !args[5].toBool();
+
+            addArcToPath(path, x, y, radius, start_angle_radians, end_angle_radians, !clockwise);
+        }
+        else if (cmd == "arcTo")
+        {
+            // see https://github.com/WebKit/webkit/blob/master/Source/WebCore/platform/graphics/cairo/PathCairo.cpp
+            // see https://code.google.com/p/chromium/codesearch#chromium/src/third_party/skia/src/core/SkPath.cpp&sq=package:chromium&type=cs&l=1381&rcl=1424120049
+            // see https://bug-23003-attachments.webkit.org/attachment.cgi?id=26267
+
+            QPointF p0 = path.currentPosition();
+            QPointF p1(args[0].toFloat(), args[1].toFloat());
+            QPointF p2(args[2].toFloat(), args[3].toFloat());
+            float radius = args[4].toFloat();
+
+            // Draw only a straight line to p1 if any of the points are equal or the radius is zero
+            // or the points are collinear (triangle that the points form has area of zero value).
+            if ((p1 == p0) || (p1 == p2) || radius == 0.0 || triangleArea(p0, p1, p2) == 0.0)
+            {
+                // just draw a line
+                path.lineTo(p1.x(), p1.y());
+                return;
+            }
+
+            QPointF p1p0 = p0 - p1;
+            QPointF p1p2 = p2 - p1;
+            float p1p0_length = sqrtf(p1p0.x() * p1p0.x() + p1p0.y() * p1p0.y());
+            float p1p2_length = sqrtf(p1p2.x() * p1p2.x() + p1p2.y() * p1p2.y());
+
+            double cos_phi = (p1p0.x() * p1p2.x() + p1p0.y() * p1p2.y()) / (p1p0_length * p1p2_length);
+            // all points on a line logic
+            if (cos_phi == -1) {
+                path.lineTo(p1.x(), p1.y());
+                return;
+            }
+            if (cos_phi == 1) {
+                // add infinite far away point
+                unsigned int max_length = 65535;
+                double factor_max = max_length / p1p0_length;
+                QPointF ep((p0.x() + factor_max * p1p0.x()), (p0.y() + factor_max * p1p0.y()));
+                path.lineTo(ep.x(), ep.y());
+                return;
+            }
+
+            float tangent = radius / tan(acos(cos_phi) / 2);
+            float factor_p1p0 = tangent / p1p0_length;
+            QPointF t_p1p0 = p1 + factor_p1p0 * p1p0;
+
+            QPointF orth_p1p0(p1p0.y(), -p1p0.x());
+            float orth_p1p0_length = sqrt(orth_p1p0.x() * orth_p1p0.x() + orth_p1p0.y() * orth_p1p0.y());
+            float factor_ra = radius / orth_p1p0_length;
+
+            // angle between orth_p1p0 and p1p2 to get the right vector orthographic to p1p0
+            double cos_alpha = (orth_p1p0.x() * p1p2.x() + orth_p1p0.y() * p1p2.y()) / (orth_p1p0_length * p1p2_length);
+            if (cos_alpha < 0.f)
+                orth_p1p0 = QPointF(-orth_p1p0.x(), -orth_p1p0.y());
+
+            QPointF p = t_p1p0 + factor_ra * orth_p1p0;
+
+            // calculate angles for addArc
+            orth_p1p0 = QPointF(-orth_p1p0.x(), -orth_p1p0.y());
+            float sa = acos(orth_p1p0.x() / orth_p1p0_length);
+            if (orth_p1p0.y() < 0.f)
+                sa = 2 * M_PI - sa;
+
+            // anticlockwise logic
+            bool anticlockwise = false;
+
+            float factor_p1p2 = tangent / p1p2_length;
+            QPointF t_p1p2 = p1 + factor_p1p2 * p1p2;
+            QPointF orth_p1p2 = t_p1p2 - p;
+            float orth_p1p2_length = sqrtf(orth_p1p2.x() * orth_p1p2.x() + orth_p1p2.y() * orth_p1p2.y());
+            float ea = acosf(orth_p1p2.x() / orth_p1p2_length);
+            if (orth_p1p2.y() < 0) {
+                ea = 2 * M_PI - ea;
+            }
+            if ((sa > ea) && ((sa - ea) < M_PI))
+                anticlockwise = true;
+            if ((sa < ea) && ((ea - sa) > M_PI))
+                anticlockwise = true;
+
+            path.lineTo(t_p1p0.x(), t_p1p0.y());
+
+            addArcToPath(path, p.x(), p.y(), radius, sa, ea, anticlockwise);
+        }
+        else if (cmd == "statistics")
+        {
+            QString label = args[0].toString().simplified();
+
+            static QMap<QString, QElapsedTimer> timer_map;
+            static QMap<QString, QQueue<float> > times_map;
+            static QMap<QString, unsigned> count_map;
+
+            if (!timer_map.contains(label))
+                timer_map.insert(label, QElapsedTimer());
+            if (!times_map.contains(label))
+                times_map.insert(label, QQueue<float>());
+            if (!count_map.contains(label))
+                count_map.insert(label, 0);
+
+            QElapsedTimer &timer = timer_map[label];
+            QQueue<float> &times = times_map[label];
+            unsigned &count = count_map[label];
+
+            if (timer.isValid())
+            {
+                times.enqueue(timer.elapsed() / 1000.0);
+                while (times.length() > 50)
+                    times.dequeue();
+
+                count += 1;
+                if (count == 50)
+                {
+                    float sum = 0.0;
+                    float mn = 9999.0;
+                    float mx = 0.0;
+                    Q_FOREACH(float time, times)
+                    {
+                        sum += time;
+                        mn = qMin(mn, time);
+                        mx = qMax(mx, time);
+                    }
+                    float mean = sum / times.length();
+                    float sum_of_squares = 0.0;
+                    Q_FOREACH(float time, times)
+                    {
+                        sum_of_squares += (time - mean) * (time - mean);
+                    }
+                    float std_dev = sqrt(sum_of_squares / times.length());
+                    qDebug() << label << " fps " << int(100 * (1.0 / mean))/100.0 << " mean " << mean << " dev " << std_dev << " min " << mn << " max " << mx;
+                    count = 0;
+                }
+            }
+
+            timer.restart();
+        }
+        else if (cmd == "image")
+        {
+#if !USE_THRIFT
+            int image_id = args[3].toInt();
+
+            if (image_cache && image_cache->contains(image_id))
+            {
+                (*image_cache)[image_id].used = true;
+                QImage image = (*image_cache)[image_id].image;
+                painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
+            }
+            else
+            {
+                Python_ThreadBlock thread_block;
+
+                // Grab the ndarray
+                PyObject *ndarray_py = QVariantToPyObject(args[2]);
+
+                if (ndarray_py)
+                {
+                    QImage image = PythonSupport::instance()->imageFromArray(ndarray_py);
+
+                    if (!image.isNull())
+                    {
+                        Python_ThreadAllow thread_allow;
+
+                        painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
+                        if (image_cache)
+                        {
+                            PaintImageCacheEntry cache_entry(image_id, true, image);
+                            (*image_cache)[image_id] = cache_entry;
+                        }
+                    }
+
+                    FreePyObject(ndarray_py);
+                }
+            }
+#else
+            int image_id = args[3].toInt();
+
+            if (image_cache && image_cache->contains(image_id))
+            {
+                (*image_cache)[image_id].used = true;
+                QImage image = (*image_cache)[image_id].image;
+                painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
+            }
+            else
+            {
+                int width = args[0].toInt();
+                int height = args[1].toInt();
+                const std::string &data_s = args[2].value<std::string>();
+                QImage image((int)width, (int)height, QImage::Format_ARGB32);
+                for (int row=0; row<height; ++row)
+                    memcpy(image.scanLine(row), ((uint32_t *)data_s.data()) + row*width, width*sizeof(uint32_t));
+
+                painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
+                if (image_cache)
+                {
+                    PaintImageCacheEntry cache_entry(image_id, true, image);
+                    (*image_cache)[image_id] = cache_entry;
+                }
+            }
+#endif
+        }
+        else if (cmd == "stroke")
+        {
+            QPen pen(line_color);
+            pen.setWidthF(line_width);
+            pen.setJoinStyle(line_join);
+            pen.setCapStyle(line_cap);
+            if (line_dash > 0.0)
+            {
+                QVector<qreal> dashes;
+                dashes << line_dash << line_dash;
+                pen.setDashPattern(dashes);
+            }
+            painter.strokePath(path, pen);
+        }
+        else if (cmd == "fill")
+        {
+            QBrush brush = fill_gradient >= 0 ? QBrush(gradients[fill_gradient]) : QBrush(fill_color);
+            painter.fillPath(path, brush);
+        }
+        else if (cmd == "fillStyle")
+        {
+            QString color_arg = args[0].toString().simplified();
+            QRegExp re1("^rgba\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+),\\s*([0-9.]+)\\)$");
+            QRegExp re2("^rgb\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+)\\)$");
+            int pos1 = re1.indexIn(color_arg);
+            int pos2 = re2.indexIn(color_arg);
+            if (pos1 > -1)
+                fill_color = QColor(re1.cap(1).toInt(), re1.cap(2).toInt(), re1.cap(3).toInt(), re1.cap(4).toFloat() * 255);
+            else if (pos2 > -1)
+                fill_color = QColor(re2.cap(1).toInt(), re2.cap(2).toInt(), re2.cap(3).toInt());
+            else
+                fill_color = QColor(color_arg);
+            fill_gradient = -1;
+        }
+        else if (cmd == "fillStyleGradient")
+        {
+            fill_gradient = args[0].toInt();
+        }
+        else if (cmd == "fillText" || cmd == "strokeText")
+        {
+            QString text = args[0].toString();
+            QPointF text_pos(args[1].toFloat(), args[2].toFloat());
+            QFontMetrics fm(text_font);
+            int text_width = fm.width(text);
+            if (text_align == 2 || text_align == 5) // end or right
+                text_pos.setX(text_pos.x() - text_width);
+            else if (text_align == 4) // center
+                text_pos.setX(text_pos.x() - text_width*0.5);
+            if (text_baseline == 1)    // top
+                text_pos.setY(text_pos.y() + fm.ascent());
+            else if (text_baseline == 2)    // hanging
+                text_pos.setY(text_pos.y() + 2 * fm.ascent() - fm.height());
+            else if (text_baseline == 3)    // middle
+                text_pos.setY(text_pos.y() + fm.xHeight() * 0.5);
+            else if (text_baseline == 4 || text_baseline == 5)  // alphabetic or ideographic
+                text_pos.setY(text_pos.y());
+            else if (text_baseline == 5)    // bottom
+                text_pos.setY(text_pos.y() + fm.ascent() - fm.height());
+            QPainterPath path;
+            path.addText(text_pos, text_font, text);
+            if (cmd == "fillText")
+            {
+                QBrush brush = fill_gradient >= 0 ? QBrush(gradients[fill_gradient]) : QBrush(fill_color);
+                painter.fillPath(path, brush);
+            }
+            else
+            {
+                QPen pen(line_color);
+                pen.setWidth(line_width);
+                pen.setJoinStyle(line_join);
+                pen.setCapStyle(line_cap);
+                painter.strokePath(path, pen);
+            }
+        }
+        else if (cmd == "font")
+        {
+            QFont font;
+            QString family;
+            Q_FOREACH(const QString &font_part, args[0].toString().simplified().split(" "))
+            {
+                if (font_part == "italic")
+                    font.setStyle(QFont::StyleItalic);
+                if (font_part == "oblique")
+                    font.setStyle(QFont::StyleOblique);
+                if (font_part == "small-caps")
+                    font.setCapitalization(QFont::SmallCaps);
+                if (font_part == "bold")
+                    font.setWeight(QFont::Bold);
+                if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toInt() > 0)
+                    font.setPixelSize(font_part.left(font_part.length() - 2).toInt());
+                family = font_part;
+            }
+            font.setFamily(family);
+            text_font = font;
+        }
+        else if (cmd == "textAlign")
+        {
+            if (args[0].toString() == "start")
+                text_align = 1;
+            if (args[0].toString() == "end")
+                text_align = 2;
+            if (args[0].toString() == "left")
+                text_align = 3;
+            if (args[0].toString() == "center")
+                text_align = 4;
+            if (args[0].toString() == "right")
+                text_align = 5;
+        }
+        else if (cmd == "textBaseline")
+        {
+            if (args[0].toString() == "top")
+                text_baseline = 1;
+            if (args[0].toString() == "hanging")
+                text_baseline = 2;
+            if (args[0].toString() == "middle")
+                text_baseline = 3;
+            if (args[0].toString() == "alphabetic")
+                text_baseline = 4;
+            if (args[0].toString() == "ideographic")
+                text_baseline = 5;
+            if (args[0].toString() == "bottom")
+                text_baseline = 6;
+        }
+        else if (cmd == "strokeStyle")
+        {
+            line_color = QColor(args[0].toString());
+        }
+        else if (cmd == "lineDash")
+        {
+            line_dash = args[0].toFloat();
+        }
+        else if (cmd == "lineWidth")
+        {
+            line_width = args[0].toFloat();
+        }
+        else if (cmd == "lineCap")
+        {
+            if (args[0].toString() == "square")
+                line_cap = Qt::SquareCap;
+            if (args[0].toString() == "round")
+                line_cap = Qt::RoundCap;
+            if (args[0].toString() == "butt")
+                line_cap = Qt::FlatCap;
+        }
+        else if (cmd == "lineJoin")
+        {
+            if (args[0].toString() == "round")
+                line_join = Qt::RoundJoin;
+            if (args[0].toString() == "miter")
+                line_join = Qt::MiterJoin;
+            if (args[0].toString() == "bevel")
+                line_join = Qt::BevelJoin;
+        }
+        else if (cmd == "gradient")
+        {
+            gradients[args[0].toInt()] = QLinearGradient(args[3].toFloat(), args[4].toFloat(), args[3].toFloat() + args[5].toFloat(), args[4].toFloat() + args[6].toFloat());
+        }
+        else if (cmd == "colorStop")
+        {
+            gradients[args[0].toInt()].setColorAt(args[1].toFloat(), QColor(args[2].toString()));
+        }
+        else if (cmd == "sleep")
+        {
+            unsigned long duration = args[0].toFloat() * 1000000L;
+            QThread::usleep(duration);
+        }
+        else if (cmd == "begin_layer")
+        {
+        }
+        else if (cmd == "end_layer")
+        {
+        }
+        else if (cmd == "draw_layer")
+        {
+        }
+    }
+
+    if (image_cache)
+    {
+        Q_FOREACH(int image_id, image_cache->keys())
+        {
+            if (!(*image_cache)[image_id].used)
+            {
+                image_cache->remove(image_id);
+            }
+        }
+    }
+}
+
+void PyCanvas::paintEvent(QPaintEvent *event)
+{
+    Q_UNUSED(event)
+
+    QPainter painter;
+
+    painter.begin(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    QList<CanvasDrawingCommand> commands;
+
+    {
+        QMutexLocker locker(&m_commands_mutex);
+        commands = m_commands;
+    }
+
+    //QDateTime start = QDateTime::currentDateTime();
+
+    PaintCommands(painter, commands, &m_image_cache);
+#if 0
+    static int frameCount = 0;
+    static float dt = 0.0;
+    static float fps = 0.0;
+    static float updateRate = 1.0;  // 4 updates per sec.
+    static QTime time;
+
+    frameCount++;
+    dt += time.elapsed() / 1000.0;
+    if (dt > 1.0/updateRate)
+    {
+        fps = frameCount / dt ;
+        qDebug() << "pp fps " << fps;
+        frameCount = 0;
+        dt -= 1.0/updateRate;
+    }
+    time.start();
+#endif
+
+    //qDebug() << "Paint " << QDateTime::currentDateTime() << " elapsed " << start.msecsTo(QDateTime::currentDateTime())/1000.0;
+
+    painter.end();
+}
+
+bool PyCanvas::event(QEvent *event)
+{
+    switch (event->type())
+    {
+        case QEvent::Gesture:
+        {
+            QGestureEvent *gesture_event = static_cast<QGestureEvent *>(event);
+            QPanGesture *pan_gesture = static_cast<QPanGesture *>(gesture_event->gesture(Qt::PanGesture));
+            if (pan_gesture)
+            {
+                Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+                if (app->dispatchPyMethod(m_py_object, "panGesture", QVariantList() << pan_gesture->delta().x() << pan_gesture->delta().y()).toBool())
+                    return true;
+#else
+                if (app->callbacks->Canvas_panGesture(m_py_object.value<int64_t>(), pan_gesture->delta().x(), pan_gesture->delta().y()))
+                    return true;
+#endif
+            }
+            QPinchGesture *pinch_gesture = static_cast<QPinchGesture *>(gesture_event->gesture(Qt::PinchGesture));
+            if (pinch_gesture)
+            {
+                qDebug() << "pinch";
+            }
+        } break;
+        default: break;
+    }
+    return QWidget::event(event);
+}
+
+void PyCanvas::enterEvent(QEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "mouseEntered", QVariantList());
+#else
+        app->callbacks->Canvas_mouseEntered(m_py_object.value<int64_t>());
+#endif
+    }
+}
+
+void PyCanvas::leaveEvent(QEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "mouseExited", QVariantList());
+#else
+        app->callbacks->Canvas_mouseExited(m_py_object.value<int64_t>());
+#endif
+    }
+}
+
+void PyCanvas::mousePressEvent(QMouseEvent *event)
+{
+    if (m_py_object.isValid() && event->button() == Qt::LeftButton)
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "mousePressed", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+#else
+        app->callbacks->Canvas_mousePressed(m_py_object.value<int64_t>(), event->x(), event->y(), (int)event->modifiers());
+#endif
+        m_last_pos = event->pos();
+        m_pressed = true;
+    }
+}
+
+void PyCanvas::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (m_py_object.isValid() && event->button() == Qt::LeftButton)
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+#else
+        app->callbacks->Canvas_mouseReleased(m_py_object.value<int64_t>(), event->x(), event->y(), (int)event->modifiers());
+#endif
+        m_pressed = false;
+
+        if ((event->pos() - m_last_pos).manhattanLength() < 6)
+        {
+#if !USE_THRIFT
+            app->dispatchPyMethod(m_py_object, "mouseClicked", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+#else
+            app->callbacks->Canvas_mouseClicked(m_py_object.value<int64_t>(), event->x(), event->y(), (int)event->modifiers());
+#endif
+        }
+    }
+}
+
+void PyCanvas::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (m_py_object.isValid() && event->button() == Qt::LeftButton)
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "mouseDoubleClicked", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+#else
+        app->callbacks->Canvas_mouseDoubleClicked(m_py_object.value<int64_t>(), event->x(), event->y(), (int)event->modifiers());
+#endif
+    }
+}
+
+void PyCanvas::mouseMoveEvent(QMouseEvent *event)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+        if (m_grab_mouse_count > 0)
+        {
+            QPoint reference_point(width()/2,height()/2);
+
+            QPoint delta = event->pos() - reference_point;
+
+#if !USE_THRIFT
+            app->dispatchPyMethod(m_py_object, "grabbedMousePositionChanged", QVariantList() << delta.x() << delta.y() << (int)event->modifiers());
+#else
+            app->callbacks->Canvas_grabbedMousePositionChanged(m_py_object.value<int64_t>(), delta.x(), delta.y(), (int)event->modifiers());
+#endif
+
+            QCursor::setPos(mapToGlobal(reference_point));
+            QApplication::changeOverrideCursor(Qt::BlankCursor);
+        }
+
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "mousePositionChanged", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+#else
+        app->callbacks->Canvas_mousePositionChanged(m_py_object.value<int64_t>(), event->x(), event->y(), (int)event->modifiers());
+#endif
+
+        // handle case of not getting mouse released event after drag.
+        if (m_pressed && !(event->buttons() & Qt::LeftButton))
+        {
+#if !USE_THRIFT
+            app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+#else
+            app->callbacks->Canvas_mouseReleased(m_py_object.value<int64_t>(), event->x(), event->y(), (int)event->modifiers());
+#endif
+            m_pressed = false;
+        }
+    }
+}
+
+void PyCanvas::wheelEvent(QWheelEvent *event)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        QWheelEvent *wheel_event = static_cast<QWheelEvent *>(event);
+        bool is_horizontal = wheel_event->orientation() == Qt::Horizontal;
+        QPoint delta = wheel_event->pixelDelta().isNull() ? wheel_event->angleDelta() : wheel_event->pixelDelta();
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "wheelChanged", QVariantList() << delta.x() << delta.y() << (bool)is_horizontal);
+#else
+        app->callbacks->Canvas_wheelChanged(m_py_object.value<int64_t>(), delta.x(), delta.y(), (bool)is_horizontal);
+#endif
+    }
+}
+
+void PyCanvas::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << event->size().width() << event->size().height());
+#else
+        app->callbacks->Canvas_sizeChanged(m_py_object.value<int64_t>(), event->size().width(), event->size().height());
+#endif
+    }
+}
+
+void PyCanvas::keyPressEvent(QKeyEvent *event)
+{
+    if (event->type() == QEvent::KeyPress)
+    {
+        if (m_py_object.isValid())
+        {
+            Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+            if (app->dispatchPyMethod(m_py_object, "keyPressed", QVariantList() << event->text() << event->key() << (int)event->modifiers()).toBool())
+            {
+                event->accept();
+                return;
+            }
+#else
+            if (app->callbacks->Canvas_keyPressed(m_py_object.value<int64_t>(), event->text().toStdString(), event->key(), (int)event->modifiers()))
+            {
+                event->accept();
+                return;
+            }
+#endif
+        }
+    }
+
+    QWidget::keyPressEvent(event);
+}
+
+void PyCanvas::contextMenuEvent(QContextMenuEvent *event)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    QVariantList args;
+
+    args.push_back(event->pos().x());
+    args.push_back(event->pos().y());
+    args.push_back(event->globalPos().x());
+    args.push_back(event->globalPos().y());
+
+    app->dispatchPyMethod(m_py_object, "contextMenuEvent", args);
+#else
+    GUIPoint pos;
+    GUIPoint global_pos;
+    pos.x = event->pos().x();
+    pos.y = event->pos().y();
+    global_pos.x = event->globalPos().x();
+    global_pos.y = event->globalPos().y();
+    app->callbacks->Widget_contextMenuEvent(m_py_object.value<int64_t>(), pos, global_pos);
+#endif
+}
+
+void PyCanvas::grabMouse0()
+{
+    unsigned grab_mouse_count = m_grab_mouse_count;
+    m_grab_mouse_count += 1;
+    if (grab_mouse_count == 0)
+    {
+        grabMouse();
+        grabKeyboard();
+        QCursor::setPos(mapToGlobal(QPoint(width()/2,height()/2)));
+        QApplication::setOverrideCursor(Qt::BlankCursor);
+    }
+}
+
+void PyCanvas::releaseMouse0()
+{
+    m_grab_mouse_count -= 1;
+    if (m_grab_mouse_count == 0)
+    {
+        releaseMouse();
+        releaseKeyboard();
+        QApplication::restoreOverrideCursor();
+    }
+}
+
+void PyCanvas::setCommands(const QList<CanvasDrawingCommand> &commands)
+{
+    {
+        QMutexLocker locker(&m_commands_mutex);
+        m_commands = commands;
+    }
+
+    QTimer::singleShot(0, this, SLOT(update()));
+}
+
+void PyCanvas::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        QString action = app->dispatchPyMethod(m_py_object, "dragEnterEvent", QVariantList() << QVariant::fromValue((QObject *)event->mimeData())).toString();
+#else
+        std::string action;
+        app->callbacks->Canvas_dragEnter(action, m_py_object.value<int64_t>(), reinterpret_cast<int64_t>(event->mimeData()));
+#endif
+        if (action == "copy")
+        {
+            event->setDropAction(Qt::CopyAction);
+            event->accept();
+        }
+        else if (action == "move")
+        {
+            event->setDropAction(Qt::MoveAction);
+            event->accept();
+        }
+        else if (action == "accept")
+        {
+            event->accept();
+        }
+        else
+        {
+            QWidget::dragEnterEvent(event);
+        }
+    }
+    else
+    {
+        QWidget::dragEnterEvent(event);
+    }
+}
+
+void PyCanvas::dragLeaveEvent(QDragLeaveEvent *event)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        QString action = app->dispatchPyMethod(m_py_object, "dragLeaveEvent", QVariantList()).toString();
+#else
+        std::string action;
+        app->callbacks->Canvas_dragLeave(action, m_py_object.value<int64_t>());
+#endif
+        if (action == "accept")
+        {
+            event->accept();
+        }
+        else
+        {
+            QWidget::dragLeaveEvent(event);
+        }
+    }
+    else
+    {
+        QWidget::dragLeaveEvent(event);
+    }
+}
+
+void PyCanvas::dragMoveEvent(QDragMoveEvent *event)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        QString action = app->dispatchPyMethod(m_py_object, "dragMoveEvent", QVariantList() << QVariant::fromValue((QObject *)event->mimeData()) << event->pos().x() << event->pos().y()).toString();
+#else
+        std::string action;
+        app->callbacks->Canvas_dragMove(action, m_py_object.value<int64_t>(), reinterpret_cast<int64_t>(event->mimeData()), event->pos().x(), event->pos().y());
+#endif
+        if (action == "copy")
+        {
+            event->setDropAction(Qt::CopyAction);
+            event->accept();
+        }
+        else if (action == "move")
+        {
+            event->setDropAction(Qt::MoveAction);
+            event->accept();
+        }
+        else if (action == "accept")
+        {
+            event->accept();
+        }
+        else
+        {
+            QWidget::dragMoveEvent(event);
+        }
+    }
+    else
+    {
+        QWidget::dragMoveEvent(event);
+    }
+}
+
+void PyCanvas::dropEvent(QDropEvent *event)
+{
+    QWidget::dropEvent(event);
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        QString action = app->dispatchPyMethod(m_py_object, "dropEvent", QVariantList() << QVariant::fromValue((QObject *)event->mimeData()) << event->pos().x() << event->pos().y()).toString();
+#else
+        std::string action;
+        app->callbacks->Canvas_drop(action, m_py_object.value<int64_t>(), reinterpret_cast<int64_t>(event->mimeData()), event->pos().x(), event->pos().y());
+#endif
+        if (action == "copy")
+        {
+            event->setDropAction(Qt::CopyAction);
+            event->accept();
+        }
+        else if (action == "move")
+        {
+            event->setDropAction(Qt::MoveAction);
+            event->accept();
+        }
+        else if (action == "accept")
+        {
+            event->accept();
+        }
+        else
+        {
+            QWidget::dropEvent(event);
+        }
+    }
+    else
+    {
+        QWidget::dropEvent(event);
+    }
+}
+
+QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
+{
+    if (intrinsic_id == "row")
+    {
+        QWidget *row = new QWidget();
+        QHBoxLayout *row_layout = new QHBoxLayout(row);
+        row_layout->setContentsMargins(0, 0, 0, 0);
+        row_layout->setSpacing(0);
+        return row;
+    }
+    else if (intrinsic_id == "column")
+    {
+        QWidget *column = new QWidget();
+        QVBoxLayout *column_layout = new QVBoxLayout(column);
+        column_layout->setContentsMargins(0, 0, 0, 0);
+        column_layout->setSpacing(0);
+        return column;
+    }
+    else if (intrinsic_id == "tab")
+    {
+        PyTabWidget *group = new PyTabWidget();
+        group->setTabsClosable(false);
+        group->setMovable(false);
+        QFile stylesheet_file(":/app/stylesheet.qss");
+        if (stylesheet_file.open(QIODevice::ReadOnly))
+        {
+            QString stylesheet = stylesheet_file.readAll();
+            group->setStyleSheet(stylesheet);
+            stylesheet_file.close();
+        }
+        return group;
+    }
+    else if (intrinsic_id == "stack")
+    {
+        QStackedWidget *stack = new QStackedWidget();
+        QFile stylesheet_file(":/app/stylesheet.qss");
+        if (stylesheet_file.open(QIODevice::ReadOnly))
+        {
+            QString stylesheet = stylesheet_file.readAll();
+            stack->setStyleSheet(stylesheet);
+            stylesheet_file.close();
+        }
+        return stack;
+    }
+    else if (intrinsic_id == "scrollarea")
+    {
+        PyScrollArea *scroll_area = new PyScrollArea();
+        // Set up the system wide stylesheet
+        QFile stylesheet_file(":/app/stylesheet.qss");
+        if (stylesheet_file.open(QIODevice::ReadOnly))
+        {
+            scroll_area->setStyleSheet(stylesheet_file.readAll());
+            stylesheet_file.close();
+        }
+        return scroll_area;
+    }
+    else if (intrinsic_id == "splitter")
+    {
+        QSplitter *splitter = new QSplitter();
+        splitter->setOrientation(Qt::Vertical);
+        QFile stylesheet_file(":/app/stylesheet.qss");
+        if (stylesheet_file.open(QIODevice::ReadOnly))
+        {
+            QString stylesheet = stylesheet_file.readAll();
+            splitter->setStyleSheet(stylesheet);
+            stylesheet_file.close();
+        }
+        return splitter;
+    }
+    else if (intrinsic_id == "pushbutton")
+    {
+        PyPushButton *button = new PyPushButton();
+        return button;
+    }
+    else if (intrinsic_id == "checkbox")
+    {
+        PyCheckBox *checkbox = new PyCheckBox();
+        return checkbox;
+    }
+    else if (intrinsic_id == "combobox")
+    {
+        PyComboBox *combobox = new PyComboBox();
+        return combobox;
+    }
+    else if (intrinsic_id == "label")
+    {
+        QLabel *label = new QLabel();
+        return label;
+    }
+    else if (intrinsic_id == "slider")
+    {
+        PySlider *slider = new PySlider();
+        return slider;
+    }
+    else if (intrinsic_id == "lineedit")
+    {
+        PyLineEdit *line_edit = new PyLineEdit();
+        return line_edit;
+    }
+    else if (intrinsic_id == "textedit")
+    {
+        PyTextEdit *text_edit = new PyTextEdit();
+        return text_edit;
+    }
+    else if (intrinsic_id == "canvas")
+    {
+        PyCanvas *canvas = new PyCanvas();
+        return canvas;
+    }
+    else if (intrinsic_id == "pytree")
+    {
+        TreeWidget *data_view = new TreeWidget();
+        data_view->setStyleSheet("QListView { border: none; }");
+        data_view->setHeaderHidden(true);
+
+        QScrollArea *scroll_area = new QScrollArea();
+        scroll_area->setWidgetResizable(true);
+        scroll_area->setWidget(data_view);
+        scroll_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        scroll_area->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+        // Set up the system wide stylesheet
+        QFile stylesheet_file(":/app/stylesheet.qss");
+        if (stylesheet_file.open(QIODevice::ReadOnly))
+        {
+            scroll_area->setStyleSheet(stylesheet_file.readAll());
+            stylesheet_file.close();
+        }
+
+        QWidget *content_view = new QWidget();
+        content_view->setContentsMargins(0, 0, 0, 0);
+        content_view->setStyleSheet("border: none; background-color: transparent");
+        QVBoxLayout *content_view_layout = new QVBoxLayout(content_view);
+        content_view_layout->setContentsMargins(0, 0, 0, 0);
+        content_view_layout->setSpacing(0);
+        content_view_layout->addWidget(scroll_area);
+
+        return content_view;
+    }
+    else if (intrinsic_id == "pylist")
+    {
+        ListWidget *py_list_widget = new ListWidget();
+        py_list_widget->setStyleSheet("QListView { border: none; background-color: transparent; }");
+
+        QScrollArea *scroll_area = new QScrollArea();
+        scroll_area->setWidgetResizable(true);
+        scroll_area->setWidget(py_list_widget);
+        scroll_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        scroll_area->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+        // Set up the system wide stylesheet
+        QFile stylesheet_file(":/app/stylesheet.qss");
+        if (stylesheet_file.open(QIODevice::ReadOnly))
+        {
+            scroll_area->setStyleSheet(stylesheet_file.readAll());
+            stylesheet_file.close();
+        }
+
+        QWidget *content_view = new QWidget();
+        content_view->setContentsMargins(0, 0, 0, 0);
+        content_view->setStyleSheet("border: none");
+        QVBoxLayout *content_view_layout = new QVBoxLayout(content_view);
+        content_view_layout->setContentsMargins(0, 0, 0, 0);
+        content_view_layout->setSpacing(0);
+        content_view_layout->addWidget(scroll_area);
+
+        return content_view;
+    }
+    else if (intrinsic_id == "output")
+    {
+        QTextEdit *output_view = new QTextEdit();
+        output_view->setStyleSheet("border:none; background: white");
+        output_view->setAcceptRichText(false);
+
+        return output_view;
+    }
+    else if (intrinsic_id == "console")
+    {
+        Console *console_view = new Console();
+        console_view->setStyleSheet("border:none; background: black; color: green; font: 12px courier, monospace");
+        console_view->setCmdColor(Qt::green);
+        console_view->setOutColor(Qt::white);
+        console_view->setPrompt(">>> ", true);
+
+        return console_view;
+    }
+
+    return NULL;
+}
+
+QVariant Widget_getWidgetProperty_(QWidget *widget, const QString &property)
+{
+    Q_UNUSED(widget)
+    Q_UNUSED(property)
+
+    return QVariant();
+}
+
+void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const QVariant &variant)
+{
+    if (property == "margin")
+    {
+        int margin = variant.toInt();
+        widget->setContentsMargins(margin, margin, margin, margin);
+    }
+    else if (property == "margin-top")
+    {
+        int value = variant.toInt();
+        QMargins margin = widget->contentsMargins();
+        margin.setTop(value);
+        widget->setContentsMargins(margin);
+    }
+    else if (property == "margin-left")
+    {
+        int value = variant.toInt();
+        QMargins margin = widget->contentsMargins();
+        margin.setLeft(value);
+        widget->setContentsMargins(margin);
+    }
+    else if (property == "margin-bottom")
+    {
+        int value = variant.toInt();
+        QMargins margin = widget->contentsMargins();
+        margin.setBottom(value);
+        widget->setContentsMargins(margin);
+    }
+    else if (property == "margin-right")
+    {
+        int value = variant.toInt();
+        QMargins margin = widget->contentsMargins();
+        margin.setRight(value);
+        widget->setContentsMargins(margin);
+    }
+    else if (property == "min-width")
+    {
+        widget->setMinimumWidth(variant.toInt());
+    }
+    else if (property == "min-height")
+    {
+        widget->setMinimumHeight(variant.toInt());
+    }
+    else if (property == "width")
+    {
+        widget->setMinimumWidth(variant.toInt());
+        widget->setMaximumWidth(variant.toInt());
+    }
+    else if (property == "height")
+    {
+        widget->setMinimumHeight(variant.toInt());
+        widget->setMaximumHeight(variant.toInt());
+    }
+    else if (property == "spacing")
+    {
+        QBoxLayout *layout = dynamic_cast<QBoxLayout *>(widget->layout());
+        if (layout)
+            layout->setSpacing(variant.toInt());
+    }
+    else if (property == "font-size")
+    {
+        QFont font = widget->font();
+        font.setPointSize(variant.toInt());
+        widget->setFont(font);
+    }
+    else if (property == "stylesheet")
+    {
+        widget->setStyleSheet(variant.toString());
+    }
+}
+
+
+// -----------------------------------------------------------
+// PyAction
+// -----------------------------------------------------------
+
+PyAction::PyAction(QObject *parent)
+    : QAction(parent)
+{
+    connect(this, SIGNAL(triggered()), this, SLOT(triggered()));
+}
+
+void PyAction::triggered()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "triggered", QVariantList());
+#else
+        app->callbacks->Action_triggered(m_py_object.value<int64_t>());
+#endif
+    }
+}
+
+// -----------------------------------------------------------
+// Drag
+// -----------------------------------------------------------
+Drag::Drag(QWidget *widget)
+    : QDrag(widget)
+{
+}
+
+void Drag::execute()
+{
+    Qt::DropAction action = exec();
+    QMap<Qt::DropAction, QString> mapping;
+    mapping[Qt::CopyAction] = "copy";
+    mapping[Qt::MoveAction] = "move";
+    mapping[Qt::LinkAction] = "link";
+    mapping[Qt::IgnoreAction] = "ignore";
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+    app->dispatchPyMethod(m_py_object, "dragFinished", QVariantList() << mapping[action]);
+#else
+    app->callbacks->Drag_dragFinished(m_py_object.value<int64_t>(), mapping[action].toStdString());
+#endif
+}
+
+
+// -----------------------------------------------------------
+// PyMenu
+// -----------------------------------------------------------
+
+PyMenu::PyMenu()
+{
+    connect(this, SIGNAL(aboutToShow()), this, SLOT(aboutToShow()));
+    connect(this, SIGNAL(aboutToHide()), this, SLOT(aboutToHide()));
+}
+
+void PyMenu::aboutToShow()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "aboutToShow", QVariantList());
+#else
+        app->callbacks->Menu_aboutToShow(m_py_object.value<int64_t>());
+#endif
+    }
+}
+
+void PyMenu::aboutToHide()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "aboutToHide", QVariantList());
+#else
+        app->callbacks->Menu_aboutToHide(m_py_object.value<int64_t>());
+#endif
+    }
+}
+
+
+// -----------------------------------------------------------
+// TreeWidget
+// -----------------------------------------------------------
+
+TreeWidget::TreeWidget()
+{
+    setAcceptDrops(true);
+    setDropIndicatorShown(true);
+    setDragDropMode(QAbstractItemView::DragDrop);
+    setDefaultDropAction(Qt::MoveAction);
+    setDragEnabled(true);
+
+    connect(this, SIGNAL(clicked(QModelIndex)), this, SLOT(clicked(QModelIndex)));
+    connect(this, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(doubleClicked(QModelIndex)));
+}
+
+void TreeWidget::focusInEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "focusIn", QVariantList());
+#else
+        app->callbacks->Widget_focusIn(m_py_object.value<int64_t>());
+#endif
+    }
+
+    QTreeView::focusInEvent(event);
+}
+
+void TreeWidget::focusOutEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "focusOut", QVariantList());
+#else
+        app->callbacks->Widget_focusOut(m_py_object.value<int64_t>());
+#endif
+    }
+
+    QTreeView::focusOutEvent(event);
+}
+
+void TreeWidget::setModelAndConnect(ItemModel *py_item_model)
+{
+    setModel(py_item_model);
+
+    connect(py_item_model, SIGNAL(modelAboutToBeReset()), this, SLOT(modelAboutToBeReset()));
+    connect(py_item_model, SIGNAL(modelReset()), this, SLOT(modelReset()));
+}
+
+void TreeWidget::keyPressEvent(QKeyEvent *event)
+{
+    if (event->type() == QEvent::KeyPress && handleKey(event->text(), event->key(), event->modifiers()))
+        return;
+
+    QTreeView::keyPressEvent(event);
+}
+
+void TreeWidget::dropEvent(QDropEvent *event)
+{
+    QTreeView::dropEvent(event);
+    if (event->isAccepted())
+    {
+        ItemModel *py_item_model = dynamic_cast<ItemModel *>(model());
+        event->setDropAction(py_item_model->lastDropAction());
+    }
+}
+
+void TreeWidget::currentChanged(const QModelIndex &current, const QModelIndex &previous)
+{
+    QTreeView::currentChanged(current, previous);
+
+    int row = current.row();
+    int parent_row = -1;
+    int parent_id = 0;
+    if (current.parent().isValid())
+    {
+        parent_row = current.parent().row();
+        parent_id = (int)(current.parent().internalId());
+    }
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    app->dispatchPyMethod(m_py_object, "treeItemChanged", QVariantList() << row << parent_row << parent_id);
+#else
+    app->callbacks->TreeWidget_itemChanged(m_py_object.value<int64_t>(), row, parent_row, parent_id);
+#endif
+}
+
+void TreeWidget::selectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
+{
+    // note the parameters passed represent the CHANGES not the new and old selection
+
+    QTreeView::selectionChanged(selected, deselected);
+
+#if !USE_THRIFT
+    QVariantList selected_indexes;
+
+    Q_FOREACH(const QModelIndex &index, selectedIndexes())
+    {
+        int row = index.row();
+        int parent_row = -1;
+        int parent_id = 0;
+        if (index.parent().isValid())
+        {
+            parent_row = index.parent().row();
+            parent_id = (int)(index.parent().internalId());
+        }
+
+        QVariantList selected_index;
+
+        selected_index << row << parent_row << parent_id;
+
+        selected_indexes.push_back(selected_index);
+    }
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    QVariantList args;
+
+    args.push_back(selected_indexes);
+
+    app->dispatchPyMethod(m_py_object, "treeSelectionChanged", args);
+#else
+    std::vector<GUITreeIndex> selected_indexes;
+
+    Q_FOREACH(const QModelIndex &index, selectedIndexes())
+    {
+        int row = index.row();
+        int parent_row = -1;
+        int parent_id = 0;
+        if (index.parent().isValid())
+        {
+            parent_row = index.parent().row();
+            parent_id = (int)(index.parent().internalId());
+        }
+
+        GUITreeIndex selected_index;
+        selected_index.row = row;
+        selected_index.parent_row = parent_row;
+        selected_index.parent_id = parent_id;
+
+        selected_indexes.push_back(selected_index);
+    }
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    app->callbacks->TreeWidget_selectionChanged(m_py_object.value<int64_t>(), selected_indexes);
+#endif
+}
+
+void TreeWidget::modelAboutToBeReset()
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    m_saved_index = currentIndex().row();
+}
+
+void TreeWidget::modelReset()
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    setCurrentIndex(model()->index(m_saved_index, 0));
+}
+
+bool TreeWidget::handleKey(const QString &text, int key, int modifiers)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    QVariantList selected_indexes;
+
+    Q_FOREACH(const QModelIndex &index, selectedIndexes())
+    {
+        int row = index.row();
+        int parent_row = -1;
+        int parent_id = 0;
+        if (index.parent().isValid())
+        {
+            parent_row = index.parent().row();
+            parent_id = (int)(index.parent().internalId());
+        }
+
+        QVariantList selected_index;
+
+        selected_index << row << parent_row << parent_id;
+
+        selected_indexes.push_back(selected_index);
+    }
+
+    if (selected_indexes.size() == 1)
+    {
+        QVariantList selected_index = selected_indexes.at(0).toList();
+        int row = selected_index.at(0).toInt();
+        int parent_row = selected_index.at(1).toInt();
+        int parent_id = selected_index.at(2).toInt();
+        if (app->dispatchPyMethod(m_py_object, "treeItemKeyPressed", QVariantList() << row << parent_row << parent_id << text << key << modifiers).toBool())
+            return true;
+    }
+
+    QVariantList args;
+
+    args.push_back(selected_indexes);
+    args.push_back(text);
+    args.push_back(key);
+    args.push_back(modifiers);
+
+    return app->dispatchPyMethod(m_py_object, "keyPressed", args).toBool();
+#else
+    std::vector<GUITreeIndex> selected_indexes;
+
+    Q_FOREACH(const QModelIndex &index, selectedIndexes())
+    {
+        int row = index.row();
+        int parent_row = -1;
+        int parent_id = 0;
+        if (index.parent().isValid())
+        {
+            parent_row = index.parent().row();
+            parent_id = (int)(index.parent().internalId());
+        }
+
+        GUITreeIndex selected_index;
+        selected_index.row = row;
+        selected_index.parent_row = parent_row;
+        selected_index.parent_id = parent_id;
+
+        selected_indexes.push_back(selected_index);
+    }
+
+    if (selected_indexes.size() == 1)
+    {
+        int row = selected_indexes[0].row;
+        int parent_row = selected_indexes[0].parent_row;
+        int parent_id = selected_indexes[0].parent_id;
+        if (app->callbacks->TreeWidget_itemKeyPressed(m_py_object.value<int64_t>(), row, parent_row, parent_id, text.toStdString(), key, modifiers))
+            return true;
+    }
+
+    return app->callbacks->TreeWidget_keyPressed(m_py_object.value<int64_t>(), selected_indexes, text.toStdString(), key, modifiers);
+#endif
+}
+
+void TreeWidget::clicked(const QModelIndex &index)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    int row = index.row();
+    int parent_row = -1;
+    int parent_id = 0;
+    if (index.parent().isValid())
+    {
+        parent_row = index.parent().row();
+        parent_id = (int)(index.parent().internalId());
+    }
+
+#if !USE_THRIFT
+    app->dispatchPyMethod(m_py_object, "treeItemClicked", QVariantList() << row << parent_row << parent_id);
+#else
+    app->callbacks->TreeWidget_itemClicked(m_py_object.value<int64_t>(), row, parent_row, parent_id);
+#endif
+}
+
+void TreeWidget::doubleClicked(const QModelIndex &index)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    int row = index.row();
+    int parent_row = -1;
+    int parent_id = 0;
+    if (index.parent().isValid())
+    {
+        parent_row = index.parent().row();
+        parent_id = (int)(index.parent().internalId());
+    }
+
+#if !USE_THRIFT
+    app->dispatchPyMethod(m_py_object, "treeItemDoubleClicked", QVariantList() << row << parent_row << parent_id);
+#else
+    app->callbacks->TreeWidget_itemDoubleClicked(m_py_object.value<int64_t>(), row, parent_row, parent_id);
+#endif
+}
+
+
+// -----------------------------------------------------------
+// ItemModel
+// -----------------------------------------------------------
+
+ItemModel::ItemModel(const QStringList &role_names, QObject *parent)
+    : QAbstractItemModel(parent)
+    , m_last_drop_action(Qt::IgnoreAction)
+{
+    int role = Qt::UserRole + 1;
+    Q_FOREACH(const QString &role_name, role_names)
+    {
+        m_role_names.insert(role, role_name.toUtf8());
+        ++role;
+    }
+}
+
+QHash<int, QByteArray> ItemModel::roleNames() const
+{
+    return m_role_names;
+}
+
+Qt::DropActions ItemModel::supportedDropActions() const
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    return Qt::DropActions(app->dispatchPyMethod(m_py_object, "supportedDropActions", QVariantList()).toInt());
+#else
+    return (Qt::DropActions)app->callbacks->ItemModel_getSupportedDropActions(m_py_object.value<int64_t>());
+#endif
+}
+
+int ItemModel::columnCount(const QModelIndex &parent) const
+{
+    Q_UNUSED(parent)
+
+    return 1;
+}
+
+int ItemModel::rowCount(const QModelIndex &parent) const
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    return app->dispatchPyMethod(m_py_object, "itemCount", QVariantList() << parent.internalId()).toUInt();
+#else
+    return app->callbacks->ItemModel_getItemCount(m_py_object.value<int64_t>(), parent.internalId());
+#endif
+}
+
+// All (id=1, parent=0, row=0)
+//   Checker (id=11, parent=1, row=0)
+//   Green (id=12, parent=1, row=1)
+//   Simulator (id=13, parent=1 row=2)
+// Some (id=2, parent=0, row=1)
+//   Checker (id=21, parent=2, row=0)
+//   Green (id=22, parent=2, row=1)
+
+QModelIndex ItemModel::index(int row, int column, const QModelIndex &parent) const
+{
+    Q_UNUSED(column)
+
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    //qDebug() << "ItemModel::index " << row << "," << parent;
+    // ItemModel::index  1 , QModelIndex(-1,-1,0x0,QObject(0x0) )
+    // -> QModelIndex(1,0,0x2,ItemModel(0x10f40b7d0
+
+    if (parent.isValid() && parent.column() != 0)
+        return QModelIndex();
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    int item_id = app->dispatchPyMethod(m_py_object, "itemId", QVariantList() << row << parent.internalId()).toUInt();
+#else
+    int item_id = app->callbacks->ItemModel_getItemId(m_py_object.value<int64_t>(), row, parent.internalId());
+#endif
+
+    if (row >= 0)
+        return createIndex(row, 0, (quint32)item_id);
+    return QModelIndex();
+}
+
+QModelIndex ItemModel::parent(const QModelIndex &index) const
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    QVariantList result = app->dispatchPyMethod(m_py_object, "itemParent", QVariantList() << index.row() << index.internalId()).toList();
+
+    int row = result[0].toInt();
+    int item_id = result[1].toInt();
+#else
+    GUIItemSpecifier result;
+    app->callbacks->ItemModel_getItemParent(result, m_py_object.value<int64_t>(), index.row(), index.internalId());
+
+    int row = result.row;
+    int item_id = result.item_id;
+#endif
+
+    if (row >= 0)
+        return createIndex(row, 0, (qint32)item_id);
+    return QModelIndex();
+}
+
+Qt::ItemFlags ItemModel::flags(const QModelIndex &index) const
+{
+    Qt::ItemFlags default_flags = QAbstractItemModel::flags(index);
+
+    if (index.isValid())
+        return default_flags | Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled | Qt::ItemIsEnabled;
+    else
+        return default_flags | Qt::ItemIsDropEnabled;
+}
+
+QVariant ItemModel::data(const QModelIndex &index, int role) const
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    QString role_name;
+    if (role == Qt::DisplayRole)
+        role_name = "display";
+    else if (role == Qt::EditRole)
+        role_name = "edit";
+    else if (m_role_names.contains(role))
+        role_name = m_role_names.value(role);
+    else
+        role_name = "unknown";
+
+    //qDebug() << "ItemModel::data " << role_name << ":" << index;
+
+    switch (role)
+    {
+        case Qt::DisplayRole:
+        case Qt::EditRole:
+        {
+            if (index.column() == 0)
+            {
+#if !USE_THRIFT
+                return app->dispatchPyMethod(m_py_object, "itemValue", QVariantList() << role_name << index.row() << index.internalId());
+#else
+                std::string result;
+                app->callbacks->ItemModel_getItemValue(result, m_py_object.value<int64_t>(), role_name.toStdString(), index.row(), index.internalId());
+                return QString::fromStdString(result);
+#endif
+            }
+        } break;
+#if 0
+        case Qt::DecorationRole: {
+            QImage pixmap(16, 1, QImage::Format_Mono);
+            pixmap.fill(0);
+            pixmap.setAlphaChannel(pixmap.createAlphaMask());
+            return pixmap;
+        } break;
+        case Qt::FontRole: {
+            if (index.column() == 0)
+            {
+#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
+                QFont font("Arial", 9);
+#endif
+#if defined(Q_OS_MAC)
+                QFont font("Lucida", 11);
+#endif
+                return font;
+            }
+        } break;
+#endif
+    }
+
+    return QVariant(); // QAbstractListModel::data(index, role);
+}
+
+bool ItemModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (role != Qt::EditRole)
+        return false;
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    int row = index.row();
+    int parent_row = -1;
+    int parent_id = 0;
+    if (index.parent().isValid())
+    {
+        parent_row = index.parent().row();
+        parent_id = (int)(index.parent().internalId());
+    }
+
+#if !USE_THRIFT
+    bool result = app->dispatchPyMethod(m_py_object, "itemSetData", QVariantList() << row << parent_row << parent_id << value).toBool();
+#else
+    bool result = app->callbacks->ItemModel_setItemValue(m_py_object.value<int64_t>(), row, parent_row, parent_id, value.toString().toStdString());
+#endif
+
+    if (result)
+        Q_EMIT dataChanged(index, index);
+
+    return result;
+}
+
+QStringList ItemModel::mimeTypes() const
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    return app->dispatchPyMethod(m_py_object, "mimeTypesForDrop", QVariantList()).toStringList();
+#else
+    std::vector<std::string> mime_types_s;
+    app->callbacks->ItemModel_getMimeTypesForDrop(mime_types_s, m_py_object.value<int64_t>());
+    QStringList mime_types;
+    Q_FOREACH(const std::string &s, mime_types_s)
+        mime_types.append(QString::fromStdString(s));
+    return mime_types;
+#endif
+}
+
+QMimeData *ItemModel::mimeData(const QModelIndexList &indexes) const
+{
+    // simplifying assumption for now
+    if (indexes.size() != 1)
+        return NULL;
+
+    QModelIndex index = indexes[0];
+
+    int row = index.row();
+    int parent_row = -1;
+    int parent_id = 0;
+    if (index.parent().isValid())
+    {
+        parent_row = index.parent().row();
+        parent_id = (int)(index.parent().internalId());
+    }
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    QVariant v_mime_data = app->dispatchPyMethod(m_py_object, "itemMimeData", QVariantList() << row << parent_row << parent_id);
+
+    if (v_mime_data.isNull())
+        return NULL;
+
+    QMimeData *mime_data = *(QMimeData **)v_mime_data.constData();
+
+    return mime_data;
+#else
+    return reinterpret_cast<QMimeData *>(app->callbacks->ItemModel_getItemMimeData(m_py_object.value<int64_t>(), row, parent_row, parent_id));
+#endif
+}
+
+bool ItemModel::canDropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) const
+{
+    Q_UNUSED(data)
+    Q_UNUSED(action)
+    Q_UNUSED(row)
+    Q_UNUSED(column)
+    Q_UNUSED(parent)
+
+    // see https://bugreports.qt-project.org/browse/QTBUG-32362
+    return false;
+}
+
+bool ItemModel::dropMimeData(const QMimeData *mime_data, Qt::DropAction action, int row, int column, const QModelIndex &parent)
+{
+    if (action == Qt::IgnoreAction)
+        return true;
+
+    if (column > 0)
+        return false;
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    int parent_row = -1;
+    int parent_id = 0;
+    if (parent.isValid())
+    {
+        parent_row = parent.row();
+        parent_id = (int)(parent.internalId());
+    }
+
+#if !USE_THRIFT
+    QVariantList args;
+
+    args << QVariant::fromValue((QObject *)mime_data) << (int)action << row << parent_row << parent_id;
+
+    Qt::DropAction drop_action = (Qt::DropAction)app->dispatchPyMethod(m_py_object, "itemDropMimeData", args).toInt();
+#else
+    Qt::DropAction drop_action = (Qt::DropAction)app->callbacks->ItemModel_dropMimeData(m_py_object.value<int64_t>(), reinterpret_cast<int64_t>(mime_data), (int)action, row, parent_row, parent_id);
+#endif
+
+    m_last_drop_action = drop_action;
+
+    return drop_action != Qt::IgnoreAction;
+}
+
+void ItemModel::beginInsertRowsInParent(int first_row, int last_row, int parent_row, int parent_item_id)
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    QModelIndex parent = parent_row < 0 ? QModelIndex() : createIndex(parent_row, 0, (quint32)parent_item_id);
+
+    beginInsertRows(parent, first_row, last_row);
+}
+
+void ItemModel::beginRemoveRowsInParent(int first_row, int last_row, int parent_row, int parent_item_id)
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    QModelIndex parent = parent_row < 0 ? QModelIndex() : createIndex(parent_row, 0, (quint32)parent_item_id);
+
+    beginRemoveRows(parent, first_row, last_row);
+}
+
+void ItemModel::endInsertRowsInParent()
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    endInsertRows();
+}
+
+void ItemModel::endRemoveRowsInParent()
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    endRemoveRows();
+}
+
+bool ItemModel::removeRows(int row, int count, const QModelIndex &parent)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    int parent_row = parent.row();
+    int parent_id = (int)(parent.internalId());
+
+#if !USE_THRIFT
+    return app->dispatchPyMethod(m_py_object, "removeRows", QVariantList() << row << count << parent_row << parent_id).toBool();
+#else
+    return app->callbacks->ItemModel_removeRows(m_py_object.value<int64_t>(), row, count, parent_row, parent_id);
+#endif
+}
+
+void ItemModel::dataChangedInParent(int row, int parent_row, int parent_item_id)
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    QModelIndex parent = parent_row < 0 ? QModelIndex() : createIndex(parent_row, 0, (quint32)parent_item_id);
+
+    Q_EMIT dataChanged(index(row, 0, parent), index(row, 0, parent));
+}
+
+QModelIndex ItemModel::indexInParent(int row, int parent_row, int parent_item_id)
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    QModelIndex parent = parent_row < 0 ? QModelIndex() : createIndex(parent_row, 0, (quint32)parent_item_id);
+
+    return index(row, 0, parent);
+}
+
+
+// -----------------------------------------------------------
+// ListWidget
+// -----------------------------------------------------------
+
+ListWidget::ListWidget()
+{
+    setAcceptDrops(true);
+    setDropIndicatorShown(true);
+    setDragDropMode(QAbstractItemView::DragDrop);
+    setDefaultDropAction(Qt::MoveAction);
+    setDragEnabled(true);
+
+    connect(this, SIGNAL(clicked(QModelIndex)), this, SLOT(clicked(QModelIndex)));
+    connect(this, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(doubleClicked(QModelIndex)));
+}
+
+void ListWidget::focusInEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "focusIn", QVariantList());
+#else
+        app->callbacks->Widget_focusIn(m_py_object.value<int64_t>());
+#endif
+    }
+
+    QListView::focusInEvent(event);
+}
+
+void ListWidget::focusOutEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "focusOut", QVariantList());
+#else
+        app->callbacks->Widget_focusOut(m_py_object.value<int64_t>());
+#endif
+    }
+
+    QListView::focusOutEvent(event);
+}
+
+void ListWidget::setModelAndConnect(ListModel *py_list_model)
+{
+    setModel(py_list_model);
+
+    connect(py_list_model, SIGNAL(modelAboutToBeReset()), this, SLOT(modelAboutToBeReset()));
+    connect(py_list_model, SIGNAL(modelReset()), this, SLOT(modelReset()));
+}
+
+void ListWidget::keyPressEvent(QKeyEvent *event)
+{
+    if (event->type() == QEvent::KeyPress && handleKey(event->text(), event->key(), event->modifiers()))
+        return;
+
+    QListView::keyPressEvent(event);
+}
+
+void ListWidget::dropEvent(QDropEvent *event)
+{
+    QListView::dropEvent(event);
+    if (event->isAccepted())
+    {
+        ListModel *py_list_model = dynamic_cast<ListModel *>(model());
+        event->setDropAction(py_list_model->lastDropAction());
+    }
+}
+
+void ListWidget::currentChanged(const QModelIndex &current, const QModelIndex &previous)
+{
+    QListView::currentChanged(current, previous);
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    int row = current.row();
+
+#if !USE_THRIFT
+    app->dispatchPyMethod(m_py_object, "listItemChanged", QVariantList() << row);
+#else
+    app->callbacks->ListWidget_itemChanged(m_py_object.value<int64_t>(), row);
+#endif
+}
+
+void ListWidget::selectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
+{
+    // note the parameters passed represent the CHANGES not the new and old selection
+
+    QListView::selectionChanged(selected, deselected);
+
+#if !USE_THRIFT
+    QVariantList selected_indexes;
+
+    Q_FOREACH(const QModelIndex &index, selectedIndexes())
+    {
+        selected_indexes.push_back(index.row());
+    }
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    QVariantList args;
+
+    args.push_back(selected_indexes);
+
+    app->dispatchPyMethod(m_py_object, "listSelectionChanged", args);
+#else
+    std::vector<int> selected_indexes;
+
+    Q_FOREACH(const QModelIndex &index, selectedIndexes())
+    {
+        selected_indexes.push_back(index.row());
+    }
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    app->callbacks->ListWidget_selectionChanged(m_py_object.value<int64_t>(), selected_indexes);
+#endif
+}
+
+void ListWidget::contextMenuEvent(QContextMenuEvent *event)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    QVariantList args;
+
+    args.push_back(event->pos().x());
+    args.push_back(event->pos().y());
+    args.push_back(event->globalPos().x());
+    args.push_back(event->globalPos().y());
+
+    app->dispatchPyMethod(m_py_object, "contextMenuEvent", args);
+#else
+    GUIPoint pos;
+    GUIPoint global_pos;
+    pos.x = event->pos().x();
+    pos.y = event->pos().y();
+    global_pos.x = event->globalPos().x();
+    global_pos.y = event->globalPos().y();
+    app->callbacks->Widget_contextMenuEvent(m_py_object.value<int64_t>(), pos, global_pos);
+#endif
+}
+
+void ListWidget::modelAboutToBeReset()
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    m_saved_index = currentIndex().row();
+}
+
+void ListWidget::modelReset()
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    setCurrentIndex(model()->index(m_saved_index, 0));
+}
+
+bool ListWidget::handleKey(const QString &text, int key, int modifiers)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    QVariantList selected_indexes;
+
+    Q_FOREACH(const QModelIndex &index, selectedIndexes())
+    {
+        selected_indexes.push_back(index.row());
+    }
+
+    if (selected_indexes.size() == 1)
+    {
+        if (app->dispatchPyMethod(m_py_object, "listItemKeyPressed", QVariantList() << selected_indexes[0] << text << key << modifiers).toBool())
+            return true;
+    }
+
+    QVariantList args;
+
+    args.push_back(selected_indexes);
+    args.push_back(text);
+    args.push_back(key);
+    args.push_back(modifiers);
+
+    return app->dispatchPyMethod(m_py_object, "keyPressed", args).toBool();
+#else
+    std::vector<int> selected_indexes;
+
+    Q_FOREACH(const QModelIndex &index, selectedIndexes())
+    {
+        selected_indexes.push_back(index.row());
+    }
+
+    if (selected_indexes.size() == 1)
+    {
+        if (app->callbacks->ListWidget_itemKeyPressed(m_py_object.value<int64_t>(), selected_indexes[0], text.toStdString(), (int)key, modifiers))
+            return true;
+    }
+
+    return app->callbacks->ListWidget_keyPressed(m_py_object.value<int64_t>(), selected_indexes, text.toStdString(), key, modifiers);
+#endif
+}
+
+void ListWidget::clicked(const QModelIndex &index)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    int row = index.row();
+
+#if !USE_THRIFT
+    app->dispatchPyMethod(m_py_object, "listItemClicked", QVariantList() << row);
+#else
+    app->callbacks->ListWidget_itemClicked(m_py_object.value<int64_t>(), row);
+#endif
+}
+
+void ListWidget::doubleClicked(const QModelIndex &index)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    int row = index.row();
+
+#if !USE_THRIFT
+    app->dispatchPyMethod(m_py_object, "listItemDoubleClicked", QVariantList() << row);
+#else
+    app->callbacks->ListWidget_itemDoubleClicked(m_py_object.value<int64_t>(), row);
+#endif
+}
+
+// -----------------------------------------------------------
+// PyDrawingContext
+// -----------------------------------------------------------
+
+PyDrawingContext::PyDrawingContext(QPainter *painter)
+    : m_painter(painter)
+{
+}
+
+void PyDrawingContext::paintCommands(const QList<CanvasDrawingCommand> &commands)
+{
+    PaintCommands(*m_painter, commands, &m_image_cache);
+}
+
+// -----------------------------------------------------------
+// PyStyledItemDelegate
+// -----------------------------------------------------------
+
+PyStyledItemDelegate::PyStyledItemDelegate()
+{
+}
+
+void PyStyledItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    QStyleOptionViewItem option_copy(option);
+    option_copy.text = QString();
+    const QWidget *widget = option.widget;
+    QStyle *style = widget ? widget->style() : QApplication::style();
+    style->drawControl(QStyle::CE_ItemViewItem, &option_copy, painter, widget);
+
+    painter->save();
+    painter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
+
+    if (m_py_object.isValid())
+    {
+        PyDrawingContext *dc = new PyDrawingContext(painter);
+        // NOTE: dc is based on painter which is passed to this method. it is only valid during this method call.
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        QVariantMap rect_vm;
+        rect_vm["top"] = option.rect.top();
+        rect_vm["left"] = option.rect.left();
+        rect_vm["width"] = option.rect.width();
+        rect_vm["height"] = option.rect.height();
+        QVariantMap index_vm;
+        int row = index.row();
+        int parent_row = -1;
+        int parent_id = 0;
+        if (index.parent().isValid())
+        {
+            parent_row = index.parent().row();
+            parent_id = (int)(index.parent().internalId());
+        }
+        index_vm["row"] = row;
+        index_vm["parent_row"] = parent_row;
+        index_vm["parent_id"] = parent_id;
+        QVariantMap paint_info;
+        paint_info["rect"] = rect_vm;
+        paint_info["index"] = index_vm;
+        app->dispatchPyMethod(m_py_object, "paint", QVariantList() << QVariant::fromValue((QObject *)dc) << paint_info);
+#else
+        GUIRect rect;
+        rect.top = option.rect.top();
+        rect.left = option.rect.left();
+        rect.width = option.rect.width();
+        rect.height = option.rect.height();
+        GUITreeIndex tree_index;
+        int row = index.row();
+        int parent_row = -1;
+        int parent_id = 0;
+        if (index.parent().isValid())
+        {
+            parent_row = index.parent().row();
+            parent_id = (int)(index.parent().internalId());
+        }
+        tree_index.row = row;
+        tree_index.parent_row = parent_row;
+        tree_index.parent_id = parent_id;
+        GUIPaintInfo paint_info;
+        paint_info.rect = rect;
+        paint_info.index = tree_index;
+        app->callbacks->StyledItemDelegate_paint(m_py_object.value<int64_t>(), reinterpret_cast<int64_t>(dc), paint_info);
+#endif
+        delete dc;
+    }
+
+    painter->restore();
+}
+
+QSize PyStyledItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    Q_UNUSED(option)
+
+    int row = index.row();
+    int parent_row = -1;
+    int parent_id = 0;
+    if (index.parent().isValid())
+    {
+        parent_row = index.parent().row();
+        parent_id = (int)(index.parent().internalId());
+    }
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    QVariant result = app->dispatchPyMethod(m_py_object, "sizeHint", QVariantList() << row << parent_row << parent_id);
+
+    QVariantList result_list = result.toList();
+
+    return QSize(result_list[0].toInt(), result_list[1].toInt());
+#else
+    GUISize result;
+    app->callbacks->StyledItemDelegate_sizeHint(result, m_py_object.value<int64_t>(), row, parent_row, parent_id);
+    return QSize(result.width, result.height);
+#endif
+}
+
+
+// -----------------------------------------------------------
+// ListModel
+// -----------------------------------------------------------
+
+ListModel::ListModel(const QStringList &role_names, QObject *parent)
+    : QAbstractListModel(parent)
+    , m_last_drop_action(Qt::IgnoreAction)
+    , m_row_count(0)
+{
+    int role = Qt::UserRole + 1;
+    Q_FOREACH(const QString &role_name, role_names)
+    {
+        m_role_names.insert(role, role_name.toUtf8());
+        ++role;
+    }
+}
+
+ListModel::~ListModel()
+{
+}
+
+QHash<int, QByteArray> ListModel::roleNames() const
+{
+    return m_role_names;
+}
+
+Qt::DropActions ListModel::supportedDropActions() const
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    return Qt::DropActions(app->dispatchPyMethod(m_py_object, "supportedDropActions", QVariantList()).toInt());
+#else
+    return (Qt::DropActions)app->callbacks->ListModel_getSupportedDropActions(m_py_object.value<int64_t>());
+#endif
+}
+
+int ListModel::columnCount(const QModelIndex &parent) const
+{
+    Q_UNUSED(parent)
+
+    return 1;
+}
+
+int ListModel::rowCount(const QModelIndex &parent) const
+{
+    Q_UNUSED(parent)
+
+#if 1  // use internal row_count
+    return m_row_count;
+#else  // use internal row_count
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    return app->dispatchPyMethod(m_py_object, "itemCount", QVariantList()).toUInt();
+#else
+    return app->callbacks->ListModel_getItemCount(m_py_object.value<int64_t>());
+#endif
+#endif  // use internal row_count
+}
+
+Qt::ItemFlags ListModel::flags(const QModelIndex &index) const
+{
+    Qt::ItemFlags default_flags = QAbstractListModel::flags(index);
+
+    if (index.isValid())
+    {
+        return default_flags | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled | Qt::ItemIsEnabled;
+    }
+    else
+        return default_flags | Qt::ItemIsDropEnabled;
+}
+
+QVariant ListModel::data(const QModelIndex &index, int role) const
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    QString role_name;
+    if (role == Qt::DisplayRole)
+        role_name = "display";
+    else if (role == Qt::EditRole)
+        role_name = "edit";
+    else if (m_role_names.contains(role))
+        role_name = m_role_names.value(role);
+    else
+        role_name = "unknown";
+
+    if (role == Qt::DisplayRole)
+    {
+#if !USE_THRIFT
+        return app->dispatchPyMethod(m_py_object, "itemValue", QVariantList() << role_name << index.row());
+#else
+        std::string result;
+        app->callbacks->ListModel_getItemValue(result, m_py_object.value<int64_t>(), role_name.toStdString(), index.row());
+        return QString::fromStdString(result);
+#endif
+    }
+
+    return QVariant();
+}
+
+QStringList ListModel::mimeTypes() const
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    return app->dispatchPyMethod(m_py_object, "mimeTypesForDrop", QVariantList()).toStringList();
+#else
+    std::vector<std::string> mime_types_s;
+    app->callbacks->ListModel_getMimeTypesForDrop(mime_types_s, m_py_object.value<int64_t>());
+    QStringList mime_types;
+    Q_FOREACH(const std::string &s, mime_types_s)
+    mime_types.append(QString::fromStdString(s));
+    return mime_types;
+#endif
+}
+
+QMimeData *ListModel::mimeData(const QModelIndexList &indexes) const
+{
+    // simplifying assumption for now
+    if (indexes.size() != 1)
+        return NULL;
+
+    QModelIndex index = indexes[0];
+
+    int row = index.row();
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    QVariant v_mime_data = app->dispatchPyMethod(m_py_object, "itemMimeData", QVariantList() << row);
+
+    if (v_mime_data.isNull())
+        return NULL;
+
+    QMimeData *mime_data = *(QMimeData **)v_mime_data.constData();
+
+    return mime_data;
+#else
+    return reinterpret_cast<QMimeData *>(app->callbacks->ListModel_getItemMimeData(m_py_object.value<int64_t>(), row));
+#endif
+}
+
+bool ListModel::canDropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) const
+{
+    Q_UNUSED(data)
+    Q_UNUSED(action)
+    Q_UNUSED(parent)
+    Q_UNUSED(column)
+    Q_UNUSED(row)
+
+    // see https://bugreports.qt-project.org/browse/QTBUG-32362
+    return false;
+}
+
+bool ListModel::dropMimeData(const QMimeData *mime_data, Qt::DropAction action, int row, int column, const QModelIndex &parent)
+{
+    if (action == Qt::IgnoreAction)
+        return true;
+
+    if (column > 0)
+        return false;
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    // parent row allows clients to distinguish between dropping on or between rows
+    int parent_row = -1;
+    if (parent.isValid())
+        parent_row = parent.row();
+
+#if !USE_THRIFT
+    QVariantList args;
+
+    args << QVariant::fromValue((QObject *)mime_data) << (int)action << row << parent_row;
+
+    Qt::DropAction drop_action = (Qt::DropAction)app->dispatchPyMethod(m_py_object, "itemDropMimeData", args).toInt();
+#else
+    Qt::DropAction drop_action = (Qt::DropAction)app->callbacks->ListModel_dropMimeData(m_py_object.value<int64_t>(), reinterpret_cast<int64_t>(mime_data), (int)action, row, parent_row);
+#endif
+
+    m_last_drop_action = drop_action;
+
+    return drop_action != Qt::IgnoreAction;
+}
+
+void ListModel::beginInsertRowsInList(int first_row, int last_row)
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    beginInsertRows(QModelIndex(), first_row, last_row);
+    m_row_count += last_row - first_row + 1;
+}
+
+void ListModel::beginRemoveRowsInList(int first_row, int last_row)
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    beginRemoveRows(QModelIndex(), first_row, last_row);
+    m_row_count -= last_row - first_row + 1;
+}
+
+void ListModel::endInsertRowsInList()
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    endInsertRows();
+}
+
+void ListModel::endRemoveRowsInList()
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    endRemoveRows();
+}
+
+bool ListModel::removeRows(int row, int count, const QModelIndex &parent)
+{
+    Q_UNUSED(parent)
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    return app->dispatchPyMethod(m_py_object, "removeRows", QVariantList() << row << count).toBool();
+#else
+    return app->callbacks->ListModel_removeRows(m_py_object.value<int64_t>(), row, count);
+#endif
+}
+
+void ListModel::dataChangedInList()
+{
+    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
+    int rows = rowCount(QModelIndex());
+    Q_EMIT dataChanged(index(0,0), index(rows-1, 0));
+}
+
+
+// -----------------------------------------------------------
+// Console
+// -----------------------------------------------------------
+
+Console::Console(QWidget *parent)
+    : QConsole(parent)
+{
+    setAcceptDrops(true);
+}
+
+QString Console::interpretCommand(const QString &command, int *error_code)
+{
+    QConsole::interpretCommand(command, error_code);
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+#if !USE_THRIFT
+    QVariantList results = app->dispatchPyMethod(m_py_object, "interpretCommand", QVariantList() << command).toList();
+    QString result = results[0].toString();
+    *error_code = results[1].toInt();
+    QString prompt = results[2].toString();
+#else
+    GUIInterpretCommandResult results;
+    app->callbacks->Console_interpretCommand(results, m_py_object.value<int64_t>(), command.toStdString());
+    QString result = QString::fromStdString(results.result);
+    *error_code = results.error_code;
+    QString prompt = QString::fromStdString(results.prompt);
+#endif
+    setPrompt(prompt, false);
+    return result;
+}
+
+void Console::insertFromStringList(const QStringList &lines)
+{
+    Q_FOREACH(const QString &line, lines)
+    {
+        execCommand(line, true, true);
+    }
+}
+
+void Console::insertFromMimeData(const QMimeData *source)
+{
+    QString text = source->text();
+
+    QStringList lines = text.split(QRegExp("[\r\n]"),QString::KeepEmptyParts);
+    QString last_line;
+    Q_FOREACH(const QString &line, lines)
+    {
+        if (!last_line.isEmpty())
+            execCommand(last_line, true, true);
+        last_line = line;
+    }
+    if (!last_line.isEmpty())
+        insertPlainText(last_line);
+}
+
+bool Console::isInEditionZone2() const
+{
+    const int para = textCursor().blockNumber();
+    const int index = textCursor().columnNumber();
+    return (para > promptParagraph) || ( (para == promptParagraph) && (index >= promptLength) );
+}
+
+bool Console::isInEditionZone2(const int& pos) const
+{
+    QTextCursor cur = textCursor();
+    cur.setPosition(pos);
+    const int para = cur.blockNumber();
+    const int index = cur.columnNumber();
+    return (para > promptParagraph) || ( (para == promptParagraph) && (index >= promptLength) );
+}
+
+void Console::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (event->mimeData()->hasFormat("text/plain"))
+        event->acceptProposedAction();
+    else if (event->mimeData()->hasUrls())
+        event->acceptProposedAction();
+    else
+        QConsole::dragEnterEvent(event);
+}
+
+void Console::dragMoveEvent(QDragMoveEvent *event)
+{
+    if (event->mimeData()->hasFormat("text/plain"))
+        event->acceptProposedAction();
+    else if (event->mimeData()->hasUrls())
+        event->acceptProposedAction();
+    else
+    {
+        // QConsole::dragMoveEvent(event); // bad programmers don't know how to override properly
+        // Get a cursor for the actual mouse position
+        QTextCursor cur = textCursor();
+        cur.setPosition(cursorForPosition(event->pos()).position());
+
+        if (!isInEditionZone2(cursorForPosition(event->pos()).position()))
+        {
+            //Ignore the event if out of the editable zone
+            event->ignore(cursorRect(cur));
+        }
+        else
+        {
+            //Accept the event if out of the editable zone
+            event->accept(cursorRect(cur));
+        }
+    }
+}
+
+void Console::dropEvent(QDropEvent *drop_event)
+{
+    const QMimeData *mime_data = drop_event->mimeData();
+
+    if (drop_event->mimeData()->hasUrls())
+    {
+        QList<QUrl> urls = mime_data->urls();
+
+        QStringList file_paths;
+
+        Q_FOREACH(const QUrl &url, urls)
+        {
+            // convert the uri to a local file path
+            QString file_path(url.toLocalFile());
+            QFileInfo file_info(file_path);
+            if (file_info.exists())
+                file_paths.push_back(file_path);
+        }
+
+        drop_event->acceptProposedAction();
+
+        if (!isInEditionZone2())
+        {
+            // Execute un drop a drop at the old position
+            // if the drag started out of the editable zone
+            QTextCursor cur = textCursor();
+            cur.setPosition(oldPosition);
+            setTextCursor(cur);
+        }
+
+        Q_FOREACH(const QString &file_path, file_paths)
+        {
+            textCursor().insertText(QString("execfile('%1')").arg(file_path));
+        }
+    }
+    else
+    {
+        // need to copy these methods since QConsole mad them private.
+        if (!isInEditionZone2())
+        {
+            // Execute un drop a drop at the old position
+            // if the drag started out of the editable zone
+            QTextCursor cur = textCursor();
+            cur.setPosition(oldPosition);
+            setTextCursor(cur);
+        }
+
+        QTextEdit::dropEvent(drop_event);
+    }
+}

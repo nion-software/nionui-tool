@@ -6,7 +6,6 @@
 
 # Precompiled Headers
 *.gch
-*.pch
 
 # Compiled Dynamic libraries
 *.so
@@ -26,3 +25,15 @@
 *.exe
 *.out
 *.app
+
+# OS X / Xcode
+.DS_Store
+project.xcworkspace
+xcuserdata
+Makefile*
+debug
+release
+.qmake*
+
+# Emacs
+*~
