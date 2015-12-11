@@ -1382,6 +1382,32 @@ void PyCanvas::keyPressEvent(QKeyEvent *event)
     QWidget::keyPressEvent(event);
 }
 
+void PyCanvas::keyReleaseEvent(QKeyEvent *event)
+{
+    if (event->type() == QEvent::KeyRelease)
+    {
+        if (m_py_object.isValid())
+        {
+            Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+            if (app->dispatchPyMethod(m_py_object, "keyReleased", QVariantList() << event->text() << event->key() << (int)event->modifiers()).toBool())
+            {
+                event->accept();
+                return;
+            }
+#else
+            if (app->callbacks->Canvas_keyReleased(m_py_object.value<int64_t>(), event->text().toStdString(), event->key(), (int)event->modifiers()))
+            {
+                event->accept();
+                return;
+            }
+#endif
+        }
+    }
+
+    QWidget::keyReleaseEvent(event);
+}
+
 void PyCanvas::contextMenuEvent(QContextMenuEvent *event)
 {
     Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
