@@ -40,5 +40,10 @@ release
 *.opensdf
 *.suo
 
+# Linux
+moc_*
+qrc_*
+linux
+
 # Emacs
 *~
