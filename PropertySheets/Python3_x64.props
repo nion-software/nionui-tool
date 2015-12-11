@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <PYTHON_EXE>$(PYTHON3_BASE_X64)/python</PYTHON_EXE>
+  </PropertyGroup>
+  <PropertyGroup>
+    <IncludePath>$(PYTHON3_BASE_X64)\include;$(PYTHON3_BASE_X64)\Lib\site-packages\numpy\core\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(PYTHON3_BASE_X64)\libs;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile />
+    <Link />
+    <ClCompile>
+      <PreprocessorDefinitions>DYNAMIC_PYTHON=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="PYTHON_EXE">
+      <Value>$(PYTHON_EXE)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

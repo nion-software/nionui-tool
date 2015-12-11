@@ -35,5 +35,10 @@ debug
 release
 .qmake*
 
+# Visual Studio
+*.sdf
+*.opensdf
+*.suo
+
 # Emacs
 *~
