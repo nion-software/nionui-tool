@@ -1027,7 +1027,10 @@ static PyObject *Core_out(PyObject * /*self*/, PyObject *args)
 
         output = output.trimmed();
         if (!output.isEmpty())
-            qDebug() << (const char *)(output.toUtf8().data());
+        {
+            QTextStream cout(stdout);
+            cout << (const char *)(output.toUtf8().data()) << endl;
+        }
     }
 
     return PythonSupport::instance()->getNoneReturnValue();

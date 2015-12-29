@@ -158,9 +158,11 @@ void PythonSupport::checkTarget(const QString &python_path)
 QString PythonSupport::ensurePython(const QString &python_home)
 {
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
+    QTextStream cout(stdout);
+
     if (!python_home.isEmpty() && QFile(python_home).exists())
     {
-        qDebug() << "Using Python from command line: " << python_home;
+        cout << "Using Python from command line: " << python_home << endl;
         return python_home;
     }
 
@@ -173,7 +175,7 @@ QString PythonSupport::ensurePython(const QString &python_home)
     {
         QTextStream in(&config_file);
         QString line = in.readLine();
-        qDebug() << "Using Python from " << QDir::toNativeSeparators(config_file_path) << ": " << QDir::toNativeSeparators(line);
+        cout << "Using Python from " << QDir::toNativeSeparators(config_file_path) << ": " << QDir::toNativeSeparators(line) << endl;
         if (QFile(line).exists())
             return line;
     }
@@ -182,7 +184,7 @@ QString PythonSupport::ensurePython(const QString &python_home)
     PythonSelectDialog pythonSelectDialog;
     if (!pythonSelectDialog.exec())
         return QString();
-    qDebug() << "Using Python from selection: " << pythonSelectDialog.getPythonHome();
+    cout << "Using Python from selection: " << pythonSelectDialog.getPythonHome() << endl;
     return pythonSelectDialog.getPythonHome();
 #else
 #if defined(Q_OS_MAC)
