@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="640" height="320">
+
+<style type="text/css" media="all">
+
+.background { fill:lightgray;stroke:blue; }
+.backstroke { fill:none;stroke:#F8F8F8;stroke-width:2.5; }
+.forestroke { fill:none;stroke:#404040;stroke-width:2.5; }
+
+</style>
+
+     <defs>
+
+     <g id="background">
+<!--       <rect width="32" height="32" x="0" y="0" class="background" /> -->
+     </g>
+
+    <defs>
+        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop stop-color="#E0E0E0" offset="0%" />
+            <stop stop-color="#FEFEFE" offset="75%" />
+            <stop stop-color="#F0F0F0" offset="100%" />
+        </linearGradient>
+    </defs>
+
+     <g id="bg">
+       <use x="0" y="0" xlink:href="#background" />
+       <path d="M 0,0 L 0,36 L 16,36 L 16,0 z" fill="url(#gradient)" />
+     </g>
+
+     <g id="gem">
+         <use x="0" y="0" xlink:href="#background" />
+         <path d="M 0,0 L 0,36 L 16,36 L 16,0 z" fill="url(#gradient)" />
+         <path d="M 8.5,1 C 6.5,1 4,3 4,8 L 4,30 C 4,33 6.5,35 8.5,35 C 11,35 13,33 13,30 L 13,8 C 13,3 10,1 8.5,1 z" fill="#b5b5b5" />
+     </g>
+
+     <g id="gem_hover">
+         <use x="0" y="0" xlink:href="#background" />
+         <path d="M 0,0 L 0,36 L 16,36 L 16,0 z" fill="url(#gradient)" />
+         <path d="M 8.5,1 C 6.5,1 4,3 4,8 L 4,30 C 4,33 6.5,35 8.5,35 C 11,35 13,33 13,30 L 13,8 C 13,3 10,1 8.5,1 z" fill="#7b7b7b" />
+     </g>
+
+   </defs>
+
+<!--
+
+java -jar batik-rasterizer.jar -dpi 72 -h 36 -w 16 -a 0,0,16,36 /Users/cmeyer/Developer/Nion/NionImaging/Graphics/ScrollVertical.svg -d /Users/cmeyer/Developer/Nion/NionImaging/Graphics/scroll_bg.png
+java -jar batik-rasterizer.jar -dpi 72 -h 36 -w 16 -a 16,0,16,36 /Users/cmeyer/Developer/Nion/NionImaging/Graphics/ScrollVertical.svg -d /Users/cmeyer/Developer/Nion/NionImaging/Graphics/scroll_gem.png
+java -jar batik-rasterizer.jar -dpi 72 -h 36 -w 16 -a 32,0,16,36 /Users/cmeyer/Developer/Nion/NionImaging/Graphics/ScrollVertical.svg -d /Users/cmeyer/Developer/Nion/NionImaging/Graphics/scroll_gem_hover.png
+
+-->
+
+<g transform="scale(1)">
+    <use x="0" y="0" xlink:href="#bg" />
+    <use x="16" y="0" xlink:href="#gem" />
+    <use x="32" y="0" xlink:href="#gem_hover" />
+</g>
+
+</svg>
