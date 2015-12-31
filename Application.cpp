@@ -47,6 +47,8 @@ using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 #endif
 
+#include "LauncherConfig.h"
+
 QString lastVisitedDir;
 
 QString GetDirectory(const QString &path)
@@ -4557,9 +4559,10 @@ Application::Application(int & argv, char **args)
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
-    setApplicationName("Nion UI Launcher");
-    setOrganizationName("Nion");
-    setOrganizationDomain("nion.com");
+    // these constaints are defined in LauncherConfig.h
+    setApplicationName(APP_NAME);
+    setOrganizationName(ORGANIZATION_NAME);
+    setOrganizationDomain(ORGANIZATION_DOMAIN);
 
     // TODO: Handle case where python home contains no dylib/dll.
     // TODO: Handle case where python home contains wrong version of python.

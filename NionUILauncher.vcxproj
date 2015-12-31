@@ -147,6 +147,7 @@ xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Widgets.dll  $(TargetDir)
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PythonSelectDialog.h;moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PythonSelectDialog.h;moc.exe;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
+    <ClInclude Include="LauncherConfig.h" />
     <ClInclude Include="PythonStubs.h" />
     <ClInclude Include="PythonSupport.h" />
     <CustomBuild Include="Application.h">

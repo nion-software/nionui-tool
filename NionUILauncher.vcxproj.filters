@@ -91,5 +91,8 @@
     <ClInclude Include="PythonStubs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="LauncherConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
