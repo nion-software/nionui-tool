@@ -3600,6 +3600,51 @@ static PyObject *TabWidget_connect(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *TextEdit_appendText(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    Py_UNICODE *text_u = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    text_edit->append(Py_UNICODE_to_QString(text_u));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextEdit_clearSelection(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    text_edit->textCursor().clearSelection();
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *TextEdit_connect(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -3623,6 +3668,34 @@ static PyObject *TextEdit_connect(PyObject * /*self*/, PyObject *args)
     text_edit->setPyObject(py_object);
 
     return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextEdit_getCursorInfo(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    QVariantList result;
+
+    result << text_edit->textCursor().position();
+    result << text_edit->textCursor().blockNumber();
+    result << text_edit->textCursor().columnNumber();
+    result << text_edit->textCursor().selectionStart();
+    result << text_edit->textCursor().selectionEnd();
+
+    return QVariantToPyObject(result);
 }
 
 static PyObject *TextEdit_getEditable(PyObject * /*self*/, PyObject *args)
@@ -3669,6 +3742,26 @@ static PyObject *TextEdit_getPlaceholderText(PyObject * /*self*/, PyObject *args
 #endif
 }
 
+static PyObject *TextEdit_getSelectedText(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    return PythonSupport::instance()->build()("s", text_edit->textCursor().selectedText().toUtf8().data());
+}
+
 static PyObject *TextEdit_getText(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -3687,6 +3780,91 @@ static PyObject *TextEdit_getText(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     return PythonSupport::instance()->build()("s", text_edit->toPlainText().toUtf8().data());
+}
+
+static PyObject *TextEdit_insertText(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    Py_UNICODE *text_u = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    text_edit->insertPlainText(Py_UNICODE_to_QString(text_u));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextEdit_moveCursorPosition(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    char *operation_c = NULL;
+    char *mode_c = NULL;
+    int n = 0;
+    Py_UNICODE *text_u = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Ozzi", &obj0, &operation_c, &mode_c, &n))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    // Operation
+    QTextCursor::MoveOperation operation = QTextCursor::NoMove;
+    if (operation_c)
+    {
+        if (strcmp(operation_c, "start") == 0)
+            operation = QTextCursor::Start;
+        else if (strcmp(operation_c, "end") == 0)
+            operation = QTextCursor::End;
+        else if (strcmp(operation_c, "start_line") == 0)
+            operation = QTextCursor::StartOfLine;
+        else if (strcmp(operation_c, "end_line") == 0)
+            operation = QTextCursor::EndOfLine;
+        else if (strcmp(operation_c, "previous") == 0)
+            operation = QTextCursor::PreviousCharacter;
+        else if (strcmp(operation_c, "next") == 0)
+            operation = QTextCursor::NextCharacter;
+        else if (strcmp(operation_c, "up") == 0)
+            operation = QTextCursor::Up;
+        else if (strcmp(operation_c, "down") == 0)
+            operation = QTextCursor::Down;
+        else if (strcmp(operation_c, "left") == 0)
+            operation = QTextCursor::Left;
+        else if (strcmp(operation_c, "right") == 0)
+            operation = QTextCursor::Right;
+    }
+
+    // Mode
+    QTextCursor::MoveMode mode = QTextCursor::KeepAnchor;
+    if (mode_c)
+    {
+        if (strcmp(mode_c, "move") == 0)
+            mode = QTextCursor::MoveAnchor;
+        else if (strcmp(mode_c, "keep") == 0)
+            mode = QTextCursor::KeepAnchor;
+    }
+
+    text_edit->textCursor().movePosition(operation, mode, n);
+
+    return PythonSupport::instance()->getNoneReturnValue();
 }
 
 static PyObject *TextEdit_selectAll(PyObject * /*self*/, PyObject *args)
@@ -3778,6 +3956,29 @@ static PyObject *TextEdit_setText(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     text_edit->setText(Py_UNICODE_to_QString(text_u));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextEdit_setTextColor(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    int r, g, b;
+
+    if (!PythonSupport::instance()->parse()(args, "Oiii", &obj0, &r, &g, &b))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    text_edit->setTextColor(QColor(r, g, b));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4716,14 +4917,21 @@ static PyMethodDef Methods[] = {
     {"StyledDelegate_create", StyledDelegate_create, METH_VARARGS, "StyledDelegate_create."},
     {"TabWidget_addTab", TabWidget_addTab, METH_VARARGS, "TabWidget_addTab."},
     {"TabWidget_connect", TabWidget_connect, METH_VARARGS, "TabWidget_connect."},
+    {"TextEdit_clearSelection", TextEdit_clearSelection, METH_VARARGS, "TextEdit_clearSelection."},
+    {"TextEdit_appendText", TextEdit_appendText, METH_VARARGS, "TextEdit_appendText."},
     {"TextEdit_connect", TextEdit_connect, METH_VARARGS, "TextEdit_connect."},
+    {"TextEdit_getCursorInfo", TextEdit_getCursorInfo, METH_VARARGS, "TextEdit_getCursorInfo."},
     {"TextEdit_getEditable", TextEdit_getEditable, METH_VARARGS, "TextEdit_getEditable."},
     {"TextEdit_getPlaceholderText", TextEdit_getPlaceholderText, METH_VARARGS, "TextEdit_getPlaceholderText."},
+    {"TextEdit_getSelectedText", TextEdit_getSelectedText, METH_VARARGS, "TextEdit_getSelectedText."},
     {"TextEdit_getText", TextEdit_getText, METH_VARARGS, "TextEdit_getText."},
+    {"TextEdit_insertText", TextEdit_insertText, METH_VARARGS, "TextEdit_insertText."},
+    {"TextEdit_moveCursorPosition", TextEdit_moveCursorPosition, METH_VARARGS, "TextEdit_moveCursorPosition."},
     {"TextEdit_selectAll", TextEdit_selectAll, METH_VARARGS, "TextEdit_selectAll."},
     {"TextEdit_setEditable", TextEdit_setEditable, METH_VARARGS, "TextEdit_setEditable."},
     {"TextEdit_setPlaceholderText", TextEdit_setPlaceholderText, METH_VARARGS, "TextEdit_setPlaceholderText."},
     {"TextEdit_setText", TextEdit_setText, METH_VARARGS, "TextEdit_setText."},
+    {"TextEdit_setTextColor", TextEdit_setTextColor, METH_VARARGS, "TextEdit_setTextColor."},
     {"TreeWidget_connect", TreeWidget_connect, METH_VARARGS, "TreeWidget_connect."},
     {"TreeWidget_setCurrentRow", TreeWidget_setCurrentRow, METH_VARARGS, "TreeWidget_setCurrentRow."},
     {"TreeWidget_setItemDelegate", TreeWidget_setItemDelegate, METH_VARARGS, "TreeWidget_setItemDelegate."},

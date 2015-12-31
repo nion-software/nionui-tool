@@ -459,8 +459,11 @@ public:
 
     virtual void focusInEvent(QFocusEvent *event) override;
     virtual void focusOutEvent(QFocusEvent *event) override;
+    virtual void keyPressEvent(QKeyEvent *event) override;
 
 private Q_SLOTS:
+    void cursorPositionChanged();
+    void selectionChanged();
     void textChanged();
 
 private:

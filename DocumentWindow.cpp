@@ -329,7 +329,7 @@ void PyLineEdit::keyPressEvent(QKeyEvent *key_event)
 #endif
             }
         }
-        else if (key_event->key() == Qt::Key_Return)
+        else if (key_event->key() == Qt::Key_Return || key_event->key() == Qt::Key_Enter)
         {
             if (m_py_object.isValid())
             {
@@ -355,7 +355,35 @@ void PyLineEdit::keyPressEvent(QKeyEvent *key_event)
 
 PyTextEdit::PyTextEdit()
 {
+    connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(cursorPositionChanged()));
+    connect(this, SIGNAL(selectionChanged()), this, SLOT(selectionChanged()));
     connect(this, SIGNAL(textChanged()), this, SLOT(textChanged()));
+}
+
+void PyTextEdit::cursorPositionChanged()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "cursorPositionChanged", QVariantList());
+#else
+        app->callbacks->TextEdit_cursorPositionChanged(m_py_object.value<int64_t>());
+#endif
+    }
+}
+
+void PyTextEdit::selectionChanged()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "selectionChanged", QVariantList());
+#else
+        app->callbacks->TextEdit_selectionChanged(m_py_object.value<int64_t>());
+#endif
+    }
 }
 
 void PyTextEdit::textChanged()
@@ -369,6 +397,74 @@ void PyTextEdit::textChanged()
         app->callbacks->TextEdit_textChanged(m_py_object.value<int64_t>());
 #endif
     }
+}
+
+void PyTextEdit::keyPressEvent(QKeyEvent *key_event)
+{
+    if (key_event->type() == QEvent::KeyPress)
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        if (key_event->key() == Qt::Key_Escape)
+        {
+            if (m_py_object.isValid())
+            {
+#if !USE_THRIFT
+                if (app->dispatchPyMethod(m_py_object, "escapePressed", QVariantList()).toBool())
+                {
+                    key_event->accept();
+                    return;
+                }
+#else
+                if (app->callbacks->TextEdit_escapePressed(m_py_object.value<int64_t>()))
+                {
+                    key_event->accept();
+                    return;
+                }
+#endif
+            }
+        }
+        else if (key_event->key() == Qt::Key_Return || key_event->key() == Qt::Key_Enter)
+        {
+            if (m_py_object.isValid())
+            {
+#if !USE_THRIFT
+                if (app->dispatchPyMethod(m_py_object, "returnPressed", QVariantList()).toBool())
+                {
+                    key_event->accept();
+                    return;
+                }
+#else
+                if (app->callbacks->TextEdit_returnPressed(m_py_object.value<int64_t>()))
+                {
+                    key_event->accept();
+                    return;
+                }
+#endif
+            }
+        }
+        else
+        {
+            if (m_py_object.isValid())
+            {
+                Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+                if (app->dispatchPyMethod(m_py_object, "keyPressed", QVariantList() << key_event->text() << key_event->key() << (int)key_event->modifiers()).toBool())
+                {
+                    key_event->accept();
+                    return;
+                }
+#else
+                if (app->callbacks->Canvas_keyPressed(m_py_object.value<int64_t>(), key_event->text().toStdString(), key_event->key(), (int)key_event->modifiers()))
+                {
+                    key_event->accept();
+                    return;
+                }
+#endif
+            }
+        }
+    }
+
+    QTextEdit::keyPressEvent(key_event);
 }
 
 void PyTextEdit::focusInEvent(QFocusEvent *event)
