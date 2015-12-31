@@ -28,7 +28,7 @@ unix {
       mkdir -p linux/x64
 }
 # message($$OUT_PWD);
-unix: LIBS += -L$$OUT_PWD external/qconsole3/src/libQConsole.a
+unix: LIBS += -L$$OUT_PWD
 
 INCLUDEPATH += $DESTDIR/include
 DEPENDPATH += $DESTDIR/include
