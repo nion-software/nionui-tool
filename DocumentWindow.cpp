@@ -7,6 +7,7 @@
 #include <QtCore/QtGlobal>
 #include <QtCore/QAbstractListModel>
 #include <QtCore/QDateTime>
+#include <QtCore/QDebug>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMimeData>
 #include <QtCore/QQueue>
@@ -1873,16 +1874,6 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
 
         return output_view;
     }
-    else if (intrinsic_id == "console")
-    {
-        Console *console_view = new Console();
-        console_view->setStyleSheet("border:none; background: black; color: green; font: 12px courier, monospace");
-        console_view->setCmdColor(Qt::green);
-        console_view->setOutColor(Qt::white);
-        console_view->setPrompt(">>> ", true);
-
-        return console_view;
-    }
 
     return NULL;
 }
@@ -3279,164 +3270,4 @@ void ListModel::dataChangedInList()
     Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
     int rows = rowCount(QModelIndex());
     Q_EMIT dataChanged(index(0,0), index(rows-1, 0));
-}
-
-
-// -----------------------------------------------------------
-// Console
-// -----------------------------------------------------------
-
-Console::Console(QWidget *parent)
-    : QConsole(parent)
-{
-    setAcceptDrops(true);
-}
-
-QString Console::interpretCommand(const QString &command, int *error_code)
-{
-    QConsole::interpretCommand(command, error_code);
-
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-#if !USE_THRIFT
-    QVariantList results = app->dispatchPyMethod(m_py_object, "interpretCommand", QVariantList() << command).toList();
-    QString result = results[0].toString();
-    *error_code = results[1].toInt();
-    QString prompt = results[2].toString();
-#else
-    GUIInterpretCommandResult results;
-    app->callbacks->Console_interpretCommand(results, m_py_object.value<int64_t>(), command.toStdString());
-    QString result = QString::fromStdString(results.result);
-    *error_code = results.error_code;
-    QString prompt = QString::fromStdString(results.prompt);
-#endif
-    setPrompt(prompt, false);
-    return result;
-}
-
-void Console::insertFromStringList(const QStringList &lines)
-{
-    Q_FOREACH(const QString &line, lines)
-    {
-        execCommand(line, true, true);
-    }
-}
-
-void Console::insertFromMimeData(const QMimeData *source)
-{
-    QString text = source->text();
-
-    QStringList lines = text.split(QRegExp("[\r\n]"),QString::KeepEmptyParts);
-    QString last_line;
-    Q_FOREACH(const QString &line, lines)
-    {
-        if (!last_line.isEmpty())
-            execCommand(last_line, true, true);
-        last_line = line;
-    }
-    if (!last_line.isEmpty())
-        insertPlainText(last_line);
-}
-
-bool Console::isInEditionZone2() const
-{
-    const int para = textCursor().blockNumber();
-    const int index = textCursor().columnNumber();
-    return (para > promptParagraph) || ( (para == promptParagraph) && (index >= promptLength) );
-}
-
-bool Console::isInEditionZone2(const int& pos) const
-{
-    QTextCursor cur = textCursor();
-    cur.setPosition(pos);
-    const int para = cur.blockNumber();
-    const int index = cur.columnNumber();
-    return (para > promptParagraph) || ( (para == promptParagraph) && (index >= promptLength) );
-}
-
-void Console::dragEnterEvent(QDragEnterEvent *event)
-{
-    if (event->mimeData()->hasFormat("text/plain"))
-        event->acceptProposedAction();
-    else if (event->mimeData()->hasUrls())
-        event->acceptProposedAction();
-    else
-        QConsole::dragEnterEvent(event);
-}
-
-void Console::dragMoveEvent(QDragMoveEvent *event)
-{
-    if (event->mimeData()->hasFormat("text/plain"))
-        event->acceptProposedAction();
-    else if (event->mimeData()->hasUrls())
-        event->acceptProposedAction();
-    else
-    {
-        // QConsole::dragMoveEvent(event); // bad programmers don't know how to override properly
-        // Get a cursor for the actual mouse position
-        QTextCursor cur = textCursor();
-        cur.setPosition(cursorForPosition(event->pos()).position());
-
-        if (!isInEditionZone2(cursorForPosition(event->pos()).position()))
-        {
-            //Ignore the event if out of the editable zone
-            event->ignore(cursorRect(cur));
-        }
-        else
-        {
-            //Accept the event if out of the editable zone
-            event->accept(cursorRect(cur));
-        }
-    }
-}
-
-void Console::dropEvent(QDropEvent *drop_event)
-{
-    const QMimeData *mime_data = drop_event->mimeData();
-
-    if (drop_event->mimeData()->hasUrls())
-    {
-        QList<QUrl> urls = mime_data->urls();
-
-        QStringList file_paths;
-
-        Q_FOREACH(const QUrl &url, urls)
-        {
-            // convert the uri to a local file path
-            QString file_path(url.toLocalFile());
-            QFileInfo file_info(file_path);
-            if (file_info.exists())
-                file_paths.push_back(file_path);
-        }
-
-        drop_event->acceptProposedAction();
-
-        if (!isInEditionZone2())
-        {
-            // Execute un drop a drop at the old position
-            // if the drag started out of the editable zone
-            QTextCursor cur = textCursor();
-            cur.setPosition(oldPosition);
-            setTextCursor(cur);
-        }
-
-        Q_FOREACH(const QString &file_path, file_paths)
-        {
-            textCursor().insertText(QString("execfile('%1')").arg(file_path));
-        }
-    }
-    else
-    {
-        // need to copy these methods since QConsole mad them private.
-        if (!isInEditionZone2())
-        {
-            // Execute un drop a drop at the old position
-            // if the drag started out of the editable zone
-            QTextCursor cur = textCursor();
-            cur.setPosition(oldPosition);
-            setTextCursor(cur);
-        }
-
-        QTextEdit::dropEvent(drop_event);
-    }
 }

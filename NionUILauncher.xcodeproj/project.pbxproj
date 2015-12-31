@@ -184,7 +184,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = FD840871160D11F700370586 /* Build configuration list for PBXNativeTarget "Nion UI Launcher" */;
 			buildPhases = (
-				FD6E7D901946D2CF00108166 /* Build QConsole */,
 				FD84084F160D11F600370586 /* Sources */,
 				FD840850160D11F600370586 /* Frameworks */,
 				FD840851160D11F600370586 /* Resources */,
@@ -239,21 +238,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		FD6E7D901946D2CF00108166 /* Build QConsole */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			name = "Build QConsole";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "pushd \"$PROJECT_DIR/external/qconsole3/src\"\n\"$QTDIR/bin/qmake\" qconsoledll.pro\nmake debug release\npopd\n";
-			showEnvVarsInLog = 0;
-		};
 		FD7C2EC218657ABB0093BB2A /* Qt Deploy */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 12;

@@ -42,9 +42,9 @@ CODE_SIGN_IDENTITY = Developer ID Application: Nion, Inc.
 
 TARGET_LDFLAGS =
 
-APP_LDFLAGS_54 = -framework QtCore -framework QtGui -framework QtMultimedia -framework QtMultimediaWidgets -framework QtNetwork -framework QtOpenGL -framework QtTest -framework QtWidgets -framework QtXml -lQConsole $(PYTHON_LDFLAGS)
+APP_LDFLAGS_54 = -framework QtCore -framework QtGui -framework QtMultimedia -framework QtMultimediaWidgets -framework QtNetwork -framework QtOpenGL -framework QtTest -framework QtWidgets -framework QtXml $(PYTHON_LDFLAGS)
 
-APP_LDFLAGS_55 = -framework QtCore -framework QtGui -framework QtMultimedia -framework QtMultimediaWidgets -framework QtNetwork -framework QtOpenGL -framework QtTest -framework QtWidgets -framework QtXml -lQConsole $(PYTHON_LDFLAGS)
+APP_LDFLAGS_55 = -framework QtCore -framework QtGui -framework QtMultimedia -framework QtMultimediaWidgets -framework QtNetwork -framework QtOpenGL -framework QtTest -framework QtWidgets -framework QtXml $(PYTHON_LDFLAGS)
 
 APP_LDFLAGS = $(APP_LDFLAGS_$(QT_VERSION))
 
@@ -59,9 +59,9 @@ WEBKIT_LDFLAGS =
 // numpy is loaded from one of the paths in sys.path. look there to find it if this folder does not work.
 PYTHON_SEARCH_PATHS =  $(PYTHON_INCLUDE) $(PYTHON_NUMPY_INCLUDE)
 
-HEADER_SEARCH_PATHS = $(HEADER_SEARCH_PATHS_ALL) $(PYTHON_SEARCH_PATHS) external/qconsole3/src
+HEADER_SEARCH_PATHS = $(HEADER_SEARCH_PATHS_ALL) $(PYTHON_SEARCH_PATHS)
 
-TARGET_LIBRARY_SEARCH_PATHS = external/qconsole3/src $(PYTHON_LIB_SEARCH)
+TARGET_LIBRARY_SEARCH_PATHS = $(PYTHON_LIB_SEARCH)
 
 PYTHON_VERSION = python$(PYTHON_VERSION_NUMBER)$(PYTHON_OPTION)
 PYTHON_INCLUDE = $(PYTHONHOME)/include/$(PYTHON_VERSION)

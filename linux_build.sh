@@ -7,12 +7,6 @@
 # requires:
 # sudo apt-get install python3-dev
 
-# build QConsole
-pushd external/qconsole3/src
-qmake qconsoledll.pro
-make
-make install
-popd
 # build executable
 mkdir -p linux/x64
 export PYTHON_LIB=$1

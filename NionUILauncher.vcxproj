@@ -39,12 +39,10 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="PropertySheets\Qt5_x64.props" />
     <Import Project="PropertySheets\Python3_x64.props" />
-    <Import Project="PropertySheets\QConsole.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="PropertySheets\Qt5_x64.props" />
     <Import Project="PropertySheets\Python3_x64.props" />
-    <Import Project="PropertySheets\QConsole.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>

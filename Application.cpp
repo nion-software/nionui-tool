@@ -915,44 +915,6 @@ static PyObject *ComboBox_setCurrentText(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
-static PyObject *Console_connect(PyObject * /*self*/, PyObject *args)
-{
-    PyObject *obj0 = NULL;
-    PyObject *obj1 = NULL;
-    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
-        return NULL;
-
-    // Grab the console
-    Console *console = Unwrap<Console>(obj0);
-    if (console == NULL)
-        return NULL;
-
-    QVariant py_object = PyObjectToQVariant(obj1);
-
-    console->setPyObject(py_object);
-
-    return PythonSupport::instance()->getNoneReturnValue();
-}
-
-static PyObject *Console_insertFromStringList(PyObject * /*self*/, PyObject *args)
-{
-    PyObject *obj0 = NULL;
-    PyObject *obj1 = NULL;
-    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
-        return NULL;
-
-    // Grab the console
-    Console *console = Unwrap<Console>(obj0);
-    if (console == NULL)
-        return NULL;
-
-    // Send the strings to the console
-    QVariant string_list_v = PyObjectToQVariant(obj1);
-    console->insertFromStringList(string_list_v.toStringList());
-
-    return PythonSupport::instance()->getNoneReturnValue();
-}
-
 static PyObject *Core_getFontMetrics(PyObject * /*self*/, PyObject *args)
 {
     char *font_c = NULL;
@@ -4810,8 +4772,6 @@ static PyMethodDef Methods[] = {
     {"ComboBox_getCurrentText", ComboBox_getCurrentText, METH_VARARGS, "ComboBox_getCurrentText."},
     {"ComboBox_removeAllItems", ComboBox_removeAllItems, METH_VARARGS, "ComboBox_removeAllItems."},
     {"ComboBox_setCurrentText", ComboBox_setCurrentText, METH_VARARGS, "ComboBox_setCurrentText."},
-    {"Console_connect", Console_connect, METH_VARARGS, "Console_connect."},
-    {"Console_insertFromStringList", Console_insertFromStringList, METH_VARARGS, "Console_insertFromStringList."},
     {"Core_getFontMetrics", Core_getFontMetrics, METH_VARARGS, "Core_getFontMetrics."},
     {"Core_getLocation", Core_getLocation, METH_VARARGS, "Core_getLocation."},
     {"Core_out", Core_out, METH_VARARGS, "Core_out."},

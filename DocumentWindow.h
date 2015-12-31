@@ -8,11 +8,13 @@
 #include <QtCore/QAbstractListModel>
 #include <QtCore/QMutex>
 #include <QtGui/QDrag>
+#include <QtWidgets/QAction>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QDockWidget>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QMainWindow>
+#include <QtWidgets/QMenu>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QListView>
 #include <QtWidgets/QPushButton>
@@ -21,8 +23,6 @@
 #include <QtWidgets/QTabWidget>
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QTreeView>
-
-#include "external/qconsole3/inc/qconsole.h"
 
 class QCheckBox;
 class QFileDialog;
@@ -333,33 +333,6 @@ private:
     QHash<int, QByteArray> m_role_names;
     Qt::DropAction m_last_drop_action;
     unsigned m_row_count;
-};
-
-
-class Console : public QConsole
-{
-    Q_OBJECT
-public:
-    Console(QWidget *parent = NULL);
-
-    void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
-
-    virtual QString interpretCommand(const QString &command, int *res) override;
-
-    void insertFromStringList(const QStringList &lines);
-
-protected:
-    virtual void insertFromMimeData(const QMimeData *source) override;
-    virtual void dropEvent(QDropEvent *drop_event) override;
-    virtual void dragEnterEvent(QDragEnterEvent *event) override;
-    virtual void dragMoveEvent(QDragMoveEvent *event) override;
-    // ridiculous
-    bool isInEditionZone2() const;
-    bool isInEditionZone2(const int& pos) const;
-
-private:
-    QVariant m_py_object;
 };
 
 class PyPushButton : public QPushButton

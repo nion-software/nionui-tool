@@ -1,4 +1,0 @@
-- QConsole:
-  * We still can write outside edition zone (using mouse tricks)
-  * Improve support for Ctrl+C : example, stop current command execution
-  * Implement a pager
