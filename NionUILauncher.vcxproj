@@ -89,10 +89,10 @@
       <Command>mkdir $(TargetDir)\platforms
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\platforms\qwindowsd.dll  $(TargetDir)\platforms
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\imageformats  $(TargetDir)\imageformats
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\d3dcompiler_46.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icudt51.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icuin51.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icuuc51.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\d3dcompiler_47.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icudt54.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icuin54.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icuuc54.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libEGLd.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libGLESv2d.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Cored.dll  $(TargetDir)
@@ -110,10 +110,10 @@ xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Widgetsd.dll  $(TargetDir)
       <Command>mkdir $(TargetDir)\platforms
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\platforms\qwindows.dll  $(TargetDir)\platforms
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\imageformats  $(TargetDir)\imageformats
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\d3dcompiler_46.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icudt51.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icuin51.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icuuc51.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\d3dcompiler_47.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icudt54.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icuin54.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\icuuc54.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libEGLd.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libGLESv2.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Core.dll  $(TargetDir)
@@ -186,6 +186,9 @@ xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Widgets.dll  $(TargetDir)
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">RCC resources.qrc</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Intermediate\Release\qrc_resources.cpp;%(Outputs)</Outputs>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Application.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
