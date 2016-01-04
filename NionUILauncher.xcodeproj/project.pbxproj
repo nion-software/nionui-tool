@@ -70,8 +70,6 @@
 		FD8C40731B8F84F500C6D55C /* PythonStubs.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PythonStubs.cpp; sourceTree = SOURCE_ROOT; };
 		FDE306E916BC27480023B7FD /* Graphics */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Graphics; sourceTree = SOURCE_ROOT; };
 		FDE306EC16BC59360023B7FD /* stylesheet.qss */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = stylesheet.qss; sourceTree = SOURCE_ROOT; };
-		FDE79F0E1C0D237100FD8F7B /* projectDebugNionUILauncher.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = projectDebugNionUILauncher.xcconfig; path = xcconfig/projectDebugNionUILauncher.xcconfig; sourceTree = "<group>"; };
-		FDE79F0F1C0D237100FD8F7B /* projectReleaseNionUILauncher.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = projectReleaseNionUILauncher.xcconfig; path = xcconfig/projectReleaseNionUILauncher.xcconfig; sourceTree = "<group>"; };
 		FDFA4FE61621F473002D4129 /* resources.qrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = resources.qrc; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -157,8 +155,6 @@
 		FD840879160D136A00370586 /* Configuration */ = {
 			isa = PBXGroup;
 			children = (
-				FDE79F0E1C0D237100FD8F7B /* projectDebugNionUILauncher.xcconfig */,
-				FDE79F0F1C0D237100FD8F7B /* projectReleaseNionUILauncher.xcconfig */,
 				FD0ACF42178CDF8300BB53E3 /* targetDebugNionUILauncher.xcconfig */,
 				FD0ACF46178CDF8300BB53E3 /* targetReleaseNionUILauncher.xcconfig */,
 			);
@@ -277,7 +273,6 @@
 /* Begin XCBuildConfiguration section */
 		FD84086F160D11F700370586 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = FDE79F0E1C0D237100FD8F7B /* projectDebugNionUILauncher.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
@@ -322,7 +317,6 @@
 		};
 		FD993FBA1B3A0ABE00C6D55C /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = FDE79F0F1C0D237100FD8F7B /* projectReleaseNionUILauncher.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = "$(ARCHS_STANDARD_64_BIT)";

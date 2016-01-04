@@ -7,16 +7,18 @@ QTDIR_55 = $(HOME)/Developer/Qt/5.5/clang_64
 
 QTDIR = $(QTDIR_$(QT_VERSION))
 
+ARCHS = $(ARCHS_STANDARD_32_64_BIT)
+ONLY_ACTIVE_ARCH = YES
+GCC_OPTIMIZATION_LEVEL = 0
+
 // note: headerpad_max_install_names has something to do with using otool to relocate the library paths
-OTHER_LDFLAGS = $(APP_LDFLAGS) $(WEBKIT_LDFLAGS) $(TARGET_LDFLAGS) $(COND_LDFLAGS) -headerpad_max_install_names -F$(QTDIR)/lib -L$(QTDIR)/lib
+OTHER_LDFLAGS = $(APP_LDFLAGS) $(COND_LDFLAGS) -headerpad_max_install_names -F$(QTDIR)/lib -L$(QTDIR)/lib
 
 HEADER_SEARCH_PATHS_LOCAL = . ..
 
 HEADER_SEARCH_PATHS_QT_EXTRA = $(QTDIR)/mkspecs/macx-xcode $(QTDIR)/include
 
 HEADER_SEARCH_PATHS_ALL = $(HEADER_SEARCH_PATHS_LOCAL) $(HEADER_SEARCH_PATHS_QT_EXTRA) $$(TARGET_HEADER_SEARCH_PATHS) $(COND_HEADER_SEARCH_PATHS) $(WEBKIT_HEADER_SEARCH_PATHS)
-
-HEADER_SEARCH_PATHS = $(HEADER_SEARCH_PATHS_ALL)
 
 FRAMEWORK_SEARCH_PATHS = $(QTDIR)/lib /Library/Frameworks/
 
@@ -25,10 +27,6 @@ LIBRARY_SEARCH_PATHS = $(QTDIR)/lib $(TARGET_LIBRARY_SEARCH_PATHS) $(COND_LIBRAR
 // use this to define OTHER_CFLAGS since the preprocessor doesn't seem to be able to use existing definitions when replacing a definition
 OTHER_FLAGS = -pipe -g -Wreturn-type -Wunused-variable -Wno-shorten-64-to-32 -DQT_NO_KEYWORDS -DQT_NETWORK_LIB -DQT_XML_LIB -DQT_OPENGL_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED $(WEBKIT_FLAGS)
 
-OTHER_CFLAGS = $(OTHER_FLAGS)
-
-OTHER_CPLUSPLUSFLAGS = $(OTHER_CFLAGS)
-
 GCC_INLINES_ARE_PRIVATE_EXTERN = NO
 GCC_SYMBOLS_PRIVATE_EXTERN = NO
 
@@ -36,15 +34,13 @@ GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp
 
 COPY_PHASE_STRIP = NO
 
-GCC_OPTIMIZATION_LEVEL = 0
-
 CODE_SIGN_IDENTITY = Developer ID Application: Nion, Inc.
 
-TARGET_LDFLAGS =
+LD_RUNPATH_SEARCH_PATHS = $(QTDIR)/lib
 
-APP_LDFLAGS_54 = -framework QtCore -framework QtGui -framework QtMultimedia -framework QtMultimediaWidgets -framework QtNetwork -framework QtOpenGL -framework QtTest -framework QtWidgets -framework QtXml $(PYTHON_LDFLAGS)
+APP_LDFLAGS_54 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
 
-APP_LDFLAGS_55 = -framework QtCore -framework QtGui -framework QtMultimedia -framework QtMultimediaWidgets -framework QtNetwork -framework QtOpenGL -framework QtTest -framework QtWidgets -framework QtXml $(PYTHON_LDFLAGS)
+APP_LDFLAGS_55 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
 
 APP_LDFLAGS = $(APP_LDFLAGS_$(QT_VERSION))
 
@@ -52,12 +48,8 @@ OTHER_CFLAGS = $(OTHER_FLAGS) -DDYNAMIC_PYTHON=1
 
 OTHER_CPLUSPLUSFLAGS = $(OTHER_CFLAGS)
 
-QT_VERSION = 54
-
-WEBKIT_LDFLAGS =
-
 // numpy is loaded from one of the paths in sys.path. look there to find it if this folder does not work.
-PYTHON_SEARCH_PATHS =  $(PYTHON_INCLUDE) $(PYTHON_NUMPY_INCLUDE)
+PYTHON_SEARCH_PATHS = $(PYTHON_INCLUDE) $(PYTHON_NUMPY_INCLUDE)
 
 HEADER_SEARCH_PATHS = $(HEADER_SEARCH_PATHS_ALL) $(PYTHON_SEARCH_PATHS)
 
@@ -66,14 +58,10 @@ TARGET_LIBRARY_SEARCH_PATHS = $(PYTHON_LIB_SEARCH)
 PYTHON_VERSION = python$(PYTHON_VERSION_NUMBER)$(PYTHON_OPTION)
 PYTHON_INCLUDE = $(PYTHONHOME)/include/$(PYTHON_VERSION)
 PYTHON_NUMPY_INCLUDE = $(PYTHONHOME)/lib/python$(PYTHON_VERSION_NUMBER)/site-packages/numpy/core/include
-PYTHON_LDFLAGS = -l$(PYTHON_VERSION)
 PYTHON_LDFLAGS =
 PYTHON_LIB_SEARCH = $(PYTHONHOME)/lib
 PYTHON_DIST = anaconda
 
-LD_RUNPATH_SEARCH_PATHS = $(QTDIR)/lib
-
-// be sure to set PYTHONHOME using Cmd-Shift-'<'
-PYTHONHOME = $(HOME)/Developer/anaconda3/anaconda
+PYTHONHOME = $(HOME)/Developer/miniconda3
 PYTHON_VERSION_NUMBER = 3.4
 PYTHON_OPTION = m
