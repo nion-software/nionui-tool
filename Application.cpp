@@ -2938,24 +2938,6 @@ static PyObject *MimeData_setDataAsString(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
-static PyObject *Output_out(PyObject * /*self*/, PyObject *args)
-{
-    PyObject *obj0 = NULL;
-    Py_UNICODE *output_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &output_u))
-        return NULL;
-
-    // Grab the window view
-    QTextEdit *text_edit = Unwrap<QTextEdit>(obj0);
-    if (text_edit == NULL)
-        return NULL;
-
-    text_edit->moveCursor(QTextCursor::End);
-    text_edit->insertPlainText(QString("%1\n").arg(Py_UNICODE_to_QString(output_u).trimmed()));
-
-    return PythonSupport::instance()->getNoneReturnValue();
-}
-
 static PyObject *PushButton_connect(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -4849,7 +4831,6 @@ static PyMethodDef Methods[] = {
     {"MimeData_dataAsString", MimeData_dataAsString, METH_VARARGS, "MimeData_dataAsString."},
     {"MimeData_formats", MimeData_formats, METH_VARARGS, "MimeData_formats."},
     {"MimeData_setDataAsString", MimeData_setDataAsString, METH_VARARGS, "MimeData_setDataAsString."},
-    {"Output_out", Output_out, METH_VARARGS, "Output_out."},
     {"PushButton_connect", PushButton_connect, METH_VARARGS, "PushButton_connect."},
     {"PushButton_setIcon", PushButton_setIcon, METH_VARARGS, "PushButton_setIcon."},
     {"PushButton_setText", PushButton_setText, METH_VARARGS, "PushButton_setText."},

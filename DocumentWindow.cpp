@@ -1866,14 +1866,6 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
 
         return content_view;
     }
-    else if (intrinsic_id == "output")
-    {
-        QTextEdit *output_view = new QTextEdit();
-        output_view->setStyleSheet("border:none; background: white");
-        output_view->setAcceptRichText(false);
-
-        return output_view;
-    }
 
     return NULL;
 }
