@@ -26,6 +26,9 @@ unix {
    QMAKE_PRE_LINK = \
       rm -rf linux/x64 ; \
       mkdir -p linux/x64
+
+   QMAKE_LFLAGS_RPATH=
+   QMAKE_LFLAGS += "-Wl,-rpath,\'\$$ORIGIN\'"
 }
 # message($$OUT_PWD);
 unix: LIBS += -L$$OUT_PWD
