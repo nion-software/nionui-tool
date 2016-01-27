@@ -9,6 +9,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QMetaType>
 #include <QtCore/QObject>
+#include <QtCore/QProcessEnvironment>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
@@ -208,6 +209,29 @@ void PythonSupport::initInstance(const QString &python_home)
     QString file_path_34 = QDir(python_home).absoluteFilePath("Python34.dll");
     QString file_path_35 = QDir(python_home).absoluteFilePath("Python35.dll");
     QString file_path = QFile(file_path_35).exists() ? file_path_35 : file_path_34;
+
+    // Python may have side-by-side DLLs that it uses. This seems to be an issue with how
+    // Anaconda handles installation of the VS redist -- they include it in the directory
+    // rather than installing it system wide. That approach works great when running the
+    // python.exe, but not so great when loading the python35.dll. To avoid _us_ having to
+    // install the VS redist, we add the python home to the DLL search path. Through trial
+    // and error, the qputenv or SetDllDirectory approach works. The AddDllDirectory does not
+    // work. I leave this code here so the next time someone encounters it, they can try these
+    // different solutions.
+
+    // DOES NOT WORK
+    //SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_USER_DIRS);
+    //AddDllDirectory((PCWSTR)QDir::toNativeSeparators(python_home).utf16());  // ensure that DLLs local to Python can be found
+
+    // DOES NOT WORK
+    //QProcessEnvironment::systemEnvironment().insert("PATH", QProcessEnvironment::systemEnvironment().value("PATH") + ";" + python_home);
+
+    // WORKS
+    //qputenv("PATH", (qgetenv("PATH") + ";" + python_home).toUtf8());
+
+    // WORKS
+    SetDllDirectory(QDir::toNativeSeparators(python_home).toUtf8());  // ensure that DLLs local to Python can be found
+
     void *dl = LoadLibrary(QDir::toNativeSeparators(file_path).toUtf8());
 #endif
     extern void initialize_pylib(void *);
