@@ -227,10 +227,10 @@ void PythonSupport::initInstance(const QString &python_home)
     //QProcessEnvironment::systemEnvironment().insert("PATH", QProcessEnvironment::systemEnvironment().value("PATH") + ";" + python_home);
 
     // WORKS
-    //qputenv("PATH", (qgetenv("PATH") + ";" + python_home).toUtf8());
+    qputenv("PATH", (qgetenv("PATH") + ";" + python_home).toUtf8());
 
-    // WORKS
-    SetDllDirectory(QDir::toNativeSeparators(python_home).toUtf8());  // ensure that DLLs local to Python can be found
+    // WORKS ALMOST. DOESN'T ALLOW CAMERA PLUG-INS TO LOAD.
+    //SetDllDirectory(QDir::toNativeSeparators(python_home).toUtf8());  // ensure that DLLs local to Python can be found
 
     void *dl = LoadLibrary(QDir::toNativeSeparators(file_path).toUtf8());
 #endif
