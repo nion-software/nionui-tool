@@ -61,6 +61,7 @@ Q_DECLARE_METATYPE(std::string)
 
 DocumentWindow::DocumentWindow(const QString &title, QWidget *parent)
     : QMainWindow(parent)
+    , m_closed(false)
 {
     setAttribute(Qt::WA_DeleteOnClose, true);
 
@@ -137,18 +138,26 @@ void DocumentWindow::changeEvent(QEvent *event)
 
 void DocumentWindow::closeEvent(QCloseEvent *close_event)
 {
-    QString geometry = QString(saveGeometry().toHex().data());
-    QString state = QString(saveState().toHex().data());
+    // see closing issue when closing from dock widget on OS X:
+    // https://bugreports.qt.io/browse/QTBUG-43344
 
-    // tell python we're closing.
-#if !USE_THRIFT
-    application()->dispatchPyMethod(m_py_object, "aboutToClose", QVariantList() << geometry << state);
-#else
-    application()->callbacks->DocumentWindow_aboutToClose(m_py_object.value<int64_t>(), geometry.toStdString(), state.toStdString());
-#endif
+    if (!m_closed) {
+
+        QString geometry = QString(saveGeometry().toHex().data());
+        QString state = QString(saveState().toHex().data());
+
+        // tell python we're closing.
+    #if !USE_THRIFT
+        application()->dispatchPyMethod(m_py_object, "aboutToClose", QVariantList() << geometry << state);
+    #else
+        application()->callbacks->DocumentWindow_aboutToClose(m_py_object.value<int64_t>(), geometry.toStdString(), state.toStdString());
+    #endif
+
+        m_closed = true;
+    }
 
     close_event->accept();
-    hide();
+    // window will be automatically hidden, according to Qt documentation
 }
 
 void DocumentWindow::cleanDocument()

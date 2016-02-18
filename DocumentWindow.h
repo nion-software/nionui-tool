@@ -66,6 +66,8 @@ private:
 
     QTimer *m_periodic_timer;
 
+    bool m_closed;
+
     Application *application() const;
 
     friend class Application;
