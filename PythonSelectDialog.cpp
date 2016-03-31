@@ -7,7 +7,7 @@
 
 PythonSelectDialog::PythonSelectDialog()
 {
-    QLabel *selectLabel = new QLabel("Please select a Python 3.4 directory with\nNumPy and SciPy installed.");
+    QLabel *selectLabel = new QLabel("Please select a Python 3.5 directory with\nNumPy 1.10 and SciPy installed.");
 
     directoryLabel = new QLabel();
 
@@ -47,7 +47,7 @@ PythonSelectDialog::PythonSelectDialog()
 
 void PythonSelectDialog::selectDirectory()
 {
-    QString result = QFileDialog::getExistingDirectory(NULL, "Please select Python 3.4 directory.");
+    QString result = QFileDialog::getExistingDirectory(NULL, "Please select Python 3.5 directory.");
     if (!result.isEmpty())
     {
         m_python_home = QDir::toNativeSeparators(result);
