@@ -100,6 +100,7 @@ xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Guid.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Networkd.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Svgd.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Widgetsd.dll  $(TargetDir)
+xcopy /D /i /y $(ProjectDir)qt.conf  $(TargetDir)
 </Command>
       <Message>Copy Files</Message>
     </PostBuildEvent>
@@ -121,6 +122,7 @@ xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Gui.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Network.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Svg.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Widgets.dll  $(TargetDir)
+xcopy /D /i /y $(ProjectDir)qt.conf  $(TargetDir)
 </Command>
       <Message>Copy Files</Message>
     </PostBuildEvent>
