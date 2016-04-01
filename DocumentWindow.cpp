@@ -1214,6 +1214,16 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             unsigned long duration = args[0].toFloat() * 1000000L;
             QThread::usleep(duration);
         }
+        else if (cmd == "latency")
+        {
+            extern QElapsedTimer timer;
+            extern qint64 timer_offset_ns;
+            unsigned long mark_time = args[0].toFloat() * 1000000000L;
+            // offset = py time - qt time
+            // qt time = py time - offset
+            qDebug() << "Latency " << qint64((timer.nsecsElapsed() - (args[0].toDouble() * 1E9 - timer_offset_ns)) / 1.0E6) << "ms";
+//            qDebug() << mark_time << "ns " << timer.nsecsElapsed();
+        }
         else if (cmd == "begin_layer")
         {
         }

@@ -12,6 +12,7 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QMetaType>
 #include <QtCore/QMimeData>
 #include <QtCore/QProcessEnvironment>
@@ -1035,6 +1036,21 @@ static PyObject *Core_readImageToBinary(PyObject * /*self*/, PyObject *args)
     }
 
     return PythonSupport::instance()->getNoneReturnValue();
+}
+
+QElapsedTimer timer;
+qint64 timer_offset_ns = 0;
+
+static PyObject *Core_syncLatencyTimer(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    double value = 0.0;
+    if (!PythonSupport::instance()->parse()(args, "d", &value))
+        return NULL;
+
+    timer_offset_ns = value * 1E9 - timer.nsecsElapsed();
+
+    return QVariantToPyObject(timer.nsecsElapsed());
 }
 
 static PyObject *Core_URLToPath(PyObject * /*self*/, PyObject *args)
@@ -4694,6 +4710,8 @@ Application::Application(int & argv, char **args)
     , m_quit_on_last_window(false)
     , m_idle_enabled(false)
 {
+    timer.start();
+
     setQuitOnLastWindowClosed(true);
 
     m_idle_timer = new QTimer(this);
@@ -4759,6 +4777,7 @@ static PyMethodDef Methods[] = {
     {"Core_out", Core_out, METH_VARARGS, "Core_out."},
     {"Core_pathToURL", Core_pathToURL, METH_VARARGS, "Core_pathToURL."},
     {"Core_readImageToBinary", Core_readImageToBinary, METH_VARARGS, "Core_readImageToBinary."},
+    {"Core_syncLatencyTimer", Core_syncLatencyTimer, METH_VARARGS, "Core_syncLatencyTimer"},
     {"Core_URLToPath", Core_URLToPath, METH_VARARGS, "Core_URLToPath."},
     {"Core_writeBinaryToImage", Core_writeBinaryToImage, METH_VARARGS, "Core_writeBinaryToImage."},
     {"DockWidget_getToggleAction", DockWidget_getToggleAction, METH_VARARGS, "DockWidget_getToggleAction."},
