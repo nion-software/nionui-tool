@@ -5,6 +5,8 @@ QTDIR_54 = $(HOME)/Developer/Qt541/5.4/clang_64
 
 QTDIR_55 = $(HOME)/Developer/Qt/5.5/clang_64
 
+QTDIR_56 = $(HOME)/Developer/Qt/5.6/clang_64
+
 QTDIR = $(QTDIR_$(QT_VERSION))
 
 ARCHS = $(ARCHS_STANDARD_32_64_BIT)
@@ -41,6 +43,8 @@ LD_RUNPATH_SEARCH_PATHS = $(QTDIR)/lib
 APP_LDFLAGS_54 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
 
 APP_LDFLAGS_55 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
+
+APP_LDFLAGS_56 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
 
 APP_LDFLAGS = $(APP_LDFLAGS_$(QT_VERSION))
 
