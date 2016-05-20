@@ -1218,11 +1218,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         {
             extern QElapsedTimer timer;
             extern qint64 timer_offset_ns;
-            unsigned long mark_time = args[0].toFloat() * 1000000000L;
-            // offset = py time - qt time
-            // qt time = py time - offset
             qDebug() << "Latency " << qint64((timer.nsecsElapsed() - (args[0].toDouble() * 1E9 - timer_offset_ns)) / 1.0E6) << "ms";
-//            qDebug() << mark_time << "ns " << timer.nsecsElapsed();
         }
         else if (cmd == "begin_layer")
         {
@@ -1935,10 +1931,16 @@ void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const Q
     else if (property == "min-width")
     {
         widget->setMinimumWidth(variant.toInt());
+        QSizePolicy size_policy = widget->sizePolicy();
+        size_policy.setHorizontalPolicy(QSizePolicy::Expanding);
+        widget->setSizePolicy(size_policy);
     }
     else if (property == "min-height")
     {
         widget->setMinimumHeight(variant.toInt());
+        QSizePolicy size_policy = widget->sizePolicy();
+        size_policy.setVerticalPolicy(QSizePolicy::Expanding);
+        widget->setSizePolicy(size_policy);
     }
     else if (property == "width")
     {

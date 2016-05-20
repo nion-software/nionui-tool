@@ -57,7 +57,7 @@ private Q_SLOTS:
 
 private:
     // check to save document
-    void closeEvent(QCloseEvent *close_event);
+    virtual void closeEvent(QCloseEvent *close_event) override;
 
     // mark the document as clean
     void cleanDocument();

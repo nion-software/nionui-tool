@@ -1043,7 +1043,6 @@ qint64 timer_offset_ns = 0;
 
 static PyObject *Core_syncLatencyTimer(PyObject * /*self*/, PyObject *args)
 {
-    PyObject *obj0 = NULL;
     double value = 0.0;
     if (!PythonSupport::instance()->parse()(args, "d", &value))
         return NULL;
@@ -3777,7 +3776,6 @@ static PyObject *TextEdit_moveCursorPosition(PyObject * /*self*/, PyObject *args
     char *operation_c = NULL;
     char *mode_c = NULL;
     int n = 0;
-    Py_UNICODE *text_u = NULL;
 
     if (!PythonSupport::instance()->parse()(args, "Ozzi", &obj0, &operation_c, &mode_c, &n))
         return NULL;
