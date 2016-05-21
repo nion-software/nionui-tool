@@ -1173,7 +1173,17 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         }
         else if (cmd == "strokeStyle")
         {
-            line_color = QColor(args[0].toString());
+            QString color_arg = args[0].toString().simplified();
+            QRegExp re1("^rgba\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+),\\s*([0-9.]+)\\)$");
+            QRegExp re2("^rgb\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+)\\)$");
+            int pos1 = re1.indexIn(color_arg);
+            int pos2 = re2.indexIn(color_arg);
+            if (pos1 > -1)
+                line_color = QColor(re1.cap(1).toInt(), re1.cap(2).toInt(), re1.cap(3).toInt(), re1.cap(4).toFloat() * 255);
+            else if (pos2 > -1)
+                line_color = QColor(re2.cap(1).toInt(), re2.cap(2).toInt(), re2.cap(3).toInt());
+            else
+                line_color = QColor(color_arg);
         }
         else if (cmd == "lineDash")
         {
