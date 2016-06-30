@@ -1,11 +1,7 @@
 // set the base Qt version
-QT_VERSION = 54
+QT_VERSION = 57
 
-QTDIR_54 = $(HOME)/Developer/Qt541/5.4/clang_64
-
-QTDIR_55 = $(HOME)/Developer/Qt/5.5/clang_64
-
-QTDIR_56 = $(HOME)/Developer/Qt/5.6/clang_64
+QTDIR_57 = $(HOME)/Developer/Qt/5.7/clang_64
 
 QTDIR = $(QTDIR_$(QT_VERSION))
 
@@ -20,14 +16,14 @@ HEADER_SEARCH_PATHS_LOCAL = . ..
 
 HEADER_SEARCH_PATHS_QT_EXTRA = $(QTDIR)/mkspecs/macx-xcode $(QTDIR)/include
 
-HEADER_SEARCH_PATHS_ALL = $(HEADER_SEARCH_PATHS_LOCAL) $(HEADER_SEARCH_PATHS_QT_EXTRA) $$(TARGET_HEADER_SEARCH_PATHS) $(COND_HEADER_SEARCH_PATHS) $(WEBKIT_HEADER_SEARCH_PATHS)
+HEADER_SEARCH_PATHS_ALL = $(HEADER_SEARCH_PATHS_LOCAL) $(HEADER_SEARCH_PATHS_QT_EXTRA) $$(TARGET_HEADER_SEARCH_PATHS) $(COND_HEADER_SEARCH_PATHS)
 
 FRAMEWORK_SEARCH_PATHS = $(QTDIR)/lib /Library/Frameworks/
 
 LIBRARY_SEARCH_PATHS = $(QTDIR)/lib $(TARGET_LIBRARY_SEARCH_PATHS) $(COND_LIBRARY_SEARCH_PATHS) /Library/Frameworks/
 
 // use this to define OTHER_CFLAGS since the preprocessor doesn't seem to be able to use existing definitions when replacing a definition
-OTHER_FLAGS = -pipe -g -Wreturn-type -Wunused-variable -Wno-shorten-64-to-32 -DQT_NO_KEYWORDS -DQT_NETWORK_LIB -DQT_XML_LIB -DQT_OPENGL_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED $(WEBKIT_FLAGS)
+OTHER_FLAGS = -pipe -g -Wreturn-type -Wunused-variable -Wno-shorten-64-to-32 -DQT_NO_KEYWORDS -DQT_NETWORK_LIB -DQT_XML_LIB -DQT_OPENGL_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
 
 GCC_INLINES_ARE_PRIVATE_EXTERN = NO
 GCC_SYMBOLS_PRIVATE_EXTERN = NO
@@ -40,17 +36,13 @@ CODE_SIGN_IDENTITY = Developer ID Application: Nion, Inc.
 
 LD_RUNPATH_SEARCH_PATHS = $(QTDIR)/lib
 
-APP_LDFLAGS_54 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
+APP_LDFLAGS_57 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
 
-APP_LDFLAGS_55 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
-
-APP_LDFLAGS_56 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
-
-APP_LDFLAGS = $(APP_LDFLAGS_$(QT_VERSION))
+APP_LDFLAGS = $(APP_LDFLAGS_$(QT_VERSION)) -stdlib=libc++
 
 OTHER_CFLAGS = $(OTHER_FLAGS) -DDYNAMIC_PYTHON=1
 
-OTHER_CPLUSPLUSFLAGS = $(OTHER_CFLAGS)
+OTHER_CPLUSPLUSFLAGS = $(OTHER_CFLAGS) -std=c++11 -stdlib=libc++
 
 // numpy is loaded from one of the paths in sys.path. look there to find it if this folder does not work.
 PYTHON_SEARCH_PATHS = $(PYTHON_INCLUDE) $(PYTHON_NUMPY_INCLUDE)
@@ -66,6 +58,6 @@ PYTHON_LDFLAGS =
 PYTHON_LIB_SEARCH = $(PYTHONHOME)/lib
 PYTHON_DIST = anaconda
 
-PYTHONHOME = $(HOME)/Developer/miniconda3
-PYTHON_VERSION_NUMBER = 3.4
+PYTHONHOME = $(HOME)/Developer/anaconda
+PYTHON_VERSION_NUMBER = 3.5
 PYTHON_OPTION = m
