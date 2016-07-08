@@ -365,6 +365,8 @@ void PyLineEdit::keyPressEvent(QKeyEvent *key_event)
 
 PyTextEdit::PyTextEdit()
 {
+    setAcceptRichText(false);
+    setUndoRedoEnabled(true);
     connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(cursorPositionChanged()));
     connect(this, SIGNAL(selectionChanged()), this, SLOT(selectionChanged()));
     connect(this, SIGNAL(textChanged()), this, SLOT(textChanged()));
