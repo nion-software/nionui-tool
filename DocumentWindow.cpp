@@ -183,6 +183,42 @@ void PyPushButton::clicked()
     }
 }
 
+PyRadioButton::PyRadioButton()
+{
+    connect(this, SIGNAL(clicked()), this, SLOT(clicked()));
+}
+
+void PyRadioButton::clicked()
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "clicked", QVariantList());
+#else
+        app->callbacks->RadioButton_clicked(m_py_object.value<int64_t>());
+#endif
+    }
+}
+
+PyButtonGroup::PyButtonGroup()
+{
+    connect(this, SIGNAL(buttonClicked(int)), this, SLOT(buttonClicked(int)));
+}
+
+void PyButtonGroup::buttonClicked(int button_id)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+        app->dispatchPyMethod(m_py_object, "clicked", QVariantList() << button_id);
+#else
+        app->callbacks->ButtonGroup_clicked(m_py_object.value<int64_t>(), button_id);
+#endif
+    }
+}
+
 PyCheckBox::PyCheckBox()
 {
     connect(this, SIGNAL(stateChanged(int)), this, SLOT(stateChanged(int)));
@@ -1797,6 +1833,11 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
     else if (intrinsic_id == "pushbutton")
     {
         PyPushButton *button = new PyPushButton();
+        return button;
+    }
+    else if (intrinsic_id == "radiobutton")
+    {
+        PyRadioButton *button = new PyRadioButton();
         return button;
     }
     else if (intrinsic_id == "checkbox")

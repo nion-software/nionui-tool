@@ -394,6 +394,144 @@ static PyObject *Application_close(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *ButtonGroup_addButton(PyObject * /*self*/, PyObject *args)
+{
+    Q_UNUSED(args)
+
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    PyObject *obj1 = NULL;
+    int button_id = 0;
+    if (!PythonSupport::instance()->parse()(args, "OOi", &obj0, &obj1, &button_id))
+        return NULL;
+
+    PyButtonGroup *button_group = Unwrap<PyButtonGroup>(obj0);
+    if (button_group == NULL)
+        return NULL;
+
+    PyRadioButton *radio_button = Unwrap<PyRadioButton>(obj1);
+    if (radio_button == NULL)
+        return NULL;
+
+    button_group->addButton(radio_button, button_id);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *ButtonGroup_connect(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    PyObject *obj1 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
+        return NULL;
+
+    PyButtonGroup *button_group = Unwrap<PyButtonGroup>(obj0);
+    if (button_group == NULL)
+        return NULL;
+
+    QVariant py_object = PyObjectToQVariant(obj1);
+
+    button_group->setPyObject(py_object);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *ButtonGroup_checkedButton(PyObject * /*self*/, PyObject *args)
+{
+    Q_UNUSED(args)
+
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    PyButtonGroup *button_group = Unwrap<PyButtonGroup>(obj0);
+    if (button_group == NULL)
+        return NULL;
+
+    return PythonSupport::instance()->build()("i", button_group->checkedId());
+}
+
+static PyObject *ButtonGroup_create(PyObject * /*self*/, PyObject *args)
+{
+    Q_UNUSED(args)
+
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyButtonGroup *button_group = new PyButtonGroup();
+
+    return WrapQObject(button_group);
+}
+
+static PyObject *ButtonGroup_destroy(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    PyButtonGroup *button_group = Unwrap<PyButtonGroup>(obj0);
+    if (button_group == NULL)
+        return NULL;
+
+    button_group->deleteLater();
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *ButtonGroup_removeButton(PyObject * /*self*/, PyObject *args)
+{
+    Q_UNUSED(args)
+
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    PyObject *obj1 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
+        return NULL;
+
+    PyButtonGroup *button_group = Unwrap<PyButtonGroup>(obj0);
+    if (button_group == NULL)
+        return NULL;
+
+    PyRadioButton *radio_button = Unwrap<PyRadioButton>(obj1);
+    if (radio_button == NULL)
+        return NULL;
+
+    button_group->removeButton(radio_button);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *Canvas_connect(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -3038,6 +3176,134 @@ static PyObject *PushButton_setText(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *RadioButton_connect(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    PyObject *obj1 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
+        return NULL;
+
+    PyRadioButton *radio_button = Unwrap<PyRadioButton>(obj0);
+    if (radio_button == NULL)
+        return NULL;
+
+    QVariant py_object = PyObjectToQVariant(obj1);
+
+    radio_button->setPyObject(py_object);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *RadioButton_getChecked(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    PyRadioButton *radio_button = Unwrap<PyRadioButton>(obj0);
+    if (radio_button == NULL)
+        return NULL;
+
+    return PythonSupport::instance()->build()("b", radio_button->isChecked());
+}
+
+static PyObject *RadioButton_setChecked(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    bool checked = false;
+
+    if (!PythonSupport::instance()->parse()(args, "Ob", &obj0, &checked))
+        return NULL;
+
+    PyRadioButton *radio_button = Unwrap<PyRadioButton>(obj0);
+    if (radio_button == NULL)
+        return NULL;
+
+    radio_button->setChecked(checked);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *RadioButton_setIcon(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    PyObject *obj1 = NULL;
+    int width, height;
+
+    if (!PythonSupport::instance()->parse()(args, "OiiO", &obj0, &width, &height, &obj1))
+        return NULL;
+
+    PyRadioButton *radio_button = Unwrap<PyRadioButton>(obj0);
+    if (radio_button == NULL)
+        return NULL;
+
+    if (!PythonSupport::instance()->isNone(obj1))
+    {
+        QImage image = PythonSupport::instance()->imageFromArray(obj1);
+
+        if (image.isNull())
+            return NULL;
+
+        radio_button->setIcon(QIcon(QPixmap::fromImage(image)));
+        radio_button->setIconSize(QSize(width, height));
+    }
+    else
+    {
+        radio_button->setIcon(QIcon());
+    }
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *RadioButton_setText(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    Py_UNICODE *text_u = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+        return NULL;
+
+    PyRadioButton *radio_button = Unwrap<PyRadioButton>(obj0);
+    if (radio_button == NULL)
+        return NULL;
+
+    radio_button->setText(Py_UNICODE_to_QString(text_u));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *ScrollArea_connect(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -4748,6 +5014,12 @@ static PyMethodDef Methods[] = {
     {"Action_setEnabled", Action_setEnabled, METH_VARARGS, "Action_setEnabled."},
     {"Action_setTitle", Action_setTitle, METH_VARARGS, "Action_setTitle."},
     {"Application_close", Application_close, METH_VARARGS, "Application_close."},
+    {"ButtonGroup_addButton", ButtonGroup_addButton, METH_VARARGS, "ButtonGroup_addButton."},
+    {"ButtonGroup_connect", ButtonGroup_connect, METH_VARARGS, "ButtonGroup_connect."},
+    {"ButtonGroup_checkedButton", ButtonGroup_checkedButton, METH_VARARGS, "ButtonGroup_checkedButton."},
+    {"ButtonGroup_create", ButtonGroup_create, METH_VARARGS, "ButtonGroup_create."},
+    {"ButtonGroup_destroy", ButtonGroup_destroy, METH_VARARGS, "ButtonGroup_destroy."},
+    {"ButtonGroup_removeButton", ButtonGroup_removeButton, METH_VARARGS, "ButtonGroup_removeButton."},
     {"Canvas_connect", Canvas_connect, METH_VARARGS, "Canvas_connect."},
     {"Canvas_draw", Canvas_draw, METH_VARARGS, "Canvas_draw."},
     {"Canvas_grabMouse", Canvas_grabMouse, METH_VARARGS, "Canvas_grabMouse."},
@@ -4851,6 +5123,11 @@ static PyMethodDef Methods[] = {
     {"PushButton_connect", PushButton_connect, METH_VARARGS, "PushButton_connect."},
     {"PushButton_setIcon", PushButton_setIcon, METH_VARARGS, "PushButton_setIcon."},
     {"PushButton_setText", PushButton_setText, METH_VARARGS, "PushButton_setText."},
+    {"RadioButton_connect", RadioButton_connect, METH_VARARGS, "RadioButton_connect."},
+    {"RadioButton_getChecked", RadioButton_getChecked, METH_VARARGS, "RadioButton_getChecked."},
+    {"RadioButton_setChecked", RadioButton_setChecked, METH_VARARGS, "RadioButton_setChecked."},
+    {"RadioButton_setIcon", RadioButton_setIcon, METH_VARARGS, "RadioButton_setIcon."},
+    {"RadioButton_setText", RadioButton_setText, METH_VARARGS, "RadioButton_setText."},
     {"ScrollArea_connect", ScrollArea_connect, METH_VARARGS, "ScrollArea_connect."},
     {"ScrollArea_info", ScrollArea_info, METH_VARARGS, "ScrollArea_info."},
     {"ScrollArea_setHorizontal", ScrollArea_setHorizontal, METH_VARARGS, "ScrollArea_setHorizontal."},

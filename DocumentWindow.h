@@ -9,6 +9,7 @@
 #include <QtCore/QMutex>
 #include <QtGui/QDrag>
 #include <QtWidgets/QAction>
+#include <QtWidgets/QButtonGroup>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QDockWidget>
@@ -18,6 +19,7 @@
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QListView>
 #include <QtWidgets/QPushButton>
+#include <QtWidgets/QRadioButton>
 #include <QtWidgets/QScrollArea>
 #include <QtWidgets/QStyledItemDelegate>
 #include <QtWidgets/QTabWidget>
@@ -353,6 +355,60 @@ private:
     QVariant m_py_object;
 };
 
+class PyRadioButton : public QRadioButton
+{
+    Q_OBJECT
+public:
+    PyRadioButton();
+
+    void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
+    QVariant pyObject() const { return m_py_object; }
+
+private Q_SLOTS:
+    void clicked();
+
+private:
+    QVariant m_py_object;
+};
+
+class PyButtonGroup : public QButtonGroup
+{
+    Q_OBJECT
+public:
+    PyButtonGroup();
+
+    void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
+    QVariant pyObject() const { return m_py_object; }
+
+private Q_SLOTS:
+    void buttonClicked(int button_id);
+
+private:
+    QVariant m_py_object;
+};
+
+class PyTextEdit : public QTextEdit
+{
+    Q_OBJECT
+public:
+    PyTextEdit();
+
+    void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
+    QVariant pyObject() const { return m_py_object; }
+
+    virtual void focusInEvent(QFocusEvent *event) override;
+    virtual void focusOutEvent(QFocusEvent *event) override;
+    virtual void keyPressEvent(QKeyEvent *event) override;
+
+    private Q_SLOTS:
+    void cursorPositionChanged();
+    void selectionChanged();
+    void textChanged();
+
+private:
+    QVariant m_py_object;
+};
+
 class PyCheckBox : public QCheckBox
 {
     Q_OBJECT
@@ -418,28 +474,6 @@ public:
 private Q_SLOTS:
     void editingFinished();
     void textEdited(const QString &text);
-
-private:
-    QVariant m_py_object;
-};
-
-class PyTextEdit : public QTextEdit
-{
-    Q_OBJECT
-public:
-    PyTextEdit();
-
-    void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
-
-    virtual void focusInEvent(QFocusEvent *event) override;
-    virtual void focusOutEvent(QFocusEvent *event) override;
-    virtual void keyPressEvent(QKeyEvent *event) override;
-
-private Q_SLOTS:
-    void cursorPositionChanged();
-    void selectionChanged();
-    void textChanged();
 
 private:
     QVariant m_py_object;
