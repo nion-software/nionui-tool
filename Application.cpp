@@ -4515,6 +4515,12 @@ static PyObject *Widget_adjustSize(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Widget_clearFocus(PyObject * /*self*/, PyObject *args)
 {
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
     PyObject *obj0 = NULL;
 
     if (!PythonSupport::instance()->parse()(args, "O", &obj0))
@@ -4570,6 +4576,12 @@ static PyObject *Widget_getWidgetProperty(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Widget_grabGesture(PyObject * /*self*/, PyObject *args)
 {
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
     PyObject *obj0 = NULL;
     char *gesture_type_c = NULL;
 
@@ -4593,6 +4605,12 @@ static PyObject *Widget_grabGesture(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Widget_hasFocus(PyObject * /*self*/, PyObject *args)
 {
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
     PyObject *obj0 = NULL;
 
     if (!PythonSupport::instance()->parse()(args, "O", &obj0))
@@ -4672,6 +4690,12 @@ static PyObject *Widget_insertWidget(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Widget_isEnabled(PyObject * /*self*/, PyObject *args)
 {
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
     PyObject *obj0 = NULL;
 
     if (!PythonSupport::instance()->parse()(args, "O", &obj0))
@@ -4686,6 +4710,12 @@ static PyObject *Widget_isEnabled(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Widget_isVisible(PyObject * /*self*/, PyObject *args)
 {
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
     PyObject *obj0 = NULL;
 
     if (!PythonSupport::instance()->parse()(args, "O", &obj0))
@@ -4779,6 +4809,12 @@ static PyObject *Widget_removeWidget(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Widget_setEnabled(PyObject * /*self*/, PyObject *args)
 {
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
     PyObject *obj0 = NULL;
     bool enabled;
 
@@ -4796,6 +4832,12 @@ static PyObject *Widget_setEnabled(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Widget_setFocus(PyObject * /*self*/, PyObject *args)
 {
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
     PyObject *obj0 = NULL;
     int reason;
 
@@ -4813,6 +4855,12 @@ static PyObject *Widget_setFocus(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Widget_setToolTip(PyObject * /*self*/, PyObject *args)
 {
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
     PyObject *obj0 = NULL;
     Py_UNICODE *tool_tip_u = NULL;
 
@@ -4830,6 +4878,12 @@ static PyObject *Widget_setToolTip(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Widget_setVisible(PyObject * /*self*/, PyObject *args)
 {
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
     PyObject *obj0 = NULL;
     bool visible;
 
@@ -4920,6 +4974,12 @@ static PyObject *Widget_show(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Widget_ungrabGesture(PyObject * /*self*/, PyObject *args)
 {
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
     PyObject *obj0 = NULL;
     char *gesture_type_c = NULL;
 
