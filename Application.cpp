@@ -3348,6 +3348,8 @@ static PyObject *ScrollArea_info(PyObject * /*self*/, PyObject *args)
     qDebug() << "v " << scroll_area->verticalScrollBar()->value() << "/" << scroll_area->verticalScrollBar()->maximum();
     qDebug() << "h " << scroll_area->horizontalScrollBar()->value() << "/" << scroll_area->horizontalScrollBar()->maximum();
     qDebug() << "vp " << scroll_area->viewport()->rect();
+    qDebug() << "c " << scroll_area->widget()->rect();
+    qDebug() << "w " << scroll_area->widget();
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -3443,6 +3445,7 @@ static PyObject *ScrollArea_setWidget(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     scroll_area->setWidget(widget);
+    widget->layout()->setSizeConstraint(QLayout::SetMinAndMaxSize);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4574,6 +4577,28 @@ static PyObject *Widget_getWidgetProperty(PyObject * /*self*/, PyObject *args)
     return QVariantToPyObject(result);
 }
 
+static PyObject *Widget_getWidgetSize(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    // Grab the container
+    QWidget *container = Unwrap<QWidget>(obj0);
+    if (container == NULL)
+        return NULL;
+
+    QSize size = container->size();
+
+    return PythonSupport::instance()->build()("ii", size.width(), size.height());
+}
+
 static PyObject *Widget_grabGesture(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -4945,6 +4970,7 @@ static PyObject *Widget_setWidgetSize(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     // force size to adjust
+    container->setMinimumSize(QSize(width, height));  // required within scroll area. ugh.
     container->resize(QSize(width, height));
 
     return PythonSupport::instance()->getNoneReturnValue();
@@ -5239,6 +5265,7 @@ static PyMethodDef Methods[] = {
     {"Widget_adjustSize", Widget_adjustSize, METH_VARARGS, "Widget_adjustSize."},
     {"Widget_clearFocus", Widget_clearFocus, METH_VARARGS, "Widget_clearFocus."},
     {"Widget_getWidgetProperty", Widget_getWidgetProperty, METH_VARARGS, "Widget_getWidgetProperty."},
+    {"Widget_getWidgetSize", Widget_getWidgetSize, METH_VARARGS, "Widget_getWidgetSize."},
     {"Widget_grabGesture", Widget_grabGesture, METH_VARARGS, "Widget_grabGesture."},
     {"Widget_hasFocus", Widget_hasFocus, METH_VARARGS, "Widget_hasFocus."},
     {"Widget_hide", Widget_hide, METH_VARARGS, "Widget_hide."},
@@ -5345,7 +5372,7 @@ void Application::idle()
 {
     if (!m_idle_enabled)
         return;
-    
+
 #if !USE_THRIFT
     try
     {
