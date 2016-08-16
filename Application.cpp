@@ -311,6 +311,63 @@ static PyObject *Action_create(PyObject * /*self*/, PyObject *args)
     return WrapQObject(action);
 }
 
+static PyObject *Action_getChecked(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    QAction *action = Unwrap<QAction>(obj0);
+    if (action == NULL)
+        return NULL;
+
+    return PythonSupport::instance()->build()("b", action->isChecked());
+}
+
+static PyObject *Action_getEnabled(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    QAction *action = Unwrap<QAction>(obj0);
+    if (action == NULL)
+        return NULL;
+
+    return PythonSupport::instance()->build()("b", action->isEnabled());
+}
+
+static PyObject *Action_getTitle(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    QAction *action = Unwrap<QAction>(obj0);
+    if (action == NULL)
+        return NULL;
+
+    return PythonSupport::instance()->build()("s", action->text().toUtf8().data());
+}
+
 static PyObject *Action_setChecked(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -324,7 +381,7 @@ static PyObject *Action_setChecked(PyObject * /*self*/, PyObject *args)
     if (!PythonSupport::instance()->parse()(args, "Ob", &obj0, &checked))
         return NULL;
 
-    PyAction *action = Unwrap<PyAction>(obj0);
+    QAction *action = Unwrap<QAction>(obj0);
     if (action == NULL)
         return NULL;
 
@@ -347,7 +404,7 @@ static PyObject *Action_setEnabled(PyObject * /*self*/, PyObject *args)
     if (!PythonSupport::instance()->parse()(args, "Ob", &obj0, &enabled))
         return NULL;
 
-    PyAction *action = Unwrap<PyAction>(obj0);
+    QAction *action = Unwrap<QAction>(obj0);
     if (action == NULL)
         return NULL;
 
@@ -369,7 +426,7 @@ static PyObject *Action_setTitle(PyObject * /*self*/, PyObject *args)
     if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &title_u))
         return NULL;
 
-    PyAction *action = Unwrap<PyAction>(obj0);
+    QAction *action = Unwrap<QAction>(obj0);
     if (action == NULL)
         return NULL;
 
@@ -5096,6 +5153,9 @@ Application::~Application()
 static PyMethodDef Methods[] = {
     {"Action_connect", Action_connect, METH_VARARGS, "Action_connect."},
     {"Action_create", Action_create, METH_VARARGS, "Action_create."},
+    {"Action_getChecked", Action_getChecked, METH_VARARGS, "Action_getChecked."},
+    {"Action_getEnabled", Action_getEnabled, METH_VARARGS, "Action_getEnabled."},
+    {"Action_getTitle", Action_getTitle, METH_VARARGS, "Action_getTitle."},
     {"Action_setChecked", Action_setChecked, METH_VARARGS, "Action_setChecked."},
     {"Action_setEnabled", Action_setEnabled, METH_VARARGS, "Action_setEnabled."},
     {"Action_setTitle", Action_setTitle, METH_VARARGS, "Action_setTitle."},
