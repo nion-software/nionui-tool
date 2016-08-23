@@ -1453,9 +1453,7 @@ void PyCanvas::mouseMoveEvent(QMouseEvent *event)
 
         if (m_grab_mouse_count > 0)
         {
-            QPoint reference_point(width()/2,height()/2);
-
-            QPoint delta = event->pos() - reference_point;
+            QPoint delta = event->pos() - m_grab_reference_point;
 
 #if !USE_THRIFT
             app->dispatchPyMethod(m_py_object, "grabbedMousePositionChanged", QVariantList() << delta.x() << delta.y() << (int)event->modifiers());
@@ -1463,7 +1461,7 @@ void PyCanvas::mouseMoveEvent(QMouseEvent *event)
             app->callbacks->Canvas_grabbedMousePositionChanged(m_py_object.value<int64_t>(), delta.x(), delta.y(), (int)event->modifiers());
 #endif
 
-            QCursor::setPos(mapToGlobal(reference_point));
+            QCursor::setPos(mapToGlobal(m_grab_reference_point));
             QApplication::changeOverrideCursor(Qt::BlankCursor);
         }
 
@@ -1592,7 +1590,7 @@ void PyCanvas::contextMenuEvent(QContextMenuEvent *event)
 #endif
 }
 
-void PyCanvas::grabMouse0()
+void PyCanvas::grabMouse0(const QPoint &gp)
 {
     unsigned grab_mouse_count = m_grab_mouse_count;
     m_grab_mouse_count += 1;
@@ -1600,7 +1598,8 @@ void PyCanvas::grabMouse0()
     {
         grabMouse();
         grabKeyboard();
-        QCursor::setPos(mapToGlobal(QPoint(width()/2,height()/2)));
+        m_grab_reference_point = gp;
+        QCursor::setPos(gp);
         QApplication::setOverrideCursor(Qt::BlankCursor);
     }
 }

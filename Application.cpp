@@ -25,6 +25,8 @@
 #include <QtGui/QImageReader>
 #include <QtGui/QImageWriter>
 #include <QtGui/QPainter>
+#include <QtGui/QScreen>
+#include <QtGui/QWindow>
 
 #include <QtWidgets/QDockWidget>
 #include <QtWidgets/QFileDialog>
@@ -654,15 +656,15 @@ static PyObject *Canvas_draw(PyObject * /*self*/, PyObject *args)
 static PyObject *Canvas_grabMouse(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
-
-    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+    int gx = 0, gy = 0;
+    if (!PythonSupport::instance()->parse()(args, "Oii", &obj0, &gx, &gy))
         return NULL;
 
     PyCanvas *canvas = Unwrap<PyCanvas>(obj0);
     if (canvas == NULL)
         return NULL;
 
-    canvas->grabMouse0();
+    canvas->grabMouse0(QPoint(gx, gy));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -1547,6 +1549,27 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
     return NULL;
 }
 
+static PyObject *DocumentWindow_getScreenSize(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
+    if (document_window == NULL)
+        return NULL;
+
+    QSize size = document_window->windowHandle()->screen()->size();
+
+    return PythonSupport::instance()->build()("ii", size.width(), size.height());
+}
+
 static PyObject *DocumentWindow_insertMenu(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -1748,7 +1771,7 @@ static PyObject *DocumentWindow_show(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     QStringList window_styles;
-    window_styles << "window" << "dialog" << "popup";
+    window_styles << "window" << "dialog" << "popup" << "mousegrab";
 
     if (!window_styles.contains(window_style_c))
         return NULL;
@@ -1759,6 +1782,11 @@ static PyObject *DocumentWindow_show(PyObject * /*self*/, PyObject *args)
         document_window->setWindowFlags(Qt::Dialog);
     else if (window_style == "popup")
         document_window->setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
+    else if (window_style == "mousegrab")
+    {
+        document_window->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
+        document_window->setAttribute(Qt::WA_TranslucentBackground);
+    }
 
     document_window->show();
 
@@ -5203,6 +5231,7 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_connect", DocumentWindow_connect, METH_VARARGS, "DocumentWindow_connect."},
     {"DocumentWindow_create", DocumentWindow_create, METH_VARARGS, "DocumentWindow_create."},
     {"DocumentWindow_getFilePath", DocumentWindow_getFilePath, METH_VARARGS, "DocumentWindow_getFilePath."},
+    {"DocumentWindow_getScreenSize", DocumentWindow_getScreenSize, METH_VARARGS, "DocumentWindow_getScreenSize."},
     {"DocumentWindow_insertMenu", DocumentWindow_insertMenu, METH_VARARGS, "DocumentWindow_insertMenu."},
     {"DocumentWindow_removeDockWidget", DocumentWindow_removeDockWidget, METH_VARARGS, "DocumentWindow_removeDockWidget."},
     {"DocumentWindow_restore", DocumentWindow_restore, METH_VARARGS, "DocumentWindow_restore."},

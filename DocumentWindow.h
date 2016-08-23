@@ -564,7 +564,7 @@ public:
 
     void setCommands(const QList<CanvasDrawingCommand> &commands);
 
-    void grabMouse0();
+    void grabMouse0(const QPoint &gp);
     void releaseMouse0();
 
 private:
@@ -575,6 +575,7 @@ private:
     bool m_pressed;
     PaintImageCache m_image_cache;
     unsigned m_grab_mouse_count;
+    QPoint m_grab_reference_point;
 };
 
 QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id);
