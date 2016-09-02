@@ -1987,6 +1987,7 @@ static PyObject *DrawingContext_paintRGBA(PyObject * /*self*/, PyObject *args)
     Python_ThreadAllow thread_allow;
 
     QImage image((int)width, (int)height, QImage::Format_ARGB32);
+    image.fill(QColor(0,0,0,0));
 
     {
         QPainter painter(&image);
