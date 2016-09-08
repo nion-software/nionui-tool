@@ -18,6 +18,7 @@
 		FD84088C160D190200370586 /* Application.h in Sources */ = {isa = PBXBuildFile; fileRef = FD840889160D180200370586 /* Application.h */; };
 		FD8C40741B8F84F500C6D55C /* PythonStubs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD8C40731B8F84F500C6D55C /* PythonStubs.cpp */; };
 		FDB693F21621F95800728B43 /* resources.qrc in Sources */ = {isa = PBXBuildFile; fileRef = FDFA4FE61621F473002D4129 /* resources.qrc */; };
+		FDD5B8721D81C8C200FD8F7B /* bootstrap.py in Resources */ = {isa = PBXBuildFile; fileRef = FDD5B8711D81C8C200FD8F7B /* bootstrap.py */; };
 		FDE306EA16BC27480023B7FD /* Graphics in Resources */ = {isa = PBXBuildFile; fileRef = FDE306E916BC27480023B7FD /* Graphics */; };
 		FDE306ED16BC59370023B7FD /* stylesheet.qss in Resources */ = {isa = PBXBuildFile; fileRef = FDE306EC16BC59360023B7FD /* stylesheet.qss */; };
 /* End PBXBuildFile section */
@@ -68,6 +69,7 @@
 		FD840889160D180200370586 /* Application.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Application.h; sourceTree = SOURCE_ROOT; };
 		FD8C40721B8F84DE00C6D55C /* PythonStubs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PythonStubs.h; sourceTree = "<group>"; };
 		FD8C40731B8F84F500C6D55C /* PythonStubs.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PythonStubs.cpp; sourceTree = SOURCE_ROOT; };
+		FDD5B8711D81C8C200FD8F7B /* bootstrap.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = bootstrap.py; sourceTree = SOURCE_ROOT; };
 		FDE306E916BC27480023B7FD /* Graphics */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Graphics; sourceTree = SOURCE_ROOT; };
 		FDE306EC16BC59360023B7FD /* stylesheet.qss */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = stylesheet.qss; sourceTree = SOURCE_ROOT; };
 		FDFA4FE61621F473002D4129 /* resources.qrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = resources.qrc; sourceTree = SOURCE_ROOT; };
@@ -146,6 +148,7 @@
 				FD840877160D126F00370586 /* NionUILauncher-Prefix.pch */,
 				FDFA4FE61621F473002D4129 /* resources.qrc */,
 				FDE306EC16BC59360023B7FD /* stylesheet.qss */,
+				FDD5B8711D81C8C200FD8F7B /* bootstrap.py */,
 				FDE306E916BC27480023B7FD /* Graphics */,
 			);
 			name = "Supporting Files";
@@ -227,6 +230,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FDD5B8721D81C8C200FD8F7B /* bootstrap.py in Resources */,
 				FDE306EA16BC27480023B7FD /* Graphics in Resources */,
 				FDE306ED16BC59370023B7FD /* stylesheet.qss in Resources */,
 			);

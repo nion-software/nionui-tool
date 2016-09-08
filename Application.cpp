@@ -5164,7 +5164,6 @@ Application::Application(int & argv, char **args)
     // TODO: Handle case where python home exists.
 
     m_python_home = argv > 1 ? QString::fromUtf8(args[1]) : QString();
-    m_python_target = argv > 2 ? QString::fromUtf8(args[2]) : QString();
 }
 
 #if !USE_THRIFT
@@ -5413,9 +5412,7 @@ bool Application::initialize()
     // Add the resources path so that the Python imports work. This is necessary to find bootstrap.py,
     // which may not be in the same directory as the executable (specifically for Mac OS where things
     // are arranged into a bundle).
-    if (m_python_target.isEmpty())
-        m_python_target = resourcesPath();
-    PythonSupport::instance()->addResourcePath(m_python_target);
+    PythonSupport::instance()->addResourcePath(resourcesPath());
 
 #if PY_MAJOR_VERSION < 3
     PythonSupport::instance()->addPyObjectToModuleFromQVariant(host_lib_mod, "original_resources_path", QVariant(resourcesPath()));

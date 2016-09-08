@@ -55,7 +55,6 @@ private Q_SLOTS:
 
 private:
     QString m_python_home;
-    QString m_python_target;
 
     QVariant m_bootstrap_module;
 
