@@ -5144,15 +5144,10 @@ void Application::output(const QString &str)
 Application::Application(int & argv, char **args)
     : QApplication(argv, args)
     , m_quit_on_last_window(false)
-    , m_idle_enabled(false)
 {
     timer.start();
 
     setQuitOnLastWindowClosed(true);
-
-    m_idle_timer = new QTimer(this);
-    connect(m_idle_timer, SIGNAL(timeout()), this, SLOT(idle()));
-    m_idle_timer->start(1000.0/20);
 
     connect(this, SIGNAL(lastWindowClosed()), this, SLOT(continueQuit()));
 
@@ -5170,11 +5165,6 @@ Application::Application(int & argv, char **args)
 
     m_python_home = argv > 1 ? QString::fromUtf8(args[1]) : QString();
     m_python_target = argv > 2 ? QString::fromUtf8(args[2]) : QString();
-}
-
-Application::~Application()
-{
-    m_idle_timer->stop();
 }
 
 #if !USE_THRIFT
@@ -5406,8 +5396,6 @@ bool Application::initialize()
         return false;
 #endif
 
-    m_idle_enabled = true;
-
     PythonSupport::initInstance(m_python_home);
 #if !USE_THRIFT
 #if PY_MAJOR_VERSION >= 3
@@ -5445,7 +5433,7 @@ bool Application::initialize()
     PythonSupport::instance()->printAndClearErrors();
 	m_bootstrap_module = PyObjectToQVariant(module); // new reference
     PythonSupport::instance()->printAndClearErrors();
-    m_py_application = invokePyMethod(m_bootstrap_module, "bootstrap_main", QVariantList() << arguments() << resourcesPath());
+    m_py_application = invokePyMethod(m_bootstrap_module, "bootstrap_main", QVariantList() << arguments());
 
     return invokePyMethod(m_py_application, "start", QVariantList()).toBool();
 #else // !USE_THRIFT
@@ -5455,23 +5443,6 @@ bool Application::initialize()
     transport->open();
     callbacks = new GUICallbacksClient(protocol);
     return true;
-#endif // !USE_THRIFT
-}
-
-void Application::idle()
-{
-    if (!m_idle_enabled)
-        return;
-
-#if !USE_THRIFT
-    try
-    {
-        invokePyMethod(m_bootstrap_module, "bootstrap_periodic", QVariantList());
-    }
-    catch (...)
-    {
-        LOG_EXCEPTION("Application::idle");
-    }
 #endif // !USE_THRIFT
 }
 

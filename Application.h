@@ -27,7 +27,6 @@ class Application : public QApplication
 
 public:
     Application(int & argv, char **args);
-    ~Application();
 
     static Application *instance() { return static_cast<Application *>(QCoreApplication::instance()); }
 
@@ -51,7 +50,6 @@ public Q_SLOTS:
     void output(const QString &str);
 
 private Q_SLOTS:
-    void idle();
     void continueQuit();
     void aboutToQuit();
 
@@ -59,13 +57,10 @@ private:
     QString m_python_home;
     QString m_python_target;
 
-    bool m_idle_enabled;
-
     QVariant m_bootstrap_module;
 
     QVariant m_py_application;
 
-    QTimer *m_idle_timer;
     bool m_quit_on_last_window;
 
     friend class DocumentWindow;
