@@ -15,3 +15,4 @@ make clean
 make
 # copy executable to target directory
 mv NionUILauncher linux/x64
+cp bootstrap.py linux/x64/bootstrap.py
