@@ -1,3 +1,5 @@
+import importlib
+import os
 import sys
 import HostLib  # host supplies this module
 
@@ -56,7 +58,14 @@ def bootstrap_main(args):
     Return the main application object.
     """
     proxy = HostLibProxy(HostLib)
+    module_name = "main"
     if len(args) > 2:
-        sys.path.insert(0, args[2])
-    import main
-    return main.main(args, {"proxy": proxy})
+        path = os.path.abspath(args[2])
+        if os.path.isfile(path):
+            dirname = os.path.dirname(path)
+            module_name = os.path.splitext(os.path.basename(path))[0]
+            sys.path.insert(0, dirname)
+        else:
+            sys.path.insert(0, path)
+    module = importlib.import_module(module_name)
+    return getattr(module, "main")(args, {"proxy": proxy})
