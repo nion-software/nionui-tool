@@ -394,6 +394,26 @@ void PyLineEdit::keyPressEvent(QKeyEvent *key_event)
 #endif
             }
         }
+        else
+        {
+            if (m_py_object.isValid())
+            {
+                Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if !USE_THRIFT
+                if (app->dispatchPyMethod(m_py_object, "keyPressed", QVariantList() << key_event->text() << key_event->key() << (int)key_event->modifiers()).toBool())
+                {
+                    key_event->accept();
+                    return;
+                }
+#else
+                if (app->callbacks->Canvas_keyPressed(m_py_object.value<int64_t>(), key_event->text().toStdString(), key_event->key(), (int)key_event->modifiers()))
+                {
+                    key_event->accept();
+                    return;
+                }
+#endif
+            }
+        }
     }
 
     QLineEdit::keyPressEvent(key_event);
