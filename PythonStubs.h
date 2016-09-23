@@ -13,7 +13,6 @@
 PyObject* Py_TrueGet() { return Py_True; }
 PyObject* Py_FalseGet() { return Py_False; }
 PyObject* Py_NoneGet() { return Py_None; }
-PyObject* PyExc_GetValueError() { return PyExc_ValueError; }
 
 #endif
 
@@ -28,6 +27,7 @@ void DECLARE_PY(PyErr_Clear)();
 PyObject* DECLARE_PY(PyErr_Format)(PyObject *exception, const char *format, ...);
 PyObject* DECLARE_PY(PyErr_Occurred)();
 void DECLARE_PY(PyErr_Print)();
+PyObject* DECLARE_PY(PyErr_NewException)(const char *message, PyObject *base, PyObject *dict);
 void DECLARE_PY(PyErr_SetString)(PyObject *type, const char *message);
 PyObject* DECLARE_PY(PyEval_EvalCode)(PyObject *co, PyObject *globals, PyObject *locals);
 void DECLARE_PY(PyEval_InitThreads)();
@@ -85,7 +85,6 @@ bool DECLARE_PY(PyModule_Check)(PyObject *o);
 PyObject* DECLARE_PY(PyExc_GetAttributeError)();
 PyObject* DECLARE_PY(PyExc_GetImportError)();
 PyObject* DECLARE_PY(PyExc_GetRuntimeError)();
-PyObject* DECLARE_PY(PyExc_GetValueError)();
 PyObject* DECLARE_PY(Py_TrueGet)();
 PyObject* DECLARE_PY(Py_FalseGet)();
 PyObject* DECLARE_PY(Py_NoneGet)();

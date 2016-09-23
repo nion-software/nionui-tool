@@ -94,6 +94,7 @@ public:
     PyObject *getNoneReturnValue();
     bool isNone(PyObject *obj);
     PyObject *createAndAddModule(PyModuleDef *moduledef);
+    void prepareModuleException(const char *name);
     void initializeModule(const char *name, CreateAndAddModuleFn fn);
     void printAndClearErrors();
     PyObject *import(const char *name);
@@ -111,6 +112,9 @@ private:
     // dynamics
     PyArg_ParseTupleFn dynamic_PyArg_ParseTuple;
     Py_BuildValueFn dynamic_Py_BuildValue;
+
+    // exceptions
+    PyObject *module_exception;
 };
 
 template <typename T> inline T *Unwrap(PyObject *py_object) { return dynamic_cast<T *>(PythonSupport::instance()->UnwrapQObject(py_object)); }

@@ -151,7 +151,7 @@ void PythonSupport::checkTarget(const QString &python_path)
     qDebug() << "Result: " << QString::fromUtf8(pybytes_as_string_fn(pyunicode_as_utf8_string_fn(pydict_get_item_string_fn(py_dict, "found"))));
     py_dec_ref_fn(result);
     //py_finalize_fn();
-    
+
     //FreeLibrary(m);
 #endif
 }
@@ -248,6 +248,7 @@ PythonSupport *PythonSupport::instance()
 }
 
 PythonSupport::PythonSupport(void *dl)
+    : module_exception(NULL)
 {
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 #if !defined(Q_OS_WIN)
@@ -967,7 +968,7 @@ PyObject *PythonSupport::arrayFromImage(const QImage &image)
 
 void PythonSupport::setErrorString(const QString &error_string)
 {
-    CALL_PY(PyErr_SetString)(CALL_PY(PyExc_GetValueError)(), error_string.toStdString().c_str());
+    CALL_PY(PyErr_SetString)(module_exception, error_string.toStdString().c_str());
 }
 
 PyObject *PythonSupport::getPyListFromStrings(const QStringList &strings)
@@ -1009,6 +1010,12 @@ PyObject *PythonSupport::createAndAddModule(PyModuleDef *moduledef)
     PyObject *m = CALL_PY(PyModule_Create2)(moduledef, PYTHON_ABI_VERSION); //borrowed reference
     CALL_PY(PyState_AddModule)(m, moduledef);
     return m;
+}
+
+void PythonSupport::prepareModuleException(const char *name)
+{
+    module_exception = CALL_PY(PyErr_NewException)(name, 0, 0);
+    Py_INCREF(module_exception);
 }
 
 void PythonSupport::initializeModule(const char *name, CreateAndAddModuleFn fn)

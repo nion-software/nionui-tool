@@ -5382,7 +5382,9 @@ static struct PyModuleDef moduledef = {
 
 PyObject* InitializeHostLibModule()
 {
-    return PythonSupport::instance()->createAndAddModule(&moduledef);
+    PyObject *module = PythonSupport::instance()->createAndAddModule(&moduledef);
+    PythonSupport::instance()->prepareModuleException("HostLib.ModuleException");
+    return module;
 }
 #endif // PY_MAJOR_VERSION >= 3
 #endif // !USE_THRIFT

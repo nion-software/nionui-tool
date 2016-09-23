@@ -190,6 +190,15 @@ void DPyErr_Print()
     f();
 }
 
+typedef PyObject *(*PyErr_NewExceptionFn)(const char *, PyObject *, PyObject *);
+PyObject *DPyErr_NewException(const char *message, PyObject *base, PyObject *dict)
+{
+    static PyErr_NewExceptionFn f = 0;
+    if (f == 0)
+        f = (PyErr_NewExceptionFn)LOOKUP_SYMBOL(pylib, "PyErr_NewException");
+    return f(message, base, dict);
+}
+
 typedef void (*PyErr_SetStringFn)(PyObject *type, const char *message);
 void DPyErr_SetString(PyObject *type, const char *message)
 {
