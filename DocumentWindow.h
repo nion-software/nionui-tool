@@ -399,6 +399,7 @@ public:
     virtual void focusInEvent(QFocusEvent *event) override;
     virtual void focusOutEvent(QFocusEvent *event) override;
     virtual void keyPressEvent(QKeyEvent *event) override;
+    virtual void insertFromMimeData(const QMimeData *source) override;
 
     private Q_SLOTS:
     void cursorPositionChanged();

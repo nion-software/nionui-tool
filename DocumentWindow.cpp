@@ -569,6 +569,25 @@ void PyTextEdit::focusOutEvent(QFocusEvent *event)
     QTextEdit::focusOutEvent(event);
 }
 
+void PyTextEdit::insertFromMimeData(const QMimeData *mime_data)
+{
+    if (m_py_object.isValid())
+    {
+#if !USE_THRIFT
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+        QVariantList args;
+
+        args << QVariant::fromValue((QObject *)mime_data);
+
+        app->dispatchPyMethod(m_py_object, "insertFromMimeData", args);
+#else
+        app->callbacks->TextEdit_insertFromMimeData(m_py_object.value<int64_t>(), reinterpret_cast<int64_t>(mime_data));
+#endif
+    }
+}
+
+
 Overlay::Overlay(QWidget *parent, QWidget *child)
     : QWidget(parent)
     , m_child(child)
