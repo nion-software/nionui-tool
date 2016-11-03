@@ -3954,7 +3954,11 @@ static PyObject *TextEdit_clearSelection(PyObject * /*self*/, PyObject *args)
     if (text_edit == NULL)
         return NULL;
 
-    text_edit->textCursor().clearSelection();
+    QTextCursor text_cursor = text_edit->textCursor();
+
+    text_cursor.clearSelection();
+
+    text_edit->setTextCursor(text_cursor);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4003,11 +4007,13 @@ static PyObject *TextEdit_getCursorInfo(PyObject * /*self*/, PyObject *args)
 
     QVariantList result;
 
-    result << text_edit->textCursor().position();
-    result << text_edit->textCursor().blockNumber();
-    result << text_edit->textCursor().columnNumber();
-    result << text_edit->textCursor().selectionStart();
-    result << text_edit->textCursor().selectionEnd();
+    QTextCursor text_cursor = text_edit->textCursor();
+
+    result << text_cursor.position();
+    result << text_cursor.blockNumber();
+    result << text_cursor.columnNumber();
+    result << text_cursor.selectionStart();
+    result << text_cursor.selectionEnd();
 
     return QVariantToPyObject(result);
 }
@@ -4166,7 +4172,7 @@ static PyObject *TextEdit_moveCursorPosition(PyObject * /*self*/, PyObject *args
     }
 
     // Mode
-    QTextCursor::MoveMode mode = QTextCursor::KeepAnchor;
+    QTextCursor::MoveMode mode = QTextCursor::MoveAnchor;
     if (mode_c)
     {
         if (strcmp(mode_c, "move") == 0)
@@ -4175,7 +4181,7 @@ static PyObject *TextEdit_moveCursorPosition(PyObject * /*self*/, PyObject *args
             mode = QTextCursor::KeepAnchor;
     }
 
-    text_edit->textCursor().movePosition(operation, mode, n);
+    text_edit->moveCursor(operation, mode);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
