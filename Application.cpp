@@ -4181,7 +4181,32 @@ static PyObject *TextEdit_moveCursorPosition(PyObject * /*self*/, PyObject *args
             mode = QTextCursor::KeepAnchor;
     }
 
-    text_edit->moveCursor(operation, mode);
+    for (int i=0; i<n; ++i)
+        text_edit->moveCursor(operation, mode);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextEdit_removeSelectedText(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    QTextCursor text_cursor = text_edit->textCursor();
+
+    text_cursor.removeSelectedText();
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -5333,6 +5358,7 @@ static PyMethodDef Methods[] = {
     {"TextEdit_getText", TextEdit_getText, METH_VARARGS, "TextEdit_getText."},
     {"TextEdit_insertText", TextEdit_insertText, METH_VARARGS, "TextEdit_insertText."},
     {"TextEdit_moveCursorPosition", TextEdit_moveCursorPosition, METH_VARARGS, "TextEdit_moveCursorPosition."},
+    {"TextEdit_removeSelectedText", TextEdit_removeSelectedText, METH_VARARGS, "TextEdit_removeSelectedText."},
     {"TextEdit_selectAll", TextEdit_selectAll, METH_VARARGS, "TextEdit_selectAll."},
     {"TextEdit_setEditable", TextEdit_setEditable, METH_VARARGS, "TextEdit_setEditable."},
     {"TextEdit_setPlaceholderText", TextEdit_setPlaceholderText, METH_VARARGS, "TextEdit_setPlaceholderText."},
