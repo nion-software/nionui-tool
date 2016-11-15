@@ -68,16 +68,10 @@
 
 #define SIMPLE_WRAP 0
 
-#if PY_MAJOR_VERSION >= 3
 static void* init_numpy() {
     import_array();
     return NULL;
 }
-#else // PY_MAJOR_VERSION >= 3
-static void init_numpy() {
-    import_array();
-}
-#endif // PY_MAJOR_VERSION >= 3
 
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 #pragma pop_macro("PyCapsule_CheckExact")
@@ -569,41 +563,11 @@ PyObject *QVariantToPyObject(const QVariant &value)
 
 QString PyObjectToQString(PyObject* val)
 {
-#if PY_MAJOR_VERSION >= 3
     if (PyUnicode_Check(val))
     {
         return QString::fromUtf8(CALL_PY(PyUnicode_AsUTF8)(val));
     }
     return QString();
-#else // PY_MAJOR_VERSION >= 3
-    if (PyString_Check(val))
-    {
-        return QString(PyString_AS_STRING(val));
-    }
-    // try unicode
-    else if (PyUnicode_Check(val))
-    {
-        PyObject *py_utf8 = CALL_PY(PyUnicode_AsUTF8String)(val);
-        if (py_utf8)
-        {
-            QString result = QString::fromUtf8(PyString_AS_STRING(py_utf8));
-            Py_DECREF(py_utf8);
-            return result;
-        }
-    }
-    // get the string representation
-    else
-    {
-        PyObject *py_str = CALL_PY(PyObject_Str)(val);
-        if (py_str)
-        {
-            QString result = QString(PyString_AS_STRING(py_str));
-            Py_DECREF(py_str);
-            return result;
-        }
-    }
-    return QString();
-#endif // PY_MAJOR_VERSION >= 3
 }
 
 QVariant PyObjectToQVariant(PyObject *py_object)

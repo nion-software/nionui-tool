@@ -206,15 +206,7 @@ QList<T> reversed( const QList<T> & in ) {
     return result;
 }
 
-#ifdef Py_UNICODE_WIDE
-    #if PY_MAJOR_VERSION >= 3
-        #define Py_UNICODE_to_QString(x) QString::fromWCharArray(x)
-    #else
-        #define Py_UNICODE_to_QString(x) QString::fromUcs4(x)
-    #endif
-#else
-    #define Py_UNICODE_to_QString(x) QString::fromWCharArray(x)
-#endif
+#define Py_UNICODE_to_QString(x) QString::fromWCharArray(x)
 
 //----
 
@@ -5399,7 +5391,6 @@ static PyMethodDef Methods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-#if PY_MAJOR_VERSION >= 3
 static struct PyModuleDef moduledef = {
     PyModuleDef_HEAD_INIT,
     "HostLib",
@@ -5418,7 +5409,6 @@ PyObject* InitializeHostLibModule()
     PythonSupport::instance()->prepareModuleException("HostLib.ModuleException");
     return module;
 }
-#endif // PY_MAJOR_VERSION >= 3
 #endif // !USE_THRIFT
 
 bool Application::initialize()
@@ -5431,33 +5421,16 @@ bool Application::initialize()
 
     PythonSupport::initInstance(m_python_home);
 #if !USE_THRIFT
-#if PY_MAJOR_VERSION >= 3
     PythonSupport::instance()->initializeModule("HostLib", &InitializeHostLibModule);
-#endif // PY_MAJOR_VERSION >= 3
 
     PythonSupport::instance()->initialize(m_python_home);  // initialize Python support
 
     Python_ThreadBlock thread_block;
 
-#if PY_MAJOR_VERSION < 3
-    PyObject* host_lib_mod = Py_InitModule("HostLib", Methods); //borrowed reference
-#endif // PY_MAJOR_VERSION < 3
-
     // Add the resources path so that the Python imports work. This is necessary to find bootstrap.py,
     // which may not be in the same directory as the executable (specifically for Mac OS where things
     // are arranged into a bundle).
     PythonSupport::instance()->addResourcePath(resourcesPath());
-
-#if PY_MAJOR_VERSION < 3
-    PythonSupport::instance()->addPyObjectToModuleFromQVariant(host_lib_mod, "original_resources_path", QVariant(resourcesPath()));
-
-    // Add 'arguments' to the HostLib module. We'll convert to a QVariant and use our
-	// automatic conversion routines.
-	// Now both idc and arguments can be obtained by simply
-	// import HostLib; print HostLib.arguments, HostLib.idc
-	QVariant qv(this->arguments());
-	PythonSupport::instance()->addPyObjectToModuleFromQVariant(host_lib_mod, "arguments", qv);
-#endif // PY_MAJOR_VERSION < 3
 
     // Bootstrap the python stuff.
     PyObject *module = PythonSupport::instance()->import("bootstrap");

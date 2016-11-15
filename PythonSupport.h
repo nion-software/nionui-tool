@@ -12,14 +12,12 @@
 #include <Python.h>
 #pragma pop_macro("_DEBUG")
 
-#if PY_MAJOR_VERSION >= 3
 #define PyInt_Check PyLong_Check
 #define PyInt_FromLong CALL_PY(PyLong_FromLong)
 #define PyInt_AsLong CALL_PY(PyLong_AsLong)
 #define PyString_FromString CALL_PY(PyUnicode_FromString)
 #define PyString_Check PyUnicode_Check
 #define PyCodeObject PyObject
-#endif
 
 // Use this when calling back to Python code to grab the GIL and release it when the
 // Python code returns.
