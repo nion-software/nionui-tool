@@ -6,9 +6,7 @@
 
 #include "Application.h"
 #include "DocumentWindow.h"
-#if !USE_THRIFT
 #include "PythonSupport.h"
-#endif // !USE_THRIFT
 
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
@@ -39,16 +37,6 @@
 #include <QtWidgets/QSplitter>
 #include <QtWidgets/QStackedWidget>
 #include <QtWidgets/QTextEdit>
-
-#if USE_THRIFT
-#include <thrift/transport/TSocket.h>
-#include <thrift/transport/TBufferTransports.h>
-#include <thrift/protocol/TBinaryProtocol.h>
-
-using namespace apache::thrift;
-using namespace apache::thrift::protocol;
-using namespace apache::thrift::transport;
-#endif
 
 #include "LauncherConfig.h"
 
@@ -196,7 +184,6 @@ Qt::ScrollBarPolicy ParseScrollBarPolicy(const QString &policy_str)
         return Qt::ScrollBarAsNeeded;
 }
 
-#if !USE_THRIFT
 #define LOG_EXCEPTION(ctx) qDebug() << "EXCEPTION";
 
 template <typename T>
@@ -5153,8 +5140,6 @@ static PyObject *Widget_widgetByIndex(PyObject * /*self*/, PyObject *args)
     return WrapQObject(widget);
 }
 
-#endif // !USE_THRIFT
-
 //----
 
 void Application::output(const QString &str)
@@ -5188,8 +5173,6 @@ Application::Application(int & argv, char **args)
 
     m_python_home = argv > 1 ? QString::fromUtf8(args[1]) : QString();
 }
-
-#if !USE_THRIFT
 
 static PyMethodDef Methods[] = {
     {"Action_connect", Action_connect, METH_VARARGS, "Action_connect."},
@@ -5409,7 +5392,6 @@ PyObject* InitializeHostLibModule()
     PythonSupport::instance()->prepareModuleException("HostLib.ModuleException");
     return module;
 }
-#endif // !USE_THRIFT
 
 bool Application::initialize()
 {
@@ -5420,7 +5402,7 @@ bool Application::initialize()
 #endif
 
     PythonSupport::initInstance(m_python_home);
-#if !USE_THRIFT
+
     PythonSupport::instance()->initializeModule("HostLib", &InitializeHostLibModule);
 
     PythonSupport::instance()->initialize(m_python_home);  // initialize Python support
@@ -5440,14 +5422,6 @@ bool Application::initialize()
     m_py_application = invokePyMethod(m_bootstrap_module, "bootstrap_main", QVariantList() << arguments());
 
     return invokePyMethod(m_py_application, "start", QVariantList()).toBool();
-#else // !USE_THRIFT
-    boost::shared_ptr<TSocket> socket(new TSocket("localhost", 9091));
-    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-    boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-    transport->open();
-    callbacks = new GUICallbacksClient(protocol);
-    return true;
-#endif // !USE_THRIFT
 }
 
 void Application::continueQuit()
@@ -5471,7 +5445,6 @@ QString Application::resourcesPath() const
 #endif
 }
 
-#if !USE_THRIFT
 QVariant Application::lookupPyObjectByName(const QString &object)
 {
     return PythonSupport::instance()->lookupPyObjectByName(object);
@@ -5491,56 +5464,8 @@ QVariant Application::getPyObjectAttribute(const QVariant &object, const QString
 {
     return PythonSupport::instance()->getAttribute(object, attribute);
 }
-#endif // !USE_THRIFT
 
 QVariant Application::dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args)
 {
-#if USE_THRIFT
-    if (method != "periodic")
-        qDebug() << "dispatch " << object << "," << method;
-    return 0;
-#else // USE_THRIFT
     return invokePyMethod(m_bootstrap_module, "bootstrap_dispatch", QVariantList() << object << method << QVariant(args));
-#endif // USE_THRIFT
 }
-
-#if USE_THRIFT
-
-Q_DECLARE_METATYPE(std::string)
-
-void GUIDrawingCommandsToCanvasDrawingCommands(const GUIDrawingCommands& gui_drawing_commands, QList<CanvasDrawingCommand> &drawing_commands)
-{
-    Q_FOREACH(const GUIDrawingCommand &gui_drawing_command, gui_drawing_commands)
-    {
-        CanvasDrawingCommand drawing_command;
-        drawing_command.command = QString::fromStdString(gui_drawing_command.command);
-        QVariantList arguments;
-        Q_FOREACH(const GUIDrawingCommandArg &gui_drawing_command_arg, gui_drawing_command.arguments)
-        {
-            switch (gui_drawing_command_arg.type)
-            {
-                case GUIVariantType::DOUBLE:
-                    arguments.append(gui_drawing_command_arg.variant.v_double);
-                    break;
-                case GUIVariantType::I32:
-                    arguments.append(gui_drawing_command_arg.variant.v_i32);
-                    break;
-                case GUIVariantType::I64:
-                    arguments.append(gui_drawing_command_arg.variant.v_i64);
-                    break;
-                case GUIVariantType::BOOL:
-                    arguments.append(gui_drawing_command_arg.variant.v_bool);
-                    break;
-                case GUIVariantType::STRING:
-                    arguments.append(QString::fromStdString(gui_drawing_command_arg.variant.v_string));
-                    break;
-                case GUIVariantType::BINARY:
-                    arguments.append(QVariant::fromValue<std::string>(gui_drawing_command_arg.variant.v_binary));
-                    break;
-            }
-        }
-        drawing_command.arguments = arguments;
-        drawing_commands.append(drawing_command);
-    }
-}
-#endif

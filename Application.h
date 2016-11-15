@@ -8,15 +8,6 @@
 #include <QtWidgets/QApplication>
 #include <QtCore/QVariant>
 
-#ifndef USE_THRIFT
-#define USE_THRIFT 0
-#endif
-
-#if USE_THRIFT
-#include "GUI_types.h"
-#include "GUICallbacks.h"
-#endif
-
 class DocumentWindow;
 
 typedef QList<DocumentWindow *> DocumentWindowList;
@@ -41,10 +32,6 @@ public:
     QVariant dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args);
     bool setPyObjectAttribute(const QVariant &object, const QString &attribute, const QVariant &value);
     QVariant getPyObjectAttribute(const QVariant &object, const QString &attribute);
-
-#if USE_THRIFT
-    GUICallbacksClient *callbacks;
-#endif
 
 public Q_SLOTS:
     void output(const QString &str);
