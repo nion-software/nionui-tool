@@ -4136,6 +4136,10 @@ static PyObject *TextEdit_moveCursorPosition(PyObject * /*self*/, PyObject *args
             operation = QTextCursor::StartOfLine;
         else if (strcmp(operation_c, "end_line") == 0)
             operation = QTextCursor::EndOfLine;
+        else if (strcmp(operation_c, "start_para") == 0)
+            operation = QTextCursor::StartOfBlock;
+        else if (strcmp(operation_c, "end_para") == 0)
+            operation = QTextCursor::EndOfBlock;
         else if (strcmp(operation_c, "previous") == 0)
             operation = QTextCursor::PreviousCharacter;
         else if (strcmp(operation_c, "next") == 0)
@@ -4302,6 +4306,35 @@ static PyObject *TextEdit_setTextColor(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     text_edit->setTextColor(QColor(r, g, b));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextEdit_setWordWrapMode(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    char *wrap_mode_c = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Os", &obj0, &wrap_mode_c))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    QStringList wrap_modes;
+    wrap_modes << "none" << "word" << "manual" << "anywhere" << "optimal";
+
+    if (!wrap_modes.contains(wrap_mode_c))
+        return NULL;
+
+    text_edit->setWordWrapMode(static_cast<QTextOption::WrapMode>(wrap_modes.indexOf(wrap_mode_c)));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -5339,6 +5372,7 @@ static PyMethodDef Methods[] = {
     {"TextEdit_setPlaceholderText", TextEdit_setPlaceholderText, METH_VARARGS, "TextEdit_setPlaceholderText."},
     {"TextEdit_setText", TextEdit_setText, METH_VARARGS, "TextEdit_setText."},
     {"TextEdit_setTextColor", TextEdit_setTextColor, METH_VARARGS, "TextEdit_setTextColor."},
+    {"TextEdit_setWordWrapMode", TextEdit_setWordWrapMode, METH_VARARGS, "TextEdit_setWordWrapMode."},
     {"TreeWidget_connect", TreeWidget_connect, METH_VARARGS, "TreeWidget_connect."},
     {"TreeWidget_setCurrentRow", TreeWidget_setCurrentRow, METH_VARARGS, "TreeWidget_setCurrentRow."},
     {"TreeWidget_setItemDelegate", TreeWidget_setItemDelegate, METH_VARARGS, "TreeWidget_setItemDelegate."},
