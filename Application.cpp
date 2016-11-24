@@ -911,8 +911,6 @@ static PyObject *Clipboard_mimeData(PyObject * /*self*/, PyObject *args)
 
     QClipboard *clipboard = QApplication::clipboard();
 
-    clipboard->clear();
-
     const QMimeData *mime_data = clipboard->mimeData();
 
     return WrapQObject((QMimeData *)mime_data);
