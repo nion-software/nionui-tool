@@ -263,6 +263,8 @@ static PyObject *Action_create(PyObject * /*self*/, PyObject *args)
             action->setShortcut(QKeySequence::Undo);
         else if (strcmp(key_sequence_c, "redo") == 0)
             action->setShortcut(QKeySequence::Redo);
+        else if (strcmp(key_sequence_c, "cut") == 0)
+            action->setShortcut(QKeySequence::Cut);
         else if (strcmp(key_sequence_c, "copy") == 0)
             action->setShortcut(QKeySequence::Copy);
         else if (strcmp(key_sequence_c, "paste") == 0)
