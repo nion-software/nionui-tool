@@ -1310,7 +1310,7 @@ void PyCanvas::wheelEvent(QWheelEvent *event)
         QWheelEvent *wheel_event = static_cast<QWheelEvent *>(event);
         bool is_horizontal = wheel_event->orientation() == Qt::Horizontal;
         QPoint delta = wheel_event->pixelDelta().isNull() ? wheel_event->angleDelta() : wheel_event->pixelDelta();
-        app->dispatchPyMethod(m_py_object, "wheelChanged", QVariantList() << delta.x() << delta.y() << (bool)is_horizontal);
+        app->dispatchPyMethod(m_py_object, "wheelChanged", QVariantList() << wheel_event->x() << wheel_event->y() << delta.x() << delta.y() << (bool)is_horizontal);
     }
 }
 
