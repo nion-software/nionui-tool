@@ -1127,6 +1127,10 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             extern qint64 timer_offset_ns;
             qDebug() << "Latency " << qint64((timer.nsecsElapsed() - (args[0].toDouble() * 1E9 - timer_offset_ns)) / 1.0E6) << "ms";
         }
+        else if (cmd == "message")
+        {
+            qDebug() << args[0].toString();
+        }
         else if (cmd == "begin_layer")
         {
         }
