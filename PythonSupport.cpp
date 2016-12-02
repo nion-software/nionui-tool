@@ -194,15 +194,14 @@ QString PythonSupport::ensurePython(const QString &python_home)
 void PythonSupport::initInstance(const QString &python_home)
 {
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
-#if !defined(Q_OS_WIN)
-    QString file_path_34 = QDir(python_home).absoluteFilePath("lib/libpython3.4m.dylib");
-    QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.dylib");
-    QString file_path = QFile(file_path_35).exists() ? file_path_35 : file_path_34;
+#if defined(Q_OS_MAC)
+    QString file_path = QDir(python_home).absoluteFilePath("lib/libpython3.5m.dylib");
+    void *dl = dlopen(file_path.toStdString().c_str(), RTLD_LAZY);
+#elif defined(Q_OS_LINUX)
+    QString file_path = QDir(python_home).absoluteFilePath("lib/libpython3.5m.so");
     void *dl = dlopen(file_path.toStdString().c_str(), RTLD_LAZY);
 #else
-    QString file_path_34 = QDir(python_home).absoluteFilePath("Python34.dll");
-    QString file_path_35 = QDir(python_home).absoluteFilePath("Python35.dll");
-    QString file_path = QFile(file_path_35).exists() ? file_path_35 : file_path_34;
+    QString file_path = QDir(python_home).absoluteFilePath("Python35.dll");
 
     // Python may have side-by-side DLLs that it uses. This seems to be an issue with how
     // Anaconda handles installation of the VS redist -- they include it in the directory

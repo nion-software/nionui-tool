@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # run using something similar to this:
-# bash linux_build.sh python3.5m
+# bash linux_build.sh ~/miniconda3
 # puts result in linux/x64
 
 # requires:
@@ -9,7 +9,7 @@
 
 # build executable
 mkdir -p linux/x64
-export PYTHON_LIB=$1
+export PYTHON_PATH=$1
 qmake NionUILauncher.pro
 make clean
 make

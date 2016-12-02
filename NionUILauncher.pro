@@ -1,21 +1,23 @@
 QT += core gui svg widgets
 CONFIG += no_keywords
 
-PYTHON_LIB = $(PYTHON_LIB)
-
 TARGET = NionUILauncher
 TEMPLATE = app
-QMAKE_CXXFLAGS += -m64 -std=c++11
-INCLUDEPATH += /usr/include/$$PYTHON_LIB
+QMAKE_CXXFLAGS += -m64 -std=c++11 -Wno-unused-parameter -Wno-unused-variable -DDYNAMIC_PYTHON
+INCLUDEPATH += $$(PYTHON_PATH)/include/python3.5m $$(PYTHON_PATH)/lib/python3.5/site-packages/numpy/core/include
 SOURCES +=\
     main.cpp \
     DocumentWindow.cpp \
     Application.cpp \
-    PythonSupport.cpp \
+    PythonSelectDialog.cpp \
+    PythonStubs.cpp \
+    PythonSupport.cpp
 
 HEADERS  += \
     DocumentWindow.h \
     Application.h \
+    PythonSelectDialog.h \
+    PythonStubs.h \
     PythonSupport.h
 
 RESOURCES += \
@@ -31,9 +33,7 @@ unix {
    QMAKE_LFLAGS += "-Wl,-rpath,\'\$$ORIGIN\'"
 }
 # message($$OUT_PWD);
-unix: LIBS += -L$$OUT_PWD
+unix: LIBS += -L$$OUT_PWD -ldl
 
 INCLUDEPATH += $DESTDIR/include
 DEPENDPATH += $DESTDIR/include
-
-unix: LIBS += -l$$PYTHON_LIB
