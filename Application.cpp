@@ -2272,6 +2272,26 @@ static PyObject *LineEdit_getPlaceholderText(PyObject * /*self*/, PyObject *args
     return PythonSupport::instance()->build()("s", line_edit->placeholderText().toUtf8().data());
 }
 
+static PyObject *LineEdit_getSelectedText(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    PyLineEdit *line_edit = Unwrap<PyLineEdit>(obj0);
+    if (line_edit == NULL)
+        return NULL;
+
+    return PythonSupport::instance()->build()("s", line_edit->selectedText().toUtf8().data());
+}
+
 static PyObject *LineEdit_getText(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5288,6 +5308,7 @@ static PyMethodDef Methods[] = {
     {"LineEdit_connect", LineEdit_connect, METH_VARARGS, "LineEdit_connect."},
     {"LineEdit_getEditable", LineEdit_getEditable, METH_VARARGS, "LineEdit_getEditable."},
     {"LineEdit_getPlaceholderText", LineEdit_getPlaceholderText, METH_VARARGS, "LineEdit_getPlaceholderText."},
+    {"LineEdit_getSelectedText", LineEdit_getSelectedText, METH_VARARGS, "LineEdit_getSelectedText."},
     {"LineEdit_getText", LineEdit_getText, METH_VARARGS, "LineEdit_getText."},
     {"LineEdit_selectAll", LineEdit_selectAll, METH_VARARGS, "LineEdit_selectAll."},
     {"LineEdit_setClearButtonEnabled", LineEdit_setClearButtonEnabled, METH_VARARGS, "LineEdit_setClearButtonEnabled."},
