@@ -376,10 +376,11 @@ void PythonSupport::initialize(const QString &python_home)
 
     CALL_PY(Py_Initialize)();
 
-    init_numpy();
-
     // initialize threads and save the main thread state
     CALL_PY(PyEval_InitThreads)();
+
+    init_numpy();
+
     PyGILState_STATE main_restore_state = PyGILState_UNLOCKED;
     CALL_PY(PyGILState_Release)(main_restore_state);
 
