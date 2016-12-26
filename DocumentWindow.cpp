@@ -920,28 +920,30 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             }
             else
             {
-                Python_ThreadBlock thread_block;
+                QImage image;
 
-                // Grab the ndarray
-                PyObject *ndarray_py = QVariantToPyObject(args[2]);
-
-                if (ndarray_py)
                 {
-                    QImage image = PythonSupport::instance()->imageFromArray(ndarray_py);
+                    Python_ThreadBlock thread_block;
 
-                    if (!image.isNull())
+                    // Grab the ndarray
+                    PyObject *ndarray_py = QVariantToPyObject(args[2]);
+
+                    if (ndarray_py)
                     {
-                        Python_ThreadAllow thread_allow;
+                        image = PythonSupport::instance()->imageFromArray(ndarray_py);
 
-                        painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
-                        if (image_cache)
-                        {
-                            PaintImageCacheEntry cache_entry(image_id, true, image);
-                            (*image_cache)[image_id] = cache_entry;
-                        }
+                        FreePyObject(ndarray_py);
                     }
+                }
 
-                    FreePyObject(ndarray_py);
+                if (!image.isNull())
+                {
+                    painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
+                    if (image_cache)
+                    {
+                        PaintImageCacheEntry cache_entry(image_id, true, image);
+                        (*image_cache)[image_id] = cache_entry;
+                    }
                 }
             }
         }
