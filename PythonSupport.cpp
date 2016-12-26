@@ -378,15 +378,14 @@ void PythonSupport::initialize(const QString &python_home)
 
     // initialize threads and save the main thread state
     CALL_PY(PyEval_InitThreads)();
-
-    init_numpy();
-
     PyGILState_STATE main_restore_state = PyGILState_UNLOCKED;
     CALL_PY(PyGILState_Release)(main_restore_state);
 
     PyObjectPtr::metaId();
 
     Python_ThreadBlock thread_block;
+
+    init_numpy();
 
     m_main_module = CALL_PY(PyDict_GetItemString)(CALL_PY(PyImport_GetModuleDict)(), "__main__");
 }
