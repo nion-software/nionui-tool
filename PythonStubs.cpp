@@ -271,6 +271,15 @@ PyGILState_STATE DPyGILState_Ensure()
     return f();
 }
 
+typedef int (*PyGILState_CheckFn)();
+int DPyGILState_Check()
+{
+    static PyGILState_CheckFn f = 0;
+    if (f == 0)
+        f = (PyGILState_CheckFn)LOOKUP_SYMBOL(pylib, "PyGILState_Check");
+    return f();
+}
+
 typedef void (*PyGILState_ReleaseFn)(PyGILState_STATE);
 void DPyGILState_Release(PyGILState_STATE s)
 {
@@ -530,6 +539,15 @@ PyObject* DPySequence_Fast(PyObject *o, const char *m)
     if (f == 0)
         f = (PySequence_FastFn)LOOKUP_SYMBOL(pylib, "PySequence_Fast");
     return f(o, m);
+}
+
+typedef PyObject* (*PySequence_GetItemFn)(PyObject *o, Py_ssize_t i);
+PyObject* DPySequence_GetItem(PyObject *o, Py_ssize_t i)
+{
+    static PySequence_GetItemFn f = 0;
+    if (f == 0)
+        f = (PySequence_GetItemFn)LOOKUP_SYMBOL(pylib, "PySequence_GetItem");
+    return f(o, i);
 }
 
 typedef Py_ssize_t (*PySequence_SizeFn)(PyObject *o);
