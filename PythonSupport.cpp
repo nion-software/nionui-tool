@@ -783,7 +783,7 @@ QVariant PythonSupport::invokePyMethod(const QVariant &object, const QString &me
 
             bool err = false;
 
-            PyObject *py_args = CALL_PY(PyTuple_New)(args.size());
+            PyObject *py_args = args.size() > 0 ? CALL_PY(PyTuple_New)(args.size()) : NULL;
 
             int index = 0;
             Q_FOREACH(const QVariant &arg, args)
@@ -819,7 +819,7 @@ QVariant PythonSupport::invokePyMethod(const QVariant &object, const QString &me
                 }
             }
 
-            Py_DECREF(py_args);
+            Py_XDECREF(py_args);
             Py_DECREF(callable);
         }
         Py_DECREF(py_object);
