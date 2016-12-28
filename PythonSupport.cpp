@@ -639,14 +639,6 @@ QVariant PyObjectToQVariant(PyObject *py_object)
     {
         return QVariant();
     }
-#if 0
-    else if (n0 && PyArray_Check(py_object))
-    {
-        PyObjectPtr py_object_ptr;
-        py_object_ptr.setPyObject(py_object);
-        return qVariantFromValue(py_object_ptr);
-    }
-#endif
     else
     {
         PyObjectPtr py_object_ptr;
@@ -680,77 +672,6 @@ void PythonSupport::addPyObjectToModuleFromQVariant(PyObject* module, const QStr
 void PythonSupport::addPyObjectToModule(PyObject* module, const QString &identifier, PyObject *object)
 {
     CALL_PY(PyModule_AddObject)(module, identifier.toLatin1().data(), object);   // steals reference
-}
-
-void PythonSupport::evaluatePythonFile(const QString &file_name)
-{
-    // TODO: Leaky. DPyObject_GetAttrString.
-
-    Python_ThreadBlock thread_block;
-
-    PyObject *result = NULL;
-
-    QFile file(file_name);
-    if (file.open(QIODevice::ReadOnly))
-    {
-        QByteArray data = file.readAll();
-
-        PyObject *code = CALL_PY(Py_CompileStringExFlags)(data.data(), file_name.toLatin1().constData(), Py_file_input, NULL, -1);
-
-        if (code)
-        {
-            if (CALL_PY(PyModule_Check)(m_main_module))
-            {
-                PyObject* dict = CALL_PY(PyModule_GetDict)(m_main_module);
-
-                PyObject *py_result = CALL_PY(PyEval_EvalCode)((PyCodeObject*)code, dict, dict);
-                if (py_result != NULL)
-                    Py_DECREF(py_result);
-            }
-        }
-
-        file.close();
-    }
-
-    if (!result && CALL_PY(PyErr_Occurred)())
-    {
-        CALL_PY(PyErr_Print)();
-        CALL_PY(PyErr_Clear)();
-    }
-}
-
-QVariant PythonSupport::evalScript(const QString &script)
-{
-    Python_ThreadBlock thread_block;
-
-    PyObject* dict = CALL_PY(PyModule_GetDict)(m_main_module);
-
-    bool success = false;
-
-    QVariant result;
-    if (dict)
-    {
-        PyObject *py_result = CALL_PY(PyRun_StringFlags)(script.toLatin1().data(), Py_eval_input, dict, dict, NULL);
-        if (py_result)
-        {
-            result = PyObjectToQVariant(py_result);
-            Py_DECREF(py_result);
-            success = true;
-        }
-    }
-
-    if (!success && CALL_PY(PyErr_Occurred)())
-    {
-        CALL_PY(PyErr_Print)();
-        CALL_PY(PyErr_Clear)();
-    }
-
-    return result;
-}
-
-QVariant PythonSupport::lookupPyObjectByName(const QString &object)
-{
-    return evalScript(object);
 }
 
 // Example:

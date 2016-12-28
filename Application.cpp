@@ -5500,11 +5500,6 @@ QString Application::resourcesPath() const
 #endif
 }
 
-QVariant Application::lookupPyObjectByName(const QString &object)
-{
-    return PythonSupport::instance()->lookupPyObjectByName(object);
-}
-
 QVariant Application::invokePyMethod(const QVariant &object, const QString &method, const QVariantList &args)
 {
     return PythonSupport::instance()->invokePyMethod(object, method, args);

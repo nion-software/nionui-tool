@@ -77,11 +77,8 @@ public:
 	void addGlobalPyObject(const QString &identifier, PyObject *object);
 	void addPyObjectToModuleFromQVariant(PyObject* module, const QString &identifier, const QVariant& object);
 	void addPyObjectToModule(PyObject* module, const QString &identifier, PyObject *object);
-    void evaluatePythonFile(const QString &file_name);
     QImage imageFromArray(PyObject *ndarray_py);
     PyObject *arrayFromImage(const QImage &image);
-    QVariant evalScript(const QString &script);
-    QVariant lookupPyObjectByName(const QString &object);
     QVariant invokePyMethod(const QVariant &object, const QString &method, const QVariantList &args);
     bool setAttribute(const QVariant &object, const QString &attribute, const QVariant &value);
     QVariant getAttribute(const QVariant &object, const QString &attribute);
