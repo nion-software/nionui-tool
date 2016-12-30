@@ -16,6 +16,7 @@ PyObject* Py_NoneGet() { return Py_None; }
 
 #endif
 
+void DECLARE_PY(PyBuffer_Release)(Py_buffer *o);
 int DECLARE_PY(PyCallable_Check)(PyObject *o);
 void* DECLARE_PY(PyCapsule_GetPointer)(PyObject *capsule, const char *name);
 int DECLARE_PY(PyCapsule_IsValid)(PyObject *capsule, const char *name);

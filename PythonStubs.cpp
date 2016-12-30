@@ -20,6 +20,7 @@ void *LOOKUP_SYMBOL(void *h, const char *proc)
 
 #pragma push_macro("_DEBUG")
 #undef _DEBUG
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #pragma pop_macro("_DEBUG")
 
@@ -89,6 +90,15 @@ PyObject *DPy_FalseGet()
 PyObject *DPy_NoneGet()
 {
     return (PyObject *)LOOKUP_SYMBOL(pylib, "_Py_NoneStruct");
+}
+
+typedef int (*PyBuffer_ReleaseFn)(Py_buffer *o);
+void DPyBuffer_Release(Py_buffer *o)
+{
+    static PyBuffer_ReleaseFn f = 0;
+    if (f == 0)
+        f = (PyBuffer_ReleaseFn)LOOKUP_SYMBOL(pylib, "PyBuffer_Release");
+    f(o);
 }
 
 typedef int (*PyCallable_CheckFn)(PyObject *o);

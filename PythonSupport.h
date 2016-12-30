@@ -9,6 +9,7 @@
 
 #pragma push_macro("_DEBUG")
 #undef _DEBUG
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #pragma pop_macro("_DEBUG")
 
@@ -79,6 +80,7 @@ public:
 	void addPyObjectToModule(PyObject* module, const QString &identifier, PyObject *object);
     QImage imageFromArray(PyObject *ndarray_py);
     PyObject *arrayFromImage(const QImage &image);
+    void bufferRelease(Py_buffer *buffer);
     QVariant invokePyMethod(const QVariant &object, const QString &method, const QVariantList &args);
     bool setAttribute(const QVariant &object, const QString &attribute, const QVariant &value);
     QVariant getAttribute(const QVariant &object, const QString &attribute);

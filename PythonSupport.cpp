@@ -856,6 +856,11 @@ PyObject *PythonSupport::arrayFromImage(const QImage &image)
     }
 }
 
+void PythonSupport::bufferRelease(Py_buffer *buffer)
+{
+    CALL_PY(PyBuffer_Release)(buffer);
+}
+
 void PythonSupport::setErrorString(const QString &error_string)
 {
     CALL_PY(PyErr_SetString)(module_exception, error_string.toStdString().c_str());
