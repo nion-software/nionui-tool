@@ -289,13 +289,20 @@ public:
     ~PyObjectPtr()
     {
         Python_ThreadBlock thread_block;
-        if (py_object)
-            Py_DECREF(py_object);
+        if (this->py_object)
+        {
+            Py_DECREF(this->py_object);
+        }
     }
+    PyObjectPtr &operator=(const PyObjectPtr &) = delete;
     PyObject *pyObject() const { return this->py_object; }
     void setPyObject(PyObject *py_object)
     {
         Python_ThreadBlock thread_block;
+        if (this->py_object)
+        {
+            Py_DECREF(this->py_object);
+        }
         Py_INCREF(py_object);
         this->py_object = py_object;
     }

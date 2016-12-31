@@ -634,6 +634,28 @@ static PyObject *Canvas_draw(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *Canvas_draw_binary(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    Py_buffer buffer;
+    PyObject *obj1 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Ow*O", &obj0, &buffer, &obj1))
+        return NULL;
+
+    PyCanvas *canvas = Unwrap<PyCanvas>(obj0);
+    if (canvas == NULL)
+        return NULL;
+
+    QMap<QString, QVariant> imageMap = PyObjectToQVariant(obj1).toMap();
+
+    canvas->setBinaryCommands(std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4), imageMap);
+
+    PythonSupport::instance()->bufferRelease(&buffer);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *Canvas_grabMouse(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
@@ -1987,6 +2009,40 @@ static PyObject *DrawingContext_paintRGBA(PyObject * /*self*/, PyObject *args)
         image = image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
 
     thread_allow.release();
+
+    return PythonSupport::instance()->arrayFromImage(image);
+}
+
+static PyObject *DrawingContext_paintRGBA_binary(PyObject * /*self*/, PyObject *args)
+{
+    Py_buffer buffer;
+    PyObject *obj0 = NULL;
+    int width = 0;
+    int height = 0;
+    if (!PythonSupport::instance()->parse()(args, "w*Oii", &buffer, &obj0, &width, &height))
+        return NULL;
+
+    QMap<QString, QVariant> imageMap = PyObjectToQVariant(obj0).toMap();
+
+    Python_ThreadAllow thread_allow;
+
+    QImage image((int)width, (int)height, QImage::Format_ARGB32);
+    image.fill(QColor(0,0,0,0));
+
+    {
+        QPainter painter(&image);
+        PaintImageCache image_cache;
+        std::vector<quint32> commands;
+        commands.assign((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4);
+        PaintBinaryCommands(painter, commands, imageMap, &image_cache);
+    }
+
+    if (image.format() != QImage::Format_ARGB32_Premultiplied)
+        image = image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+
+    thread_allow.release();
+
+    PythonSupport::instance()->bufferRelease(&buffer);
 
     return PythonSupport::instance()->arrayFromImage(image);
 }
@@ -5245,6 +5301,7 @@ static PyMethodDef Methods[] = {
     {"ButtonGroup_removeButton", ButtonGroup_removeButton, METH_VARARGS, "ButtonGroup_removeButton."},
     {"Canvas_connect", Canvas_connect, METH_VARARGS, "Canvas_connect."},
     {"Canvas_draw", Canvas_draw, METH_VARARGS, "Canvas_draw."},
+    {"Canvas_draw_binary", Canvas_draw_binary, METH_VARARGS, "Canvas_draw."},
     {"Canvas_grabMouse", Canvas_grabMouse, METH_VARARGS, "Canvas_grabMouse."},
     {"Canvas_releaseMouse", Canvas_releaseMouse, METH_VARARGS, "Canvas_releaseMouse."},
     {"Canvas_setCursorShape", Canvas_setCursorShape, METH_VARARGS, "Canvas_setCursorShape."},
@@ -5296,6 +5353,7 @@ static PyMethodDef Methods[] = {
     {"Drag_setThumbnail", Drag_setThumbnail, METH_VARARGS, "Drag_setThumbnail."},
     {"DrawingContext_drawCommands", DrawingContext_drawCommands, METH_VARARGS, "DrawingContext_drawCommands."},
     {"DrawingContext_paintRGBA", DrawingContext_paintRGBA, METH_VARARGS, "DrawingContext_paintRGBA."},
+    {"DrawingContext_paintRGBA_binary", DrawingContext_paintRGBA_binary, METH_VARARGS, "DrawingContext_paintRGBA."},
     {"ItemModel_beginInsertRows", ItemModel_beginInsertRows, METH_VARARGS, "ItemModel beginInsertRows."},
     {"ItemModel_beginRemoveRows", ItemModel_beginRemoveRows, METH_VARARGS, "ItemModel beginRemoveRows."},
     {"ItemModel_connect", ItemModel_connect, METH_VARARGS, "ItemModel_connect."},

@@ -280,6 +280,8 @@ private:
 
 void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &commands, PaintImageCache *image_cache = NULL);
 
+void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache);
+
 class PyStyledItemDelegate : public QStyledItemDelegate
 {
     Q_OBJECT
@@ -564,6 +566,7 @@ public:
     virtual void dropEvent(QDropEvent *event) override;
 
     void setCommands(const QList<CanvasDrawingCommand> &commands);
+    void setBinaryCommands(const std::vector<quint32> &commands, const QMap<QString, QVariant> &imageMap);
 
     void grabMouse0(const QPoint &gp);
     void releaseMouse0();
@@ -572,6 +575,8 @@ private:
     QVariant m_py_object;
     QMutex m_commands_mutex;
     QList<CanvasDrawingCommand> m_commands;
+    QMap<QString, QVariant> m_imageMap;
+    std::vector<quint32> m_commands_binary;
     QPoint m_last_pos;
     bool m_pressed;
     PaintImageCache m_image_cache;
