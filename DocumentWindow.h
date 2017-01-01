@@ -46,7 +46,6 @@ public:
     DocumentWindow(const QString &title, QWidget *parent = 0);
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
     void initialize();
 
@@ -84,7 +83,6 @@ public:
     PyAction(QObject *parent);
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
 public Q_SLOTS:
     void triggered();
@@ -102,7 +100,6 @@ public:
     PyMenu();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
 public Q_SLOTS:
     void aboutToShow();
@@ -121,7 +118,6 @@ public:
     Drag(QWidget *widget);
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
 public Q_SLOTS:
     void execute();
@@ -141,7 +137,6 @@ public:
     void setModelAndConnect(ItemModel *py_item_model);
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
     // Override
     virtual void keyPressEvent(QKeyEvent *event) override;
@@ -176,7 +171,6 @@ public:
     ItemModel(const QStringList &role_names, QObject *parent = 0);
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
     Qt::DropAction lastDropAction() const { return m_last_drop_action; }
 
@@ -221,7 +215,6 @@ public:
     void setModelAndConnect(ListModel *py_item_model);
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
     // Override
     virtual void keyPressEvent(QKeyEvent *event) override;
@@ -289,7 +282,6 @@ public:
     PyStyledItemDelegate();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
     virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
     virtual QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
@@ -310,7 +302,6 @@ public:
     ~ListModel();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
     Qt::DropAction lastDropAction() const { return m_last_drop_action; }
 
@@ -348,7 +339,6 @@ public:
     PyPushButton();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
 private Q_SLOTS:
     void clicked();
@@ -364,7 +354,6 @@ public:
     PyRadioButton();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
 private Q_SLOTS:
     void clicked();
@@ -380,7 +369,6 @@ public:
     PyButtonGroup();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
 private Q_SLOTS:
     void buttonClicked(int button_id);
@@ -396,7 +384,6 @@ public:
     PyTextEdit();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
     virtual void focusInEvent(QFocusEvent *event) override;
     virtual void focusOutEvent(QFocusEvent *event) override;
@@ -419,7 +406,6 @@ public:
     PyCheckBox();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
 private Q_SLOTS:
     void stateChanged(int state);
@@ -435,7 +421,6 @@ public:
     PyComboBox();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
 private Q_SLOTS:
     void currentTextChanged(const QString &currentText);
@@ -451,7 +436,6 @@ public:
     PySlider();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
 private Q_SLOTS:
     void valueChanged(int value);
@@ -470,7 +454,6 @@ public:
     PyLineEdit();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
     virtual void keyPressEvent(QKeyEvent *event) override;
 
@@ -489,7 +472,6 @@ public:
     PyScrollArea();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
     virtual void resizeEvent(QResizeEvent *event) override;
     virtual bool eventFilter(QObject *obj, QEvent *event) override;
@@ -510,7 +492,6 @@ public:
     PyTabWidget();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
 public Q_SLOTS:
     void currentChanged(int index);
@@ -537,7 +518,6 @@ public:
     PyCanvas();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-    QVariant pyObject() const { return m_py_object; }
 
     virtual bool event(QEvent *event) override;
 
