@@ -52,6 +52,7 @@ public:
 protected:
     virtual void showEvent(QShowEvent *show_event) override;
     virtual void changeEvent(QEvent * event) override;
+    virtual void resizeEvent(QResizeEvent *event) override;
 
 private Q_SLOTS:
     void periodic();
@@ -72,6 +73,23 @@ private:
     Application *application() const;
 
     friend class Application;
+};
+
+
+class DockWidget : public QDockWidget
+{
+    Q_OBJECT
+
+public:
+    DockWidget(const QString &title, QWidget *parent = 0);
+
+    void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
+
+protected:
+    virtual void resizeEvent(QResizeEvent *event) override;
+
+private:
+    QVariant m_py_object;
 };
 
 

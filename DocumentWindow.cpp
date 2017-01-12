@@ -109,6 +109,13 @@ void DocumentWindow::showEvent(QShowEvent *show_event)
     setFocus();
 }
 
+void DocumentWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+
+    application()->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << event->size().width() << event->size().height());
+}
+
 void DocumentWindow::changeEvent(QEvent *event)
 {
     QMainWindow::changeEvent(event);
@@ -146,6 +153,19 @@ void DocumentWindow::closeEvent(QCloseEvent *close_event)
 void DocumentWindow::cleanDocument()
 {
     setWindowModified(false);
+}
+
+DockWidget::DockWidget(const QString &title, QWidget *parent)
+    : QDockWidget(title, parent)
+{
+}
+
+void DockWidget::resizeEvent(QResizeEvent *event)
+{
+    QDockWidget::resizeEvent(event);
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+    app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << event->size().width() << event->size().height());
 }
 
 PyPushButton::PyPushButton()

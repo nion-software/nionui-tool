@@ -1287,6 +1287,30 @@ static PyObject *Core_writeBinaryToImage(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *DockWidget_connect(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    PyObject *obj1 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
+        return NULL;
+
+    DockWidget *dock_widget = Unwrap<DockWidget>(obj0);
+    if (dock_widget == NULL)
+        return NULL;
+
+    QVariant py_object = PyObjectToQVariant(obj1);
+
+    dock_widget->setPyObject(py_object);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *DockWidget_getToggleAction(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -1352,7 +1376,7 @@ static PyObject *DocumentWindow_addDockWidget(PyObject * /*self*/, PyObject *arg
         allowed_positions_mask |= mapping[allowed_position];
     }
 
-    QDockWidget *dock_widget = new QDockWidget(Py_UNICODE_to_QString(title_u));
+    DockWidget *dock_widget = new DockWidget(Py_UNICODE_to_QString(title_u));
     dock_widget->setAllowedAreas(allowed_positions_mask);
     dock_widget->setWidget(widget);
     dock_widget->setObjectName(identifier_c);
@@ -5330,6 +5354,7 @@ static PyMethodDef Methods[] = {
     {"Core_syncLatencyTimer", Core_syncLatencyTimer, METH_VARARGS, "Core_syncLatencyTimer"},
     {"Core_URLToPath", Core_URLToPath, METH_VARARGS, "Core_URLToPath."},
     {"Core_writeBinaryToImage", Core_writeBinaryToImage, METH_VARARGS, "Core_writeBinaryToImage."},
+    {"DockWidget_connect", DockWidget_connect, METH_VARARGS, "DockWidget_connect."},
     {"DockWidget_getToggleAction", DockWidget_getToggleAction, METH_VARARGS, "DockWidget_getToggleAction."},
     {"DocumentWindow_addDockWidget", DocumentWindow_addDockWidget, METH_VARARGS, "DocumentWindow_addDockWidget."},
     {"DocumentWindow_addMenu", DocumentWindow_addMenu, METH_VARARGS, "DocumentWindow_addMenu."},
