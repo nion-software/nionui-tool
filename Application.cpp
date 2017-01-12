@@ -2287,6 +2287,29 @@ static PyObject *Label_setText(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *Label_setWordWrap(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    bool word_wrap = false;
+
+    if (!PythonSupport::instance()->parse()(args, "Ob", &obj0, &word_wrap))
+        return NULL;
+
+    QLabel *label = Unwrap<QLabel>(obj0);
+    if (label == NULL)
+        return NULL;
+
+    label->setWordWrap(word_wrap);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *LineEdit_connect(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5388,6 +5411,7 @@ static PyMethodDef Methods[] = {
     {"ItemModel_endInsertRow", ItemModel_endInsertRow, METH_VARARGS, "ItemModel endInsertRows."},
     {"ItemModel_endRemoveRow", ItemModel_endRemoveRow, METH_VARARGS, "ItemModel endRemoveRows."},
     {"Label_setText", Label_setText, METH_VARARGS, "Label_setText."},
+    {"Label_setWordWrap", Label_setWordWrap, METH_VARARGS, "Label_setWordWrap."},
     {"LineEdit_connect", LineEdit_connect, METH_VARARGS, "LineEdit_connect."},
     {"LineEdit_getEditable", LineEdit_getEditable, METH_VARARGS, "LineEdit_getEditable."},
     {"LineEdit_getPlaceholderText", LineEdit_getPlaceholderText, METH_VARARGS, "LineEdit_getPlaceholderText."},
