@@ -2863,16 +2863,26 @@ QMimeData *ItemModel::mimeData(const QModelIndexList &indexes) const
     return mime_data;
 }
 
-bool ItemModel::canDropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) const
+bool ItemModel::canDropMimeData(const QMimeData *mime_data, Qt::DropAction action, int row, int column, const QModelIndex &parent) const
 {
-    Q_UNUSED(data)
-    Q_UNUSED(action)
-    Q_UNUSED(row)
-    Q_UNUSED(column)
-    Q_UNUSED(parent)
+    if (column > 0)
+        return false;
 
-    // see https://bugreports.qt-project.org/browse/QTBUG-32362
-    return false;
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    int parent_row = -1;
+    int parent_id = 0;
+    if (parent.isValid())
+    {
+        parent_row = parent.row();
+        parent_id = (int)(parent.internalId());
+    }
+
+    QVariantList args;
+
+    args << QVariant::fromValue((QObject *)mime_data) << (int)action << row << parent_row << parent_id;
+
+    return app->dispatchPyMethod(m_py_object, "canDropMimeData", args).toInt();
 }
 
 bool ItemModel::dropMimeData(const QMimeData *mime_data, Qt::DropAction action, int row, int column, const QModelIndex &parent)
@@ -3330,16 +3340,23 @@ QMimeData *ListModel::mimeData(const QModelIndexList &indexes) const
     return mime_data;
 }
 
-bool ListModel::canDropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) const
+bool ListModel::canDropMimeData(const QMimeData *mime_data, Qt::DropAction action, int row, int column, const QModelIndex &parent) const
 {
-    Q_UNUSED(data)
-    Q_UNUSED(action)
-    Q_UNUSED(parent)
-    Q_UNUSED(column)
-    Q_UNUSED(row)
+    if (column > 0)
+        return false;
 
-    // see https://bugreports.qt-project.org/browse/QTBUG-32362
-    return false;
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+    // parent row allows clients to distinguish between dropping on or between rows
+    int parent_row = -1;
+    if (parent.isValid())
+        parent_row = parent.row();
+
+    QVariantList args;
+
+    args << QVariant::fromValue((QObject *)mime_data) << (int)action << row << parent_row;
+
+    return app->dispatchPyMethod(m_py_object, "canDropMimeData", args).toInt();
 }
 
 bool ListModel::dropMimeData(const QMimeData *mime_data, Qt::DropAction action, int row, int column, const QModelIndex &parent)
