@@ -1,11 +1,12 @@
 # nionui-launcher
+
+Nion Launcher can launch Python applications based on the [nionui](https://github.com/nion-software/nionui) framework.
+
 What is Nion UI Launcher?
 -------------------------
 Launch Python GUI apps.
 
 Write to a Python based user interface API.
-
-Nion Launcher can launch Python applications based on the nionui framework.
 
 This is primarily a desktop application framework.
 

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1FED4571E5A7526006E1AFF /* fix_deploy.py in Resources */ = {isa = PBXBuildFile; fileRef = A1FED4561E5A7526006E1AFF /* fix_deploy.py */; };
 		FD49434B1B9784B200CE4307 /* PythonSelectDialog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD49434A1B9784B200CE4307 /* PythonSelectDialog.cpp */; };
 		FD49434C1B97A96C00CE4307 /* PythonSelectDialog.h in Sources */ = {isa = PBXBuildFile; fileRef = FD4943491B9784A600CE4307 /* PythonSelectDialog.h */; };
 		FD60C55216C5AD87009C6448 /* PythonSupport.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD60C55116C5AD87009C6448 /* PythonSupport.cpp */; };
@@ -49,6 +50,7 @@
 /* End PBXBuildRule section */
 
 /* Begin PBXFileReference section */
+		A1FED4561E5A7526006E1AFF /* fix_deploy.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = fix_deploy.py; sourceTree = SOURCE_ROOT; };
 		FD0ACF42178CDF8300BB53E3 /* targetDebugNionUILauncher.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = targetDebugNionUILauncher.xcconfig; path = xcconfig/targetDebugNionUILauncher.xcconfig; sourceTree = "<group>"; };
 		FD0ACF46178CDF8300BB53E3 /* targetReleaseNionUILauncher.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = targetReleaseNionUILauncher.xcconfig; path = xcconfig/targetReleaseNionUILauncher.xcconfig; sourceTree = "<group>"; };
 		FD4943491B9784A600CE4307 /* PythonSelectDialog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PythonSelectDialog.h; sourceTree = "<group>"; };
@@ -90,6 +92,7 @@
 		FD840848160D11F600370586 = {
 			isa = PBXGroup;
 			children = (
+				A1FED4561E5A7526006E1AFF /* fix_deploy.py */,
 				FD840879160D136A00370586 /* Configuration */,
 				FD84088B160D181000370586 /* Headers */,
 				FD84085D160D11F700370586 /* Source */,
@@ -233,6 +236,7 @@
 				FDD5B8721D81C8C200FD8F7B /* bootstrap.py in Resources */,
 				FDE306EA16BC27480023B7FD /* Graphics in Resources */,
 				FDE306ED16BC59370023B7FD /* stylesheet.qss in Resources */,
+				A1FED4571E5A7526006E1AFF /* fix_deploy.py in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -251,7 +255,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"${CONFIGURATION}\" != \"Debug\" ]; then\n    \"$QTDIR/bin/macdeployqt\" \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME\"\n    install_name_tool -rpath @loader_path/../../Contents @loader_path/../../Contents/Frameworks \"$TARGET_BUILD_DIR/$EXECUTABLE_PATH\" || true\nfi\n";
+			shellScript = "if [ \"${CONFIGURATION}\" != \"Debug\" ]; then\n    \"$QTDIR/bin/macdeployqt\" \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME\"\n    install_name_tool -rpath @loader_path/../../Contents @loader_path/../../Contents/Frameworks \"$TARGET_BUILD_DIR/$EXECUTABLE_PATH\" || true\n    \"$PYTHONHOME/bin/python3\" fix_deploy.py \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/Frameworks\"\n    echo \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/Frameworks\"\n    \"$PYTHONHOME/bin/python3\" fix_deploy.py \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/PlugIns\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

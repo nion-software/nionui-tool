@@ -1,0 +1,35 @@
+sudo: required
+language: c++
+osx_image: xcode8.2
+os:
+- linux
+- osx
+
+before_install:
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt5 python3; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip3 install numpy; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sed -i '' 's/QTDIR = $(QTDIR_$(QT_VERSION))/QTDIR = \/usr\/local\/opt\/qt5/g' xcconfig/targetReleaseNionUILauncher.xcconfig; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sed -i '' 's/PYTHONHOME = $(HOME)\/Developer\/miniconda43/PYTHONHOME = \/usr\/local\/opt\/python3\/Frameworks\/Python.framework\/Versions\/3.6/g' xcconfig/targetReleaseNionUILauncher.xcconfig; fi
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-5
+    - g++-5
+    - python3-dev
+
+script: bash travis-build.sh
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: "WnzBfgVR3BwQ0L6BUhe3NVLcxNJhWNvEyouMS9JYSfu6fntwF1werR3OndmQ4aAOjLQQcefy6hvO6tfpJOSoPL4A8J0nFKN++IjE7eembbwVwKP7Q9Azg5dOw+Demo6z77XIiaCeez5lFSlLRi9fNvGBGK4uxtGLtgV9M4IOm2QSoDEPKJnTXKN3g/4kUbxvpIn6cL9TMvgHpedWsKQUbauOuohPYqcMewdX/WoNEr6yzYEhkL5g0KxTp0JHFvtIKmuMHV2MFqvD1Ti8dmnXkMs25YA0CvoZes6i2ByE/C7aPPDYMu5+s/BMF3pUU6RKts2JIW4LFpS3HkLXBk8UHKyc0VIKigSj4bh3WkpqvBzqgmfFy3lkk7J32ibz6ByTmC0HyfeKq9viPMXTteGOczTtiEYp3EAWyRfNkFp1vgGUbU6GnqZhPwQdgaetPg+lzeopaUH/creI3SijubyYXsW2nkPxuCa8EKnzuLILbuamww3bZY188VeOG1x7jA44emdSHAUG4/MIjpX0yn8GDoPN34V9LCzHrh+MZO6F20OHBpVEISP517m9Lh/ORlzRaPZi9wJ6KVTD6nSi95P7UqFrCbmnEGlLyIuahP63Urs6cYmenmnnbyb+jmiFzDi9kgPGkMxK+msPJuI+oK/M7VxgbLfRFVXeOtV4FaLSW54="
+  file: release/*
+  file_glob: true
+  prerelease: true
+  on:
+    repo: nion-software/nionui-launcher
+    tags: true

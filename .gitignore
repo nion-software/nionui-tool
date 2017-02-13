@@ -28,6 +28,7 @@
 
 # OS X / Xcode
 .DS_Store
+build/
 project.xcworkspace
 xcuserdata
 Makefile*
