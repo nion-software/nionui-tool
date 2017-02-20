@@ -7,6 +7,8 @@
 
 #include <QtCore/QAbstractListModel>
 #include <QtCore/QMutex>
+#include <QtCore/QThread>
+#include <QtCore/QWaitCondition>
 #include <QtGui/QDrag>
 #include <QtWidgets/QAction>
 #include <QtWidgets/QButtonGroup>
@@ -529,11 +531,36 @@ private:
     QWidget *m_child;
 };
 
+class PyCanvas;
+
+class PyCanvasRenderThread : public QThread
+{
+    Q_OBJECT
+
+public:
+    PyCanvasRenderThread(PyCanvas *canvas, QWaitCondition &render_request, QMutex &render_request_mutex);
+
+    void cancel() { m_cancel = true; }
+
+Q_SIGNALS:
+    void renderingReady();
+
+protected:
+    virtual void run() override;
+
+private:
+    PyCanvas *m_canvas;
+    QWaitCondition &m_render_request;
+    QMutex &m_render_request_mutex;
+    bool m_cancel;
+};
+
 class PyCanvas : public QWidget
 {
     Q_OBJECT
 public:
     PyCanvas();
+    ~PyCanvas();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
 
@@ -569,8 +596,18 @@ public:
     void grabMouse0(const QPoint &gp);
     void releaseMouse0();
 
+    void render();
+
+private Q_SLOTS:
+    void renderingFinished();
+
 private:
     QVariant m_py_object;
+    PyCanvasRenderThread *m_thread;
+    QMutex m_rendered_image_mutex;
+    QImage m_rendered_image;
+    QWaitCondition m_render_request;
+    QMutex m_render_request_mutex;
     QMutex m_commands_mutex;
     QList<CanvasDrawingCommand> m_commands;
     QMap<QString, QVariant> m_imageMap;

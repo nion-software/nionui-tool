@@ -577,12 +577,57 @@ void PyTabWidget::currentChanged(int index)
     }
 }
 
+PyCanvasRenderThread::PyCanvasRenderThread(PyCanvas *canvas, QWaitCondition &render_request, QMutex &render_request_mutex)
+    : m_canvas(canvas)
+    , m_render_request(render_request)
+    , m_render_request_mutex(render_request_mutex)
+    , m_cancel(false)
+{
+}
+
+void PyCanvasRenderThread::run()
+{
+    while (!m_cancel)
+    {
+        m_render_request_mutex.lock();
+        m_render_request.wait(&m_render_request_mutex);
+        m_render_request_mutex.unlock();
+
+        if (!m_cancel)
+        {
+            m_canvas->render();
+            Q_EMIT renderingReady();
+        }
+    }
+}
+
+
 PyCanvas::PyCanvas()
-    : m_pressed(false)
+    : m_thread(NULL)
+    , m_pressed(false)
     , m_grab_mouse_count(0)
 {
     setMouseTracking(true);
     setAcceptDrops(true);
+
+    m_thread = new PyCanvasRenderThread(this, m_render_request, m_render_request_mutex);
+
+    connect(m_thread, SIGNAL(renderingReady()), this, SLOT(renderingFinished()));
+
+    m_thread->start();
+}
+
+PyCanvas::~PyCanvas()
+{
+    m_thread->cancel();
+
+    m_render_request_mutex.lock();
+    m_render_request.wakeAll();
+    m_render_request_mutex.unlock();
+
+    m_thread->wait();
+    delete m_thread;
+    m_thread = NULL;
 }
 
 void PyCanvas::focusInEvent(QFocusEvent *event)
@@ -1752,13 +1797,13 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
     }
 }
 
-void PyCanvas::paintEvent(QPaintEvent *event)
+void PyCanvas::render()
 {
-    Q_UNUSED(event)
+    QImage image((int)size().width(), (int)size().height(), QImage::Format_ARGB32);
+    image.fill(QColor(0,0,0,0));
 
-    QPainter painter;
+    QPainter painter(&image);
 
-    painter.begin(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
     QList<CanvasDrawingCommand> commands;
@@ -1798,6 +1843,29 @@ void PyCanvas::paintEvent(QPaintEvent *event)
 #endif
 
     //qDebug() << "Paint " << QDateTime::currentDateTime() << " elapsed " << start.msecsTo(QDateTime::currentDateTime())/1000.0;
+
+    {
+        QMutexLocker locker(&m_rendered_image_mutex);
+        m_rendered_image = image;
+    }
+}
+
+void PyCanvas::paintEvent(QPaintEvent *event)
+{
+    Q_UNUSED(event)
+
+    QPainter painter;
+
+    painter.begin(this);
+
+    QImage image;
+
+    {
+        QMutexLocker locker(&m_rendered_image_mutex);
+        image = m_rendered_image;
+    }
+
+    painter.drawImage(QPointF(0, 0), image);
 
     painter.end();
 }
@@ -2008,6 +2076,11 @@ void PyCanvas::releaseMouse0()
     }
 }
 
+void PyCanvas::renderingFinished()
+{
+    QTimer::singleShot(0, this, SLOT(update()));
+}
+
 void PyCanvas::setCommands(const QList<CanvasDrawingCommand> &commands)
 {
     {
@@ -2015,7 +2088,9 @@ void PyCanvas::setCommands(const QList<CanvasDrawingCommand> &commands)
         m_commands = commands;
     }
 
-    QTimer::singleShot(0, this, SLOT(update()));
+    m_render_request_mutex.lock();
+    m_render_request.wakeAll();
+    m_render_request_mutex.unlock();
 }
 
 void PyCanvas::setBinaryCommands(const std::vector<quint32> &commands, const QMap<QString, QVariant> &imageMap)
@@ -2026,7 +2101,9 @@ void PyCanvas::setBinaryCommands(const std::vector<quint32> &commands, const QMa
         m_commands_binary = commands;
     }
 
-    QTimer::singleShot(0, this, SLOT(update()));
+    m_render_request_mutex.lock();
+    m_render_request.wakeAll();
+    m_render_request_mutex.unlock();
 }
 
 void PyCanvas::dragEnterEvent(QDragEnterEvent *event)
