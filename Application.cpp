@@ -4597,6 +4597,54 @@ static PyObject *TreeWidget_setModel(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *TreeWidget_setSelectedIndexes(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    PyObject *obj1 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
+        return NULL;
+
+    // Grab the data view
+    QWidget *content_view = Unwrap<QWidget>(obj0);
+    if (content_view == NULL)
+        return NULL;
+    QScrollArea *scroll_area = dynamic_cast<QScrollArea *>(content_view->layout()->itemAt(0)->widget());
+    if (scroll_area == NULL)
+        return NULL;
+    TreeWidget *py_tree_widget = dynamic_cast<TreeWidget *>(scroll_area->widget());
+    if (py_tree_widget == NULL)
+        return NULL;
+
+    ItemModel *py_item_model = dynamic_cast<ItemModel *>(py_tree_widget->model());
+    if (py_item_model == NULL)
+        return NULL;
+
+    QList<QVariant> q_index_list = PyObjectToQVariant(obj1).toList();
+    QList<QModelIndex> model_index_list;
+
+    Q_FOREACH(const QVariant &q_index, q_index_list)
+    {
+        QList<QVariant> b = q_index.toList();
+        model_index_list.append(py_item_model->indexInParent(b[0].toInt(), b[1].toInt(), b[2].toInt()));
+    }
+
+    py_tree_widget->selectionModel()->reset();
+    Q_FOREACH(QModelIndex model_index, model_index_list)
+    {
+        qDebug() << "Start setting index " << model_index;
+        py_tree_widget->selectionModel()->setCurrentIndex(model_index, QItemSelectionModel::Select);
+        qDebug() << "End setting index " << model_index;
+    }
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *TreeWidget_setSelectionMode(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5505,6 +5553,7 @@ static PyMethodDef Methods[] = {
     {"TreeWidget_setCurrentRow", TreeWidget_setCurrentRow, METH_VARARGS, "TreeWidget_setCurrentRow."},
     {"TreeWidget_setItemDelegate", TreeWidget_setItemDelegate, METH_VARARGS, "TreeWidget_setItemDelegate."},
     {"TreeWidget_setModel", TreeWidget_setModel, METH_VARARGS, "TreeWidget_setModel."},
+    {"TreeWidget_setSelectedIndexes", TreeWidget_setSelectedIndexes, METH_VARARGS, "TreeWidget_setSelectedIndexes."},
     {"TreeWidget_setSelectionMode", TreeWidget_setSelectionMode, METH_VARARGS, "TreeWidget_setSelectionMode."},
     {"Widget_addOverlay", Widget_addOverlay, METH_VARARGS, "Widget_addOverlay."},
     {"Widget_addSpacing", Widget_addSpacing, METH_VARARGS, "Widget_addSpacing."},
