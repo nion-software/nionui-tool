@@ -1235,6 +1235,9 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
 
     const quint32 *commands = &commands_v[0];
 
+    extern QElapsedTimer timer;
+    extern qint64 timer_offset_ns;
+
     while (command_index < commands_v.size())
     {
         quint32 cmd_hex = read_uint32(commands, command_index);
@@ -1242,6 +1245,8 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
                       (cmd_hex & 0x0000FF00) << 8 |
                       (cmd_hex & 0x00FF0000) >> 8 |
                       (cmd_hex & 0xFF000000) >> 24;
+
+        // qint64 start = qint64(timer.nsecsElapsed() / 1.0E3);
 
         if (cmd == 0x73617665)  // save
         {
@@ -1582,15 +1587,19 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
                 text_pos.setY(text_pos.y());
             else if (text_baseline == 5)    // bottom
                 text_pos.setY(text_pos.y() + fm.ascent() - fm.height());
-            QPainterPath path;
-            path.addText(text_pos, text_font, text);
             if (cmd == 0x74657874) // text, fill text
             {
                 QBrush brush = fill_gradient >= 0 ? QBrush(gradients[fill_gradient]) : QBrush(fill_color);
-                painter.fillPath(path, brush);
+                painter.save();
+                painter.setFont(text_font);
+                painter.setPen(QPen(brush, 1.0));
+                painter.drawText(text_pos, text);
+                painter.restore();
             }
             else // stroke text
             {
+                QPainterPath path;
+                path.addText(text_pos, text_font, text);
                 QPen pen(line_color);
                 pen.setWidth(line_width);
                 pen.setJoinStyle(line_join);
@@ -1718,8 +1727,6 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
         }
         else if (cmd == 0x6c61746e) // latn, latency
         {
-            extern QElapsedTimer timer;
-            extern qint64 timer_offset_ns;
             float arg0 = read_float(commands, command_index);
             qDebug() << "Latency " << qint64((timer.nsecsElapsed() - ((double)arg0 * 1E9 - timer_offset_ns)) / 1.0E6) << "ms";
         }
@@ -1727,6 +1734,10 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
         {
             qDebug() << read_string(commands, command_index);
         }
+
+        // qint64 end = qint64(timer.nsecsElapsed() / 1.0E3);
+        // if (end - start > 50)
+        //     qDebug() << "cmd " << QString::number(cmd, 16) << " " << (end - start);
     }
 
     if (image_cache)
