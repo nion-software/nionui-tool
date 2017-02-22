@@ -1231,6 +1231,12 @@ inline float read_float(const quint32 *commands, int &command_index)
     return *(float *)(&commands[command_index++]);
 }
 
+inline double read_double(const quint32 *commands, int &command_index)
+{
+    return *(double *)(&commands[command_index]);
+    command_index += 2;
+}
+
 inline bool read_bool(const quint32 *commands, int &command_index)
 {
     return *(quint32 *)(&commands[command_index++]) != 0;
@@ -1772,7 +1778,7 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
         }
         else if (cmd == 0x6c61746e) // latn, latency
         {
-            float arg0 = read_float(commands, command_index);
+            double arg0 = read_double(commands, command_index);
             qDebug() << "Latency " << qint64((timer.nsecsElapsed() - ((double)arg0 * 1E9 - timer_offset_ns)) / 1.0E6) << "ms";
         }
         else if (cmd == 0x6d657367) // mesg, message
