@@ -1,7 +1,7 @@
 // set the base Qt version
-QT_VERSION = 57
+QT_VERSION = 58
 
-QTDIR_57 = $(HOME)/Developer/Qt/5.7/clang_64
+QTDIR_58 = $(HOME)/Developer/Qt/5.8/clang_64
 
 QTDIR = $(QTDIR_$(QT_VERSION))
 
@@ -36,7 +36,7 @@ CODE_SIGN_IDENTITY = Developer ID Application: Nion, Inc.
 
 LD_RUNPATH_SEARCH_PATHS = $(QTDIR)/lib
 
-APP_LDFLAGS_57 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
+APP_LDFLAGS_58 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
 
 APP_LDFLAGS = $(APP_LDFLAGS_$(QT_VERSION)) -stdlib=libc++
 
@@ -56,8 +56,7 @@ PYTHON_INCLUDE = $(PYTHONHOME)/include/$(PYTHON_VERSION)
 PYTHON_NUMPY_INCLUDE = $(PYTHONHOME)/lib/python$(PYTHON_VERSION_NUMBER)/site-packages/numpy/core/include
 PYTHON_LDFLAGS =
 PYTHON_LIB_SEARCH = $(PYTHONHOME)/lib
-PYTHON_DIST = anaconda
 
-PYTHONHOME = $(HOME)/Developer/anaconda
-PYTHON_VERSION_NUMBER = 3.5
+PYTHONHOME = $(HOME)/Developer/miniconda43
+PYTHON_VERSION_NUMBER = 3.6
 PYTHON_OPTION = m
