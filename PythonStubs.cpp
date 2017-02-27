@@ -3,6 +3,7 @@
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 
 #include <QtCore/QObject>
+#include <QtCore/QDebug>
 
 #if !defined(Q_OS_WIN)
 #include <dlfcn.h>
@@ -26,11 +27,214 @@ void *LOOKUP_SYMBOL(void *h, const char *proc)
 
 #include "PythonStubs.h"
 
-static void *pylib = 0;
+void *pylib = 0;
+
+typedef int (*PyBuffer_ReleaseFn)(Py_buffer *o);
+typedef int (*PyCallable_CheckFn)(PyObject *o);
+typedef void* (*PyCapsule_GetPointerFn)(PyObject *capsule, const char *name);
+typedef int (*PyCapsule_IsValidFn)(PyObject *capsule, const char *name);
+typedef PyObject* (*PyCapsule_NewFn)(void *pointer, const char *name, PyCapsule_Destructor destructor);
+typedef PyObject* (*PyDict_GetItemStringFn)(PyObject *p, const char *key);
+typedef PyObject* (*PyDict_NewFn)();
+typedef int (*PyDict_SetItemFn)(PyObject *p, PyObject *key, PyObject *val);
+typedef void (*PyErr_ClearFn)();
+typedef PyObject* (*PyErr_FormatFn)(PyObject *exception, const char *format, ...);
+typedef PyObject* (*PyErr_OccurredFn)();
+typedef void (*PyErr_PrintFn)();
+typedef PyObject *(*PyErr_NewExceptionFn)(const char *, PyObject *, PyObject *);
+typedef void (*PyErr_SetStringFn)(PyObject *type, const char *message);
+typedef PyObject* (*PyEval_EvalCodeFn)(PyObject *co, PyObject *globals, PyObject *locals);
+typedef void (*PyEval_InitThreadsFn)();
+typedef void (*PyEval_RestoreThreadFn)(PyThreadState *tstate);
+typedef PyThreadState* (*PyEval_SaveThreadFn)();
+typedef double (*DPyFloat_AsDoubleFn)(PyObject *o);
+typedef PyObject* (*PyFloat_FromDoubleFn)(double v);
+typedef PyGILState_STATE (*PyGILState_EnsureFn)();
+typedef int (*PyGILState_CheckFn)();
+typedef void (*PyGILState_ReleaseFn)(PyGILState_STATE);
+typedef int (*PyImport_AppendInittabFn)(const char *name, PyImport_AppendInittabInitFn initfunc);
+typedef PyObject* (*PyImport_GetModuleDictFn)();
+typedef PyObject* (*PyImport_ImportModuleFn)(const char *name);
+typedef int (*PyList_AppendFn)(PyObject *list, PyObject *item);
+typedef PyObject* (*PyList_GetItemFn)(PyObject *list, Py_ssize_t index);
+typedef int (*PyList_InsertFn)(PyObject *list, Py_ssize_t index, PyObject *item);
+typedef PyObject* (*PyList_NewFn)(Py_ssize_t len);
+typedef Py_ssize_t (*PyList_SizeFn)(PyObject *list);
+typedef long (*PyLong_AsLongFn)(PyObject *obj);
+typedef PY_LONG_LONG (*PyLong_AsLongLongFn)(PyObject *obj);
+typedef PyObject* (*PyLong_FromLongFn)(long v);
+typedef PyObject* (*PyLong_FromLongLongFn)(PY_LONG_LONG v);
+typedef PyObject* (*PyLong_FromUnsignedLongFn)(unsigned long v);
+typedef PyObject* (*PyLong_FromUnsignedLongLongFn)(unsigned PY_LONG_LONG v);
+typedef int (*PyMapping_CheckFn)(PyObject *o);
+typedef PyObject* (*PyMapping_ItemsFn)(PyObject *o);
+typedef int (*PyModule_AddObjectFn)(PyObject *module, const char *name, PyObject *value);
+typedef PyObject* (*PyModule_Create2Fn)(PyModuleDef *module, int module_api_version);
+typedef PyObject* (*PyModule_GetDictFn)(PyObject *module);
+typedef PyObject* (*PyObject_CallObjectFn)(PyObject *callable_object, PyObject *args);
+typedef PyObject* (*PyObject_GetAttrFn)(PyObject *o, PyObject *attr_name);
+typedef PyObject* (*PyObject_GetAttrStringFn)(PyObject *o, const char *attr_name);
+typedef int (*PyObject_IsTrueFn)(PyObject *o);
+typedef int (*PyObject_SetAttrFn)(PyObject *o, PyObject *attr_name, PyObject *v);
+typedef PyObject* (*PyRun_SimpleStringFn)(const char *str);
+typedef PyObject* (*PyRun_StringFlagsFn)(const char *str, int start, PyObject *globals, PyObject *locals, PyCompilerFlags *flags);
+typedef int (*PySequence_CheckFn)(PyObject *o);
+typedef PyObject* (*PySequence_FastFn)(PyObject *o, const char *m);
+typedef PyObject* (*PySequence_GetItemFn)(PyObject *o, Py_ssize_t i);
+typedef Py_ssize_t (*PySequence_SizeFn)(PyObject *o);
+typedef int (*PyState_AddModuleFn)(PyObject *module, PyModuleDef *def);
+typedef PyObject* (*PyTuple_GetItemFn)(PyObject *p, Py_ssize_t pos);
+typedef PyObject* (*PyTuple_NewFn)(Py_ssize_t len);
+typedef int (*PyTuple_SetItemFn)(PyObject *p, Py_ssize_t pos, PyObject *o);
+typedef int (*PyType_IsSubtypeFn)(PyTypeObject *a, PyTypeObject *b);
+typedef char* (*PyUnicode_AsUTF8Fn)(PyObject *unicode);
+typedef PyObject* (*PyUnicode_DecodeUTF16Fn)(const char *s, Py_ssize_t size, const char *errors, int *byteorder);
+typedef PyObject *(*PyUnicode_FromStringFn)(const char *u);
+typedef PyObject* (*Py_CompileStringExFlagsFn)(const char *str, const char *filename, int start, PyCompilerFlags *flags, int optimize);
+typedef void (*Py_InitializeFn)();
+typedef void (*Py_FinalizeFn)();
+typedef void(*Py_SetPythonHomeFn)(wchar_t *ph);
+
+static PyBuffer_ReleaseFn fBuffer_Release = 0;
+static PyCallable_CheckFn fCallable_Check = 0;
+static PyCapsule_GetPointerFn fCapsule_GetPointer = 0;
+static PyCapsule_IsValidFn fCapsule_IsValid = 0;
+static PyCapsule_NewFn fCapsule_New = 0;
+static PyDict_GetItemStringFn fDict_GetItemString = 0;
+static PyDict_NewFn fDict_New = 0;
+static PyDict_SetItemFn fDict_SetItem = 0;
+static PyErr_ClearFn fErr_Clear = 0;
+static PyErr_FormatFn fErr_Format = 0;
+static PyErr_OccurredFn fErr_Occurred = 0;
+static PyErr_PrintFn fErr_Print = 0;
+static PyErr_NewExceptionFn fErr_NewException = 0;
+static PyErr_SetStringFn fErr_SetString = 0;
+static PyEval_EvalCodeFn fEval_EvalCode = 0;
+static PyEval_InitThreadsFn fEval_InitThreads = 0;
+static PyEval_RestoreThreadFn fEval_RestoreThread = 0;
+static PyEval_SaveThreadFn fEval_SaveThread = 0;
+static DPyFloat_AsDoubleFn fFloat_AsDouble = 0;
+static PyFloat_FromDoubleFn fFloat_FromDouble = 0;
+static PyGILState_EnsureFn fGILState_Ensure = 0;
+static PyGILState_CheckFn fGILState_Check = 0;
+static PyGILState_ReleaseFn fGILState_Release = 0;
+static PyImport_AppendInittabFn fImport_AppendInittab = 0;
+static PyImport_GetModuleDictFn fImport_GetModuleDict = 0;
+static PyImport_ImportModuleFn fImport_ImportModule = 0;
+static PyList_AppendFn fList_Append = 0;
+static PyList_GetItemFn fList_GetItem = 0;
+static PyList_InsertFn fList_Insert = 0;
+static PyList_NewFn fList_New = 0;
+static PyList_SizeFn fList_Size = 0;
+static PyLong_AsLongFn fLong_AsLong = 0;
+static PyLong_AsLongLongFn fLong_AsLongLong = 0;
+static PyLong_FromLongFn fLong_FromLong = 0;
+static PyLong_FromLongLongFn fLong_FromLongLong = 0;
+static PyLong_FromUnsignedLongFn fLong_FromUnsignedLong = 0;
+static PyLong_FromUnsignedLongLongFn fLong_FromUnsignedLongLong = 0;
+static PyMapping_CheckFn fMapping_Check = 0;
+static PyMapping_ItemsFn fMapping_Items = 0;
+static PyModule_AddObjectFn fModule_AddObject = 0;
+static PyModule_Create2Fn fModule_Create2 = 0;
+static PyModule_GetDictFn fModule_GetDict = 0;
+static PyObject_CallObjectFn fObject_CallObject = 0;
+static PyObject_GetAttrFn fObject_GetAttr = 0;
+static PyObject_GetAttrStringFn fObject_GetAttrString = 0;
+static PyObject_IsTrueFn fObject_IsTrue = 0;
+static PyObject_SetAttrFn fObject_SetAttr = 0;
+static PyRun_SimpleStringFn fRun_SimpleString = 0;
+static PyRun_StringFlagsFn fRun_StringFlags = 0;
+static PySequence_CheckFn fSequence_Check = 0;
+static PySequence_FastFn fSequence_Fast = 0;
+static PySequence_GetItemFn fSequence_GetItem = 0;
+static PySequence_SizeFn fSequence_Size = 0;
+static PyState_AddModuleFn fState_AddModule = 0;
+static PyTuple_GetItemFn fTuple_GetItem = 0;
+static PyTuple_NewFn fTuple_New = 0;
+static PyTuple_SetItemFn fTuple_SetItem = 0;
+static PyType_IsSubtypeFn fType_IsSubtype = 0;
+static PyUnicode_AsUTF8Fn fUnicode_AsUTF8 = 0;
+static PyUnicode_DecodeUTF16Fn fUnicode_DecodeUTF16 = 0;
+static PyUnicode_FromStringFn fUnicode_FromString = 0;
+static Py_CompileStringExFlagsFn fCompileStringExFlags = 0;
+static Py_InitializeFn fInitialize = 0;
+static Py_FinalizeFn fFinalize = 0;
+static Py_SetPythonHomeFn fSetPythonHome = 0;
 
 void initialize_pylib(void *dl)
 {
     pylib = dl;
+}
+
+void deinitialize_pylib()
+{
+    pylib = nullptr;
+
+    fBuffer_Release = 0;
+    fCallable_Check = 0;
+    fCapsule_GetPointer = 0;
+    fCapsule_IsValid = 0;
+    fCapsule_New = 0;
+    fDict_GetItemString = 0;
+    fDict_New = 0;
+    fDict_SetItem = 0;
+    fErr_Clear = 0;
+    fErr_Format = 0;
+    fErr_Occurred = 0;
+    fErr_Print = 0;
+    fErr_NewException = 0;
+    fErr_SetString = 0;
+    fEval_EvalCode = 0;
+    fEval_InitThreads = 0;
+    fEval_RestoreThread = 0;
+    fEval_SaveThread = 0;
+    fFloat_AsDouble = 0;
+    fFloat_FromDouble = 0;
+    fGILState_Ensure = 0;
+    fGILState_Check = 0;
+    fGILState_Release = 0;
+    fImport_AppendInittab = 0;
+    fImport_GetModuleDict = 0;
+    fImport_ImportModule = 0;
+    fList_Append = 0;
+    fList_GetItem = 0;
+    fList_Insert = 0;
+    fList_New = 0;
+    fList_Size = 0;
+    fLong_AsLong = 0;
+    fLong_AsLongLong = 0;
+    fLong_FromLong = 0;
+    fLong_FromLongLong = 0;
+    fLong_FromUnsignedLong = 0;
+    fLong_FromUnsignedLongLong = 0;
+    fMapping_Check = 0;
+    fMapping_Items = 0;
+    fModule_AddObject = 0;
+    fModule_Create2 = 0;
+    fModule_GetDict = 0;
+    fObject_CallObject = 0;
+    fObject_GetAttr = 0;
+    fObject_GetAttrString = 0;
+    fObject_IsTrue = 0;
+    fObject_SetAttr = 0;
+    fRun_SimpleString = 0;
+    fRun_StringFlags = 0;
+    fSequence_Check = 0;
+    fSequence_Fast = 0;
+    fSequence_GetItem = 0;
+    fSequence_Size = 0;
+    fState_AddModule = 0;
+    fTuple_GetItem = 0;
+    fTuple_New = 0;
+    fTuple_SetItem = 0;
+    fType_IsSubtype = 0;
+    fUnicode_AsUTF8 = 0;
+    fUnicode_DecodeUTF16 = 0;
+    fUnicode_FromString = 0;
+    fCompileStringExFlags = 0;
+    fInitialize = 0;
+    fFinalize = 0;
+    fSetPythonHome = 0;
 }
 
 bool DPyBool_Check(PyObject *o)
@@ -92,580 +296,459 @@ PyObject *DPy_NoneGet()
     return (PyObject *)LOOKUP_SYMBOL(pylib, "_Py_NoneStruct");
 }
 
-typedef int (*PyBuffer_ReleaseFn)(Py_buffer *o);
 void DPyBuffer_Release(Py_buffer *o)
 {
-    static PyBuffer_ReleaseFn f = 0;
-    if (f == 0)
-        f = (PyBuffer_ReleaseFn)LOOKUP_SYMBOL(pylib, "PyBuffer_Release");
-    f(o);
+    if (fBuffer_Release == 0)
+        fBuffer_Release = (PyBuffer_ReleaseFn)LOOKUP_SYMBOL(pylib, "PyBuffer_Release");
+    fBuffer_Release(o);
 }
 
-typedef int (*PyCallable_CheckFn)(PyObject *o);
 int DPyCallable_Check(PyObject *o)
 {
-    static PyCallable_CheckFn f = 0;
-    if (f == 0)
-        f = (PyCallable_CheckFn)LOOKUP_SYMBOL(pylib, "PyCallable_Check");
-    return f(o);
+    if (fCallable_Check == 0)
+        fCallable_Check = (PyCallable_CheckFn)LOOKUP_SYMBOL(pylib, "PyCallable_Check");
+    return fCallable_Check(o);
 }
 
-typedef void* (*PyCapsule_GetPointerFn)(PyObject *capsule, const char *name);
 void* DPyCapsule_GetPointer(PyObject *capsule, const char *name)
 {
-    static PyCapsule_GetPointerFn f = 0;
-    if (f == 0)
-        f = (PyCapsule_GetPointerFn)LOOKUP_SYMBOL(pylib, "PyCapsule_GetPointer");
-    return f(capsule, name);
+    if (fCapsule_GetPointer == 0)
+        fCapsule_GetPointer = (PyCapsule_GetPointerFn)LOOKUP_SYMBOL(pylib, "PyCapsule_GetPointer");
+    return fCapsule_GetPointer(capsule, name);
 }
 
-typedef int (*PyCapsule_IsValidFn)(PyObject *capsule, const char *name);
 int DPyCapsule_IsValid(PyObject *capsule, const char *name)
 {
-    static PyCapsule_IsValidFn f = 0;
-    if (f == 0)
-        f = (PyCapsule_IsValidFn)LOOKUP_SYMBOL(pylib, "PyCapsule_IsValid");
-    return f(capsule, name);
+    if (fCapsule_IsValid == 0)
+        fCapsule_IsValid = (PyCapsule_IsValidFn)LOOKUP_SYMBOL(pylib, "PyCapsule_IsValid");
+    return fCapsule_IsValid(capsule, name);
 }
 
-typedef PyObject* (*PyCapsule_NewFn)(void *pointer, const char *name, PyCapsule_Destructor destructor);
 PyObject* DPyCapsule_New(void *pointer, const char *name, PyCapsule_Destructor destructor)
 {
-    static PyCapsule_NewFn f = 0;
-    if (f == 0)
-        f = (PyCapsule_NewFn)LOOKUP_SYMBOL(pylib, "PyCapsule_New");
-    return f(pointer, name, destructor);
+    if (fCapsule_New == 0)
+        fCapsule_New = (PyCapsule_NewFn)LOOKUP_SYMBOL(pylib, "PyCapsule_New");
+    return fCapsule_New(pointer, name, destructor);
 }
 
-typedef PyObject* (*PyDict_GetItemStringFn)(PyObject *p, const char *key);
 PyObject* DPyDict_GetItemString(PyObject *p, const char *key)
 {
-    static PyDict_GetItemStringFn f = 0;
-    if (f == 0)
-        f = (PyDict_GetItemStringFn)LOOKUP_SYMBOL(pylib, "PyDict_GetItemString");
-    return f(p, key);
+    if (fDict_GetItemString == 0)
+        fDict_GetItemString = (PyDict_GetItemStringFn)LOOKUP_SYMBOL(pylib, "PyDict_GetItemString");
+    return fDict_GetItemString(p, key);
 }
 
-typedef PyObject* (*PyDict_NewFn)();
 PyObject* DPyDict_New()
 {
-    static PyDict_NewFn f = 0;
-    if (f == 0)
-        f = (PyDict_NewFn)LOOKUP_SYMBOL(pylib, "PyDict_New");
-    return f();
+    if (fDict_New == 0)
+        fDict_New = (PyDict_NewFn)LOOKUP_SYMBOL(pylib, "PyDict_New");
+    return fDict_New();
 }
 
-typedef int (*PyDict_SetItemFn)(PyObject *p, PyObject *key, PyObject *val);
 int DPyDict_SetItem(PyObject *p, PyObject *key, PyObject *val)
 {
-    static PyDict_SetItemFn f = 0;
-    if (f == 0)
-        f = (PyDict_SetItemFn)LOOKUP_SYMBOL(pylib, "PyDict_SetItem");
-    return f(p, key, val);
+    if (fDict_SetItem == 0)
+        fDict_SetItem = (PyDict_SetItemFn)LOOKUP_SYMBOL(pylib, "PyDict_SetItem");
+    return fDict_SetItem(p, key, val);
 }
 
-typedef void (*PyErr_ClearFn)();
 void DPyErr_Clear()
 {
-    static PyErr_ClearFn f = 0;
-    if (f == 0)
-        f = (PyErr_ClearFn)LOOKUP_SYMBOL(pylib, "PyErr_Clear");
-    f();
+    if (fErr_Clear == 0)
+        fErr_Clear = (PyErr_ClearFn)LOOKUP_SYMBOL(pylib, "PyErr_Clear");
+    fErr_Clear();
 }
 
-typedef PyObject* (*PyErr_FormatFn)(PyObject *exception, const char *format, ...);
 PyObject* DPyErr_Format(PyObject *exception, const char *format, ...)
 {
-    static PyErr_FormatFn f = 0;
-    if (f == 0)
-        f = (PyErr_FormatFn)LOOKUP_SYMBOL(pylib, "PyErr_Format");
+    if (fErr_Format == 0)
+        fErr_Format = (PyErr_FormatFn)LOOKUP_SYMBOL(pylib, "PyErr_Format");
     return 0;  // Numpy. Sheesh.
 }
 
-typedef PyObject* (*PyErr_OccurredFn)();
 PyObject* DPyErr_Occurred()
 {
-    static PyErr_OccurredFn f = 0;
-    if (f == 0)
-        f = (PyErr_OccurredFn)LOOKUP_SYMBOL(pylib, "PyErr_Occurred");
-    return f();
+    if (fErr_Occurred == 0)
+        fErr_Occurred = (PyErr_OccurredFn)LOOKUP_SYMBOL(pylib, "PyErr_Occurred");
+    return fErr_Occurred();
 }
 
-typedef void (*PyErr_PrintFn)();
 void DPyErr_Print()
 {
-    static PyErr_PrintFn f = 0;
-    if (f == 0)
-        f = (PyErr_PrintFn)LOOKUP_SYMBOL(pylib, "PyErr_Print");
-    f();
+    if (fErr_Print == 0)
+        fErr_Print = (PyErr_PrintFn)LOOKUP_SYMBOL(pylib, "PyErr_Print");
+    fErr_Print();
 }
 
-typedef PyObject *(*PyErr_NewExceptionFn)(const char *, PyObject *, PyObject *);
 PyObject *DPyErr_NewException(const char *message, PyObject *base, PyObject *dict)
 {
-    static PyErr_NewExceptionFn f = 0;
-    if (f == 0)
-        f = (PyErr_NewExceptionFn)LOOKUP_SYMBOL(pylib, "PyErr_NewException");
-    return f(message, base, dict);
+    if (fErr_NewException == 0)
+        fErr_NewException = (PyErr_NewExceptionFn)LOOKUP_SYMBOL(pylib, "PyErr_NewException");
+    return fErr_NewException(message, base, dict);
 }
 
-typedef void (*PyErr_SetStringFn)(PyObject *type, const char *message);
 void DPyErr_SetString(PyObject *type, const char *message)
 {
-    static PyErr_SetStringFn f = 0;
-    if (f == 0)
-        f = (PyErr_SetStringFn)LOOKUP_SYMBOL(pylib, "PyErr_SetString");
-    return f(type, message);
+    if (fErr_SetString == 0)
+        fErr_SetString = (PyErr_SetStringFn)LOOKUP_SYMBOL(pylib, "PyErr_SetString");
+    return fErr_SetString(type, message);
 }
 
-typedef PyObject* (*PyEval_EvalCodeFn)(PyObject *co, PyObject *globals, PyObject *locals);
 PyObject* DPyEval_EvalCode(PyObject *co, PyObject *globals, PyObject *locals)
 {
-    static PyEval_EvalCodeFn f = 0;
-    if (f == 0)
-        f = (PyEval_EvalCodeFn)LOOKUP_SYMBOL(pylib, "PyEval_EvalCode");
-    return f(co, globals, locals);
+    if (fEval_EvalCode == 0)
+        fEval_EvalCode = (PyEval_EvalCodeFn)LOOKUP_SYMBOL(pylib, "PyEval_EvalCode");
+    return fEval_EvalCode(co, globals, locals);
 }
 
-typedef void (*PyEval_InitThreadsFn)();
 void DPyEval_InitThreads()
 {
-    static PyEval_InitThreadsFn f = 0;
-    if (f == 0)
-        f = (PyEval_InitThreadsFn)LOOKUP_SYMBOL(pylib, "PyEval_InitThreads");
-    f();
+    if (fEval_InitThreads == 0)
+        fEval_InitThreads = (PyEval_InitThreadsFn)LOOKUP_SYMBOL(pylib, "PyEval_InitThreads");
+    fEval_InitThreads();
 }
 
-typedef void (*PyEval_RestoreThreadFn)(PyThreadState *tstate);
 void DPyEval_RestoreThread(PyThreadState *tstate)
 {
-    static PyEval_RestoreThreadFn f = 0;
-    if (f == 0)
-        f = (PyEval_RestoreThreadFn)LOOKUP_SYMBOL(pylib, "PyEval_RestoreThread");
-    f(tstate);
+    if (fEval_RestoreThread == 0)
+        fEval_RestoreThread = (PyEval_RestoreThreadFn)LOOKUP_SYMBOL(pylib, "PyEval_RestoreThread");
+    fEval_RestoreThread(tstate);
 }
 
-typedef PyThreadState* (*PyEval_SaveThreadFn)();
 PyThreadState* DPyEval_SaveThread()
 {
-    static PyEval_SaveThreadFn f = 0;
-    if (f == 0)
-        f = (PyEval_SaveThreadFn)LOOKUP_SYMBOL(pylib, "PyEval_SaveThread");
-    return f();
+    if (fEval_SaveThread == 0)
+        fEval_SaveThread = (PyEval_SaveThreadFn)LOOKUP_SYMBOL(pylib, "PyEval_SaveThread");
+    return fEval_SaveThread();
 }
 
-typedef double (*DPyFloat_AsDoubleFn)(PyObject *o);
 double DPyFloat_AsDouble(PyObject *o)
 {
-    static DPyFloat_AsDoubleFn f = 0;
-    if (f == 0)
-        f = (DPyFloat_AsDoubleFn)LOOKUP_SYMBOL(pylib, "PyFloat_AsDouble");
-    return f(o);
+    if (fFloat_AsDouble == 0)
+        fFloat_AsDouble = (DPyFloat_AsDoubleFn)LOOKUP_SYMBOL(pylib, "PyFloat_AsDouble");
+    return fFloat_AsDouble(o);
 }
 
-typedef PyObject* (*PyFloat_FromDoubleFn)(double v);
 PyObject* DPyFloat_FromDouble(double v)
 {
-    static PyFloat_FromDoubleFn f = 0;
-    if (f == 0)
-        f = (PyFloat_FromDoubleFn)LOOKUP_SYMBOL(pylib, "PyFloat_FromDouble");
-    return f(v);
+    if (fFloat_FromDouble == 0)
+        fFloat_FromDouble = (PyFloat_FromDoubleFn)LOOKUP_SYMBOL(pylib, "PyFloat_FromDouble");
+    return fFloat_FromDouble(v);
 }
 
-typedef PyGILState_STATE (*PyGILState_EnsureFn)();
 PyGILState_STATE DPyGILState_Ensure()
 {
-    static PyGILState_EnsureFn f = 0;
-    if (f == 0)
-        f = (PyGILState_EnsureFn)LOOKUP_SYMBOL(pylib, "PyGILState_Ensure");
-    return f();
+    if (fGILState_Ensure == 0)
+        fGILState_Ensure = (PyGILState_EnsureFn)LOOKUP_SYMBOL(pylib, "PyGILState_Ensure");
+    return fGILState_Ensure();
 }
 
-typedef int (*PyGILState_CheckFn)();
 int DPyGILState_Check()
 {
-    static PyGILState_CheckFn f = 0;
-    if (f == 0)
-        f = (PyGILState_CheckFn)LOOKUP_SYMBOL(pylib, "PyGILState_Check");
-    return f();
+    if (fGILState_Check == 0)
+        fGILState_Check = (PyGILState_CheckFn)LOOKUP_SYMBOL(pylib, "PyGILState_Check");
+    return fGILState_Check();
 }
 
-typedef void (*PyGILState_ReleaseFn)(PyGILState_STATE);
 void DPyGILState_Release(PyGILState_STATE s)
 {
-    static PyGILState_ReleaseFn f = 0;
-    if (f == 0)
-        f = (PyGILState_ReleaseFn)LOOKUP_SYMBOL(pylib, "PyGILState_Release");
-    f(s);
+    if (fGILState_Release == 0)
+        fGILState_Release = (PyGILState_ReleaseFn)LOOKUP_SYMBOL(pylib, "PyGILState_Release");
+    fGILState_Release(s);
 }
 
-typedef int (*PyImport_AppendInittabFn)(const char *name, PyImport_AppendInittabInitFn initfunc);
 int DPyImport_AppendInittab(const char *name, PyImport_AppendInittabInitFn initfunc)
 {
-    static PyImport_AppendInittabFn f = 0;
-    if (f == 0)
-        f = (PyImport_AppendInittabFn)LOOKUP_SYMBOL(pylib, "PyImport_AppendInittab");
-    return f(name, initfunc);
+    if (fImport_AppendInittab == 0)
+        fImport_AppendInittab = (PyImport_AppendInittabFn)LOOKUP_SYMBOL(pylib, "PyImport_AppendInittab");
+    return fImport_AppendInittab(name, initfunc);
 }
 
-typedef PyObject* (*PyImport_GetModuleDictFn)();
 PyObject* DPyImport_GetModuleDict()
 {
-    static PyImport_GetModuleDictFn f = 0;
-    if (f == 0)
-        f = (PyImport_GetModuleDictFn)LOOKUP_SYMBOL(pylib, "PyImport_GetModuleDict");
-    return f();
+    if (fImport_GetModuleDict == 0)
+        fImport_GetModuleDict = (PyImport_GetModuleDictFn)LOOKUP_SYMBOL(pylib, "PyImport_GetModuleDict");
+    return fImport_GetModuleDict();
 }
 
-typedef PyObject* (*PyImport_ImportModuleFn)(const char *name);
 PyObject* DPyImport_ImportModule(const char *name)
 {
-    static PyImport_ImportModuleFn f = 0;
-    if (f == 0)
-        f = (PyImport_ImportModuleFn)LOOKUP_SYMBOL(pylib, "PyImport_ImportModule");
-    return f(name);
+    if (fImport_ImportModule == 0)
+        fImport_ImportModule = (PyImport_ImportModuleFn)LOOKUP_SYMBOL(pylib, "PyImport_ImportModule");
+    return fImport_ImportModule(name);
 }
 
-typedef int (*PyList_AppendFn)(PyObject *list, PyObject *item);
 int DPyList_Append(PyObject *list, PyObject *item)
 {
-    static PyList_AppendFn f = 0;
-    if (f == 0)
-        f = (PyList_AppendFn)LOOKUP_SYMBOL(pylib, "PyList_Append");
-    return f(list, item);
+    if (fList_Append == 0)
+        fList_Append = (PyList_AppendFn)LOOKUP_SYMBOL(pylib, "PyList_Append");
+    return fList_Append(list, item);
 }
 
-typedef PyObject* (*PyList_GetItemFn)(PyObject *list, Py_ssize_t index);
 PyObject* DPyList_GetItem(PyObject *list, Py_ssize_t index)
 {
-    static PyList_GetItemFn f = 0;
-    if (f == 0)
-        f = (PyList_GetItemFn)LOOKUP_SYMBOL(pylib, "PyList_GetItem");
-    return f(list, index);
+    if (fList_GetItem == 0)
+        fList_GetItem = (PyList_GetItemFn)LOOKUP_SYMBOL(pylib, "PyList_GetItem");
+    return fList_GetItem(list, index);
 }
 
-typedef int (*PyList_InsertFn)(PyObject *list, Py_ssize_t index, PyObject *item);
 int DPyList_Insert(PyObject *list, Py_ssize_t index, PyObject *item)
 {
-    static PyList_InsertFn f = 0;
-    if (f == 0)
-        f = (PyList_InsertFn)LOOKUP_SYMBOL(pylib, "PyList_Insert");
-    return f(list, index, item);
+    if (fList_Insert == 0)
+        fList_Insert = (PyList_InsertFn)LOOKUP_SYMBOL(pylib, "PyList_Insert");
+    return fList_Insert(list, index, item);
 }
 
-typedef PyObject* (*PyList_NewFn)(Py_ssize_t len);
 PyObject* DPyList_New(Py_ssize_t len)
 {
-    static PyList_NewFn f = 0;
-    if (f == 0)
-        f = (PyList_NewFn)LOOKUP_SYMBOL(pylib, "PyList_New");
-    return f(len);
+    if (fList_New == 0)
+        fList_New = (PyList_NewFn)LOOKUP_SYMBOL(pylib, "PyList_New");
+    return fList_New(len);
 }
 
-typedef Py_ssize_t (*PyList_SizeFn)(PyObject *list);
 Py_ssize_t DPyList_Size(PyObject *list)
 {
-    static PyList_SizeFn f = 0;
-    if (f == 0)
-        f = (PyList_SizeFn)LOOKUP_SYMBOL(pylib, "PyList_Size");
-    return f(list);
+    if (fList_Size == 0)
+        fList_Size = (PyList_SizeFn)LOOKUP_SYMBOL(pylib, "PyList_Size");
+    return fList_Size(list);
 }
 
-typedef long (*PyLong_AsLongFn)(PyObject *obj);
 long DPyLong_AsLong(PyObject *obj)
 {
-    static PyLong_AsLongFn f = 0;
-    if (f == 0)
-        f = (PyLong_AsLongFn)LOOKUP_SYMBOL(pylib, "PyLong_AsLong");
-    return f(obj);
+    if (fLong_AsLong == 0)
+        fLong_AsLong = (PyLong_AsLongFn)LOOKUP_SYMBOL(pylib, "PyLong_AsLong");
+    return fLong_AsLong(obj);
 }
 
-typedef PY_LONG_LONG (*PyLong_AsLongLongFn)(PyObject *obj);
 PY_LONG_LONG DPyLong_AsLongLong(PyObject *obj)
 {
-    static PyLong_AsLongLongFn f = 0;
-    if (f == 0)
-        f = (PyLong_AsLongLongFn)LOOKUP_SYMBOL(pylib, "PyLong_AsLongLong");
-    return f(obj);
+    if (fLong_AsLongLong == 0)
+        fLong_AsLongLong = (PyLong_AsLongLongFn)LOOKUP_SYMBOL(pylib, "PyLong_AsLongLong");
+    return fLong_AsLongLong(obj);
 }
 
-typedef PyObject* (*PyLong_FromLongFn)(long v);
 PyObject* DPyLong_FromLong(long v)
 {
-    static PyLong_FromLongFn f = 0;
-    if (f == 0)
-        f = (PyLong_FromLongFn)LOOKUP_SYMBOL(pylib, "PyLong_FromLong");
-    return f(v);
+    if (fLong_FromLong == 0)
+        fLong_FromLong = (PyLong_FromLongFn)LOOKUP_SYMBOL(pylib, "PyLong_FromLong");
+    return fLong_FromLong(v);
 }
 
-typedef PyObject* (*PyLong_FromLongLongFn)(PY_LONG_LONG v);
 PyObject* DPyLong_FromLongLong(PY_LONG_LONG v)
 {
-    static PyLong_FromLongLongFn f = 0;
-    if (f == 0)
-        f = (PyLong_FromLongLongFn)LOOKUP_SYMBOL(pylib, "PyLong_FromLongLong");
-    return f(v);
+    if (fLong_FromLongLong == 0)
+        fLong_FromLongLong = (PyLong_FromLongLongFn)LOOKUP_SYMBOL(pylib, "PyLong_FromLongLong");
+    return fLong_FromLongLong(v);
 }
 
-typedef PyObject* (*PyLong_FromUnsignedLongFn)(unsigned long v);
 PyObject* DPyLong_FromUnsignedLong(unsigned long v)
 {
-    static PyLong_FromUnsignedLongFn f = 0;
-    if (f == 0)
-        f = (PyLong_FromUnsignedLongFn)LOOKUP_SYMBOL(pylib, "PyLong_FromUnsignedLong");
-    return f(v);
+    if (fLong_FromUnsignedLong == 0)
+        fLong_FromUnsignedLong = (PyLong_FromUnsignedLongFn)LOOKUP_SYMBOL(pylib, "PyLong_FromUnsignedLong");
+    return fLong_FromUnsignedLong(v);
 }
 
-typedef PyObject* (*PyLong_FromUnsignedLongLongFn)(unsigned PY_LONG_LONG v);
 PyObject* DPyLong_FromUnsignedLongLong(unsigned PY_LONG_LONG v)
 {
-    static PyLong_FromUnsignedLongLongFn f = 0;
-    if (f == 0)
-        f = (PyLong_FromUnsignedLongLongFn)LOOKUP_SYMBOL(pylib, "PyLong_FromUnsignedLongLong");
-    return f(v);
+    if (fLong_FromUnsignedLongLong == 0)
+        fLong_FromUnsignedLongLong = (PyLong_FromUnsignedLongLongFn)LOOKUP_SYMBOL(pylib, "PyLong_FromUnsignedLongLong");
+    return fLong_FromUnsignedLongLong(v);
 }
 
-typedef int (*PyMapping_CheckFn)(PyObject *o);
 int DPyMapping_Check(PyObject *o)
 {
-    static PyMapping_CheckFn f = 0;
-    if (f == 0)
-        f = (PyMapping_CheckFn)LOOKUP_SYMBOL(pylib, "PyMapping_Check");
-    return f(o);
+    if (fMapping_Check == 0)
+        fMapping_Check = (PyMapping_CheckFn)LOOKUP_SYMBOL(pylib, "PyMapping_Check");
+    return fMapping_Check(o);
 }
 
-typedef PyObject* (*PyMapping_ItemsFn)(PyObject *o);
 PyObject* DPyMapping_Items(PyObject *o)
 {
-    static PyMapping_ItemsFn f = 0;
-    if (f == 0)
-        f = (PyMapping_ItemsFn)LOOKUP_SYMBOL(pylib, "PyMapping_Items");
-    return f(o);
+    if (fMapping_Items == 0)
+        fMapping_Items = (PyMapping_ItemsFn)LOOKUP_SYMBOL(pylib, "PyMapping_Items");
+    return fMapping_Items(o);
 }
 
-typedef int (*PyModule_AddObjectFn)(PyObject *module, const char *name, PyObject *value);
 int DPyModule_AddObject(PyObject *module, const char *name, PyObject *value)
 {
-    static PyModule_AddObjectFn f = 0;
-    if (f == 0)
-        f = (PyModule_AddObjectFn)LOOKUP_SYMBOL(pylib, "PyModule_AddObject");
-    return f(module, name, value);
+    if (fModule_AddObject == 0)
+        fModule_AddObject = (PyModule_AddObjectFn)LOOKUP_SYMBOL(pylib, "PyModule_AddObject");
+    return fModule_AddObject(module, name, value);
 }
 
-typedef PyObject* (*PyModule_Create2Fn)(PyModuleDef *module, int module_api_version);
 PyObject* DPyModule_Create2(PyModuleDef *module, int module_api_version)
 {
-    static PyModule_Create2Fn f = 0;
-    if (f == 0)
-        f = (PyModule_Create2Fn)LOOKUP_SYMBOL(pylib, "PyModule_Create2");
-    return f(module, module_api_version);
+    if (fModule_Create2 == 0)
+        fModule_Create2 = (PyModule_Create2Fn)LOOKUP_SYMBOL(pylib, "PyModule_Create2");
+    return fModule_Create2(module, module_api_version);
 }
 
-typedef PyObject* (*PyModule_GetDictFn)(PyObject *module);
 PyObject* DPyModule_GetDict(PyObject *module)
 {
-    static PyModule_GetDictFn f = 0;
-    if (f == 0)
-        f = (PyModule_GetDictFn)LOOKUP_SYMBOL(pylib, "PyModule_GetDict");
-    return f(module);
+    if (fModule_GetDict == 0)
+        fModule_GetDict = (PyModule_GetDictFn)LOOKUP_SYMBOL(pylib, "PyModule_GetDict");
+    return fModule_GetDict(module);
 }
 
-typedef PyObject* (*PyObject_CallObjectFn)(PyObject *callable_object, PyObject *args);
 PyObject* DPyObject_CallObject(PyObject *callable_object, PyObject *args)
 {
-    static PyObject_CallObjectFn f = 0;
-    if (f == 0)
-        f = (PyObject_CallObjectFn)LOOKUP_SYMBOL(pylib, "PyObject_CallObject");
-    return f(callable_object, args);
+    if (fObject_CallObject == 0)
+        fObject_CallObject = (PyObject_CallObjectFn)LOOKUP_SYMBOL(pylib, "PyObject_CallObject");
+    return fObject_CallObject(callable_object, args);
 }
 
-typedef PyObject* (*PyObject_GetAttrFn)(PyObject *o, PyObject *attr_name);
 PyObject* DPyObject_GetAttr(PyObject *o, PyObject *attr_name)
 {
-    static PyObject_GetAttrFn f = 0;
-    if (f == 0)
-        f = (PyObject_GetAttrFn)LOOKUP_SYMBOL(pylib, "PyObject_GetAttr");
-    return f(o, attr_name);
+    if (fObject_GetAttr == 0)
+        fObject_GetAttr = (PyObject_GetAttrFn)LOOKUP_SYMBOL(pylib, "PyObject_GetAttr");
+    return fObject_GetAttr(o, attr_name);
 }
 
-typedef PyObject* (*PyObject_GetAttrStringFn)(PyObject *o, const char *attr_name);
 PyObject* DPyObject_GetAttrString(PyObject *o, const char *attr_name)
 {
-    static PyObject_GetAttrStringFn f = 0;
-    if (f == 0)
-        f = (PyObject_GetAttrStringFn)LOOKUP_SYMBOL(pylib, "PyObject_GetAttrString");
-    return f(o, attr_name);
+    if (fObject_GetAttrString == 0)
+        fObject_GetAttrString = (PyObject_GetAttrStringFn)LOOKUP_SYMBOL(pylib, "PyObject_GetAttrString");
+    return fObject_GetAttrString(o, attr_name);
 }
 
-typedef int (*PyObject_IsTrueFn)(PyObject *o);
 int DPyObject_IsTrue(PyObject *o)
 {
-    static PyObject_IsTrueFn f = 0;
-    if (f == 0)
-        f = (PyObject_IsTrueFn)LOOKUP_SYMBOL(pylib, "PyObject_IsTrue");
-    return f(o);
+    if (fObject_IsTrue == 0)
+        fObject_IsTrue = (PyObject_IsTrueFn)LOOKUP_SYMBOL(pylib, "PyObject_IsTrue");
+    return fObject_IsTrue(o);
 }
 
-typedef int (*PyObject_SetAttrFn)(PyObject *o, PyObject *attr_name, PyObject *v);
 int DPyObject_SetAttr(PyObject *o, PyObject *attr_name, PyObject *v)
 {
-    static PyObject_SetAttrFn f = 0;
-    if (f == 0)
-        f = (PyObject_SetAttrFn)LOOKUP_SYMBOL(pylib, "PyObject_SetAttr");
-    return f(o, attr_name, v);
+    if (fObject_SetAttr == 0)
+        fObject_SetAttr = (PyObject_SetAttrFn)LOOKUP_SYMBOL(pylib, "PyObject_SetAttr");
+    return fObject_SetAttr(o, attr_name, v);
 }
 
-typedef PyObject* (*PyRun_SimpleStringFn)(const char *str);
 PyObject* DPyRun_SimpleString(const char *str)
 {
-    static PyRun_SimpleStringFn f = 0;
-    if (f == 0)
-        f = (PyRun_SimpleStringFn)LOOKUP_SYMBOL(pylib, "PyRun_SimpleString");
-    return f(str);
+    if (fRun_SimpleString == 0)
+        fRun_SimpleString = (PyRun_SimpleStringFn)LOOKUP_SYMBOL(pylib, "PyRun_SimpleString");
+    return fRun_SimpleString(str);
 }
 
-typedef PyObject* (*PyRun_StringFlagsFn)(const char *str, int start, PyObject *globals, PyObject *locals, PyCompilerFlags *flags);
 PyObject* DPyRun_StringFlags(const char *str, int start, PyObject *globals, PyObject *locals, PyCompilerFlags *flags)
 {
-    static PyRun_StringFlagsFn f = 0;
-    if (f == 0)
-        f = (PyRun_StringFlagsFn)LOOKUP_SYMBOL(pylib, "PyRun_StringFlags");
-    return f(str, start, globals, locals, flags);
+    if (fRun_StringFlags == 0)
+        fRun_StringFlags = (PyRun_StringFlagsFn)LOOKUP_SYMBOL(pylib, "PyRun_StringFlags");
+    return fRun_StringFlags(str, start, globals, locals, flags);
 }
 
-typedef int (*PySequence_CheckFn)(PyObject *o);
 int DPySequence_Check(PyObject *o)
 {
-    static PySequence_CheckFn f = 0;
-    if (f == 0)
-        f = (PySequence_CheckFn)LOOKUP_SYMBOL(pylib, "PySequence_Check");
-    return f(o);
+    if (fSequence_Check == 0)
+        fSequence_Check = (PySequence_CheckFn)LOOKUP_SYMBOL(pylib, "PySequence_Check");
+    return fSequence_Check(o);
 }
 
-typedef PyObject* (*PySequence_FastFn)(PyObject *o, const char *m);
 PyObject* DPySequence_Fast(PyObject *o, const char *m)
 {
-    static PySequence_FastFn f = 0;
-    if (f == 0)
-        f = (PySequence_FastFn)LOOKUP_SYMBOL(pylib, "PySequence_Fast");
-    return f(o, m);
+    if (fSequence_Fast == 0)
+        fSequence_Fast = (PySequence_FastFn)LOOKUP_SYMBOL(pylib, "PySequence_Fast");
+    return fSequence_Fast(o, m);
 }
 
-typedef PyObject* (*PySequence_GetItemFn)(PyObject *o, Py_ssize_t i);
 PyObject* DPySequence_GetItem(PyObject *o, Py_ssize_t i)
 {
-    static PySequence_GetItemFn f = 0;
-    if (f == 0)
-        f = (PySequence_GetItemFn)LOOKUP_SYMBOL(pylib, "PySequence_GetItem");
-    return f(o, i);
+    if (fSequence_GetItem == 0)
+        fSequence_GetItem = (PySequence_GetItemFn)LOOKUP_SYMBOL(pylib, "PySequence_GetItem");
+    return fSequence_GetItem(o, i);
 }
 
-typedef Py_ssize_t (*PySequence_SizeFn)(PyObject *o);
 Py_ssize_t DPySequence_Size(PyObject *o)
 {
-    static PySequence_SizeFn f = 0;
-    if (f == 0)
-        f = (PySequence_SizeFn)LOOKUP_SYMBOL(pylib, "PySequence_Size");
-    return f(o);
+    if (fSequence_Size == 0)
+        fSequence_Size = (PySequence_SizeFn)LOOKUP_SYMBOL(pylib, "PySequence_Size");
+    return fSequence_Size(o);
 }
 
-typedef int (*PyState_AddModuleFn)(PyObject *module, PyModuleDef *def);
 int DPyState_AddModule(PyObject *module, PyModuleDef *def)
 {
-    static PyState_AddModuleFn f = 0;
-    if (f == 0)
-        f = (PyState_AddModuleFn)LOOKUP_SYMBOL(pylib, "PyState_AddModule");
-    return f(module, def);
+    if (fState_AddModule == 0)
+        fState_AddModule = (PyState_AddModuleFn)LOOKUP_SYMBOL(pylib, "PyState_AddModule");
+    return fState_AddModule(module, def);
 }
 
-typedef PyObject* (*PyTuple_GetItemFn)(PyObject *p, Py_ssize_t pos);
 PyObject* DPyTuple_GetItem(PyObject *p, Py_ssize_t pos)
 {
-    static PyTuple_GetItemFn f = 0;
-    if (f == 0)
-        f = (PyTuple_GetItemFn)LOOKUP_SYMBOL(pylib, "PyTuple_GetItem");
-    return f(p, pos);
+    if (fTuple_GetItem == 0)
+        fTuple_GetItem = (PyTuple_GetItemFn)LOOKUP_SYMBOL(pylib, "PyTuple_GetItem");
+    return fTuple_GetItem(p, pos);
 }
 
-typedef PyObject* (*PyTuple_NewFn)(Py_ssize_t len);
 PyObject* DPyTuple_New(Py_ssize_t len)
 {
-    static PyTuple_NewFn f = 0;
-    if (f == 0)
-        f = (PyTuple_NewFn)LOOKUP_SYMBOL(pylib, "PyTuple_New");
-    return f(len);
+    if (fTuple_New == 0)
+        fTuple_New = (PyTuple_NewFn)LOOKUP_SYMBOL(pylib, "PyTuple_New");
+    return fTuple_New(len);
 }
 
-typedef int (*PyTuple_SetItemFn)(PyObject *p, Py_ssize_t pos, PyObject *o);
 int DPyTuple_SetItem(PyObject *p, Py_ssize_t pos, PyObject *o)
 {
-    static PyTuple_SetItemFn f = 0;
-    if (f == 0)
-        f = (PyTuple_SetItemFn)LOOKUP_SYMBOL(pylib, "PyTuple_SetItem");
-    return f(p, pos, o);
+    if (fTuple_SetItem == 0)
+        fTuple_SetItem = (PyTuple_SetItemFn)LOOKUP_SYMBOL(pylib, "PyTuple_SetItem");
+    return fTuple_SetItem(p, pos, o);
 }
 
-typedef int (*PyType_IsSubtypeFn)(PyTypeObject *a, PyTypeObject *b);
 int DPyType_IsSubtype(PyTypeObject *a, PyTypeObject *b)
 {
-    static PyType_IsSubtypeFn f = 0;
-    if (f == 0)
-        f = (PyType_IsSubtypeFn)LOOKUP_SYMBOL(pylib, "PyType_IsSubtype");
-    return f(a, b);
+    if (fType_IsSubtype == 0)
+        fType_IsSubtype = (PyType_IsSubtypeFn)LOOKUP_SYMBOL(pylib, "PyType_IsSubtype");
+    return fType_IsSubtype(a, b);
 }
 
-typedef char* (*PyUnicode_AsUTF8Fn)(PyObject *unicode);
 char* DPyUnicode_AsUTF8(PyObject *unicode)
 {
-    static PyUnicode_AsUTF8Fn f = 0;
-    if (f == 0)
-        f = (PyUnicode_AsUTF8Fn)LOOKUP_SYMBOL(pylib, "PyUnicode_AsUTF8");
-    return f(unicode);
+    if (fUnicode_AsUTF8 == 0)
+        fUnicode_AsUTF8 = (PyUnicode_AsUTF8Fn)LOOKUP_SYMBOL(pylib, "PyUnicode_AsUTF8");
+    return fUnicode_AsUTF8(unicode);
 }
 
-typedef PyObject* (*PyUnicode_DecodeUTF16Fn)(const char *s, Py_ssize_t size, const char *errors, int *byteorder);
 PyObject* DPyUnicode_DecodeUTF16(const char *s, Py_ssize_t size, const char *errors, int *byteorder)
 {
-    static PyUnicode_DecodeUTF16Fn f = 0;
-    if (f == 0)
-        f = (PyUnicode_DecodeUTF16Fn)LOOKUP_SYMBOL(pylib, "PyUnicode_DecodeUTF16");
-    return f(s, size, errors, byteorder);
+    if (fUnicode_DecodeUTF16 == 0)
+        fUnicode_DecodeUTF16 = (PyUnicode_DecodeUTF16Fn)LOOKUP_SYMBOL(pylib, "PyUnicode_DecodeUTF16");
+    return fUnicode_DecodeUTF16(s, size, errors, byteorder);
 }
 
-typedef PyObject *(*PyUnicode_FromStringFn)(const char *u);
 PyObject* DPyUnicode_FromString(const char *u)
 {
-    static PyUnicode_FromStringFn f = 0;
-    if (f == 0)
-        f = (PyUnicode_FromStringFn)LOOKUP_SYMBOL(pylib, "PyUnicode_FromString");
-    return f(u);
+    if (fUnicode_FromString == 0)
+        fUnicode_FromString = (PyUnicode_FromStringFn)LOOKUP_SYMBOL(pylib, "PyUnicode_FromString");
+    return fUnicode_FromString(u);
 }
 
-typedef PyObject* (*Py_CompileStringExFlagsFn)(const char *str, const char *filename, int start, PyCompilerFlags *flags, int optimize);
 PyObject* DPy_CompileStringExFlags(const char *str, const char *filename, int start, PyCompilerFlags *flags, int optimize)
 {
-    static Py_CompileStringExFlagsFn f = 0;
-    if (f == 0)
-        f = (Py_CompileStringExFlagsFn)LOOKUP_SYMBOL(pylib, "Py_CompileStringExFlags");
-    return f(str, filename, start, flags, optimize);
+    if (fCompileStringExFlags == 0)
+        fCompileStringExFlags = (Py_CompileStringExFlagsFn)LOOKUP_SYMBOL(pylib, "Py_CompileStringExFlags");
+    return fCompileStringExFlags(str, filename, start, flags, optimize);
 }
 
-typedef void (*Py_InitializeFn)();
 void DPy_Initialize()
 {
-    static Py_InitializeFn f = 0;
-    if (f == 0)
-        f = (Py_InitializeFn)LOOKUP_SYMBOL(pylib, "Py_Initialize");
-    return f();
+    if (fInitialize == 0)
+        fInitialize = (Py_InitializeFn)LOOKUP_SYMBOL(pylib, "Py_Initialize");
+    return fInitialize();
 }
 
-typedef void(*Py_SetPythonHomeFn)(wchar_t *ph);
+void DPy_Finalize()
+{
+    if (fFinalize == 0)
+        fFinalize = (Py_FinalizeFn)LOOKUP_SYMBOL(pylib, "Py_Finalize");
+    return fFinalize();
+}
+
 void DPy_SetPythonHome(wchar_t *ph)
 {
-    static Py_SetPythonHomeFn f = 0;
-    if (f == 0)
-        f = (Py_SetPythonHomeFn)LOOKUP_SYMBOL(pylib, "Py_SetPythonHome");
-    return f(ph);
+    if (fSetPythonHome == 0)
+        fSetPythonHome = (Py_SetPythonHomeFn)LOOKUP_SYMBOL(pylib, "Py_SetPythonHome");
+    return fSetPythonHome(ph);
 }
 
 #endif // defined(DYNAMIC_PYTHON)

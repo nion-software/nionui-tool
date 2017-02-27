@@ -80,6 +80,7 @@ PyObject* DECLARE_PY(PyUnicode_DecodeUTF16)(const char *s, Py_ssize_t size, cons
 PyObject* DECLARE_PY(PyUnicode_FromString)(const char *u);
 PyObject* DECLARE_PY(Py_CompileStringExFlags)(const char *str, const char *filename, int start, PyCompilerFlags *flags, int optimize);
 void DECLARE_PY(Py_Initialize)();
+void DECLARE_PY(Py_Finalize)();
 void DECLARE_PY(Py_SetPythonHome)(wchar_t *home);
 bool DECLARE_PY(PyBool_Check)(PyObject *o);
 bool DECLARE_PY(PyCapsule_CheckExact)(PyObject *o);

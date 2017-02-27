@@ -193,6 +193,23 @@ QString PythonSupport::ensurePython(const QString &python_home)
 
 void PythonSupport::initInstance(const QString &python_home)
 {
+    thePythonSupport = new PythonSupport(python_home);
+}
+
+void PythonSupport::deinitInstance()
+{
+    delete thePythonSupport;
+    thePythonSupport = nullptr;
+}
+
+PythonSupport *PythonSupport::instance()
+{
+    return thePythonSupport;
+}
+
+PythonSupport::PythonSupport(const QString &python_home)
+    : module_exception(nullptr)
+{
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 #if defined(Q_OS_MAC)
     QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.dylib");
@@ -235,20 +252,8 @@ void PythonSupport::initInstance(const QString &python_home)
 #endif
     extern void initialize_pylib(void *);
     initialize_pylib(dl);
-    thePythonSupport = new PythonSupport(dl);
-#else
-    thePythonSupport = new PythonSupport(0);
 #endif
-}
 
-PythonSupport *PythonSupport::instance()
-{
-    return thePythonSupport;
-}
-
-PythonSupport::PythonSupport(void *dl)
-    : module_exception(NULL)
-{
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 #if !defined(Q_OS_WIN)
     dynamic_PyArg_ParseTuple = (PyArg_ParseTupleFn)dlsym(dl, "PyArg_ParseTuple");
@@ -274,6 +279,25 @@ PythonSupport& PythonSupport::operator=(PythonSupport const &)
 
 PythonSupport::~PythonSupport()
 {
+    Py_XDECREF(module_exception);
+
+#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
+    extern void *pylib;
+    void *dl = pylib;
+#endif
+
+    extern void deinitialize_pylib();
+    deinitialize_pylib();
+
+#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
+#if defined(Q_OS_MAC)
+    dlclose(dl);
+#elif defined(Q_OS_LINUX)
+    dlclose(dl);
+#else
+    FreeLibrary((HMODULE)dl);
+#endif
+#endif
 }
 
 class PyObjectPtr
@@ -382,6 +406,7 @@ void PythonSupport::initialize(const QString &python_home)
 #else
     if (!python_home.isEmpty())
     {
+        bzero(&python_home_static[0], sizeof(python_home_static));
         python_home.toWCharArray(python_home_static);
         CALL_PY(Py_SetPythonHome)(python_home_static);  // requires a permanent buffer
     }
@@ -399,8 +424,13 @@ void PythonSupport::initialize(const QString &python_home)
     Python_ThreadBlock thread_block;
 
     init_numpy();
+}
 
-    m_main_module = CALL_PY(PyDict_GetItemString)(CALL_PY(PyImport_GetModuleDict)(), "__main__");
+void PythonSupport::deinitialize()
+{
+    CALL_PY(PyGILState_Ensure)();
+
+    CALL_PY(Py_Finalize)();
 }
 
 QObject *PythonSupport::UnwrapQObject(PyObject *py_obj)
@@ -664,11 +694,6 @@ void PythonSupport::addResourcePath(const QString &resources_path)
     Py_DECREF(py_filename);
     Py_DECREF(py_path);
     Py_DECREF(sys_module);
-}
-
-void PythonSupport::addGlobalPyObject(const QString &identifier, PyObject *object)
-{
-    CALL_PY(PyModule_AddObject)(m_main_module, identifier.toLatin1().data(), object);   // steals reference
 }
 
 void PythonSupport::addPyObjectToModuleFromQVariant(PyObject* module, const QString &identifier, const QVariant& object)

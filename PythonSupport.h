@@ -67,15 +67,15 @@ public:
 
     // only called once
     static void initInstance(const QString &python_home);
+    static void deinitInstance();
 
     static QString ensurePython(const QString &python_home);
 
     static void checkTarget(const QString &python_path);
 
     void initialize(const QString &python_home);
+    void deinitialize();
     void addResourcePath(const QString &resources_path);
-    void addGlobalQObjectWrapped(const QString &identifier, QObject *object);
-	void addGlobalPyObject(const QString &identifier, PyObject *object);
 	void addPyObjectToModuleFromQVariant(PyObject* module, const QString &identifier, const QVariant& object);
 	void addPyObjectToModule(PyObject* module, const QString &identifier, PyObject *object);
     QImage imageFromArray(PyObject *ndarray_py);
@@ -98,13 +98,10 @@ public:
     QObject *UnwrapQObject(PyObject *py_object);
 	static const char* qobject_capsule_name;
 private:
-    PythonSupport(void *dl); // ctor hidden
+    PythonSupport(const QString &python_home); // ctor hidden
     PythonSupport(PythonSupport const&); // copy ctor hidden
     PythonSupport& operator=(PythonSupport const&); // assign op. hidden
     ~PythonSupport(); // dtor hidden
-
-    // private vars
-    PyObject *m_main_module;
 
     // dynamics
     PyArg_ParseTupleFn dynamic_PyArg_ParseTuple;

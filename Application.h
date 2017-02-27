@@ -22,6 +22,7 @@ public:
     static Application *instance() { return static_cast<Application *>(QCoreApplication::instance()); }
 
     bool initialize();
+    void deinitialize();
 
     // useful for locating resources
     QString resourcesPath() const;

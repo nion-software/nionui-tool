@@ -57,6 +57,9 @@ def bootstrap_main(args):
     Main function explicitly called from the C++ code.
     Return the main application object.
     """
+    version_info = sys.version_info
+    if version_info.major != 3 or version_info.minor != 6:
+        return None, "python36"
     proxy = HostLibProxy(HostLib)
     module_name = "main"
     if len(args) > 2:
@@ -68,4 +71,4 @@ def bootstrap_main(args):
         else:
             sys.path.insert(0, path)
     module = importlib.import_module(module_name)
-    return getattr(module, "main")(args, {"proxy": proxy})
+    return getattr(module, "main")(args, {"proxy": proxy}), None

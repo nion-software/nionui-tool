@@ -5607,7 +5607,7 @@ PyObject* InitializeHostLibModule()
 bool Application::initialize()
 {
     m_python_home = PythonSupport::ensurePython(m_python_home);
-#if !defined(DEBUG) && !defined(Q_OS_LINUX)
+#if !defined(DEBUG)
     if (m_python_home.isEmpty() || !QFile(m_python_home).exists())
         return false;
 #endif
@@ -5618,21 +5618,48 @@ bool Application::initialize()
 
     PythonSupport::instance()->initialize(m_python_home);  // initialize Python support
 
-    Python_ThreadBlock thread_block;
+    QString bootstrap_error;
 
-    // Add the resources path so that the Python imports work. This is necessary to find bootstrap.py,
-    // which may not be in the same directory as the executable (specifically for Mac OS where things
-    // are arranged into a bundle).
-    PythonSupport::instance()->addResourcePath(resourcesPath());
+    {
+        Python_ThreadBlock thread_block;
 
-    // Bootstrap the python stuff.
-    PyObject *module = PythonSupport::instance()->import("bootstrap");
-    PythonSupport::instance()->printAndClearErrors();
-	m_bootstrap_module = PyObjectToQVariant(module); // new reference
-    PythonSupport::instance()->printAndClearErrors();
-    m_py_application = invokePyMethod(m_bootstrap_module, "bootstrap_main", QVariantList() << arguments());
+        // Add the resources path so that the Python imports work. This is necessary to find bootstrap.py,
+        // which may not be in the same directory as the executable (specifically for Mac OS where things
+        // are arranged into a bundle).
+        PythonSupport::instance()->addResourcePath(resourcesPath());
 
-    return invokePyMethod(m_py_application, "start", QVariantList()).toBool();
+        // Bootstrap the python stuff.
+        PyObject *module = PythonSupport::instance()->import("bootstrap");
+        PythonSupport::instance()->printAndClearErrors();
+        m_bootstrap_module = PyObjectToQVariant(module); // new reference
+        PythonSupport::instance()->printAndClearErrors();
+        QVariant bootstrap_result = invokePyMethod(m_bootstrap_module, "bootstrap_main", QVariantList() << arguments());
+        m_py_application = bootstrap_result.toList()[0];
+        bootstrap_error = bootstrap_result.toList()[1].toString();
+
+        if (!m_py_application.isNull())
+            return invokePyMethod(m_py_application, "start", QVariantList()).toBool();
+    }
+
+    if (bootstrap_error == "python36")
+    {
+        QDir dir(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
+        QString data_location = dir.absolutePath();
+        QString config_file_path = QDir(data_location).absoluteFilePath("PythonConfig.ini");
+        QMessageBox::critical(nullptr, "Unable to Launch", "Unable to launch Python application (requires Python 3.6).\n\n" + m_python_home + "\n\nCheck the Python path passed on the command line or shortcut; or try removing the file at\n\n" + config_file_path);
+    }
+
+//    deinitialize();  // not functional yet (numpy and importlib both cause failures).
+
+    return false;
+}
+
+void Application::deinitialize()
+{
+    m_bootstrap_module.clear();
+    m_py_application.clear();
+    PythonSupport::instance()->deinitialize();
+    PythonSupport::deinitInstance();
 }
 
 void Application::continueQuit()
