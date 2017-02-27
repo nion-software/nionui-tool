@@ -6,6 +6,8 @@ import sys
 path = sys.argv[1] # NionUILauncher.app/Contents/Frameworks
 for directory_name, sub_directories, file_list in os.walk(path):
     for file_name in file_list:
+        if file_name == "Info.plist":
+            continue
         file_path = os.path.join(directory_name, file_name)
         try:
             result = subprocess.check_output(['otool', '-L', file_path]).decode('utf-8')
