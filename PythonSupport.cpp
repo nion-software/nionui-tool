@@ -406,7 +406,7 @@ void PythonSupport::initialize(const QString &python_home)
 #else
     if (!python_home.isEmpty())
     {
-        bzero(&python_home_static[0], sizeof(python_home_static));
+        memset(&python_home_static[0], 0, sizeof(python_home_static));
         python_home.toWCharArray(python_home_static);
         CALL_PY(Py_SetPythonHome)(python_home_static);  // requires a permanent buffer
     }
