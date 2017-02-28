@@ -115,6 +115,13 @@ void DocumentWindow::resizeEvent(QResizeEvent *event)
     application()->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << event->size().width() << event->size().height());
 }
 
+void DocumentWindow::moveEvent(QMoveEvent *event)
+{
+    QMainWindow::moveEvent(event);
+
+    application()->dispatchPyMethod(m_py_object, "positionChanged", QVariantList() << event->pos().x() << event->pos().y());
+}
+
 void DocumentWindow::changeEvent(QEvent *event)
 {
     QMainWindow::changeEvent(event);

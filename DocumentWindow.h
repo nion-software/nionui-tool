@@ -55,6 +55,7 @@ protected:
     virtual void showEvent(QShowEvent *show_event) override;
     virtual void changeEvent(QEvent * event) override;
     virtual void resizeEvent(QResizeEvent *event) override;
+    virtual void moveEvent(QMoveEvent *event) override;
 
 private Q_SLOTS:
     void periodic();
