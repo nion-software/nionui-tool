@@ -1681,6 +1681,30 @@ static PyObject *DocumentWindow_restore(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *DocumentWindow_save(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
+    if (document_window == NULL)
+        return NULL;
+
+    // state, then geometry, otherwise the size isn't handled right. ugh.
+
+    QString geometry = QString(document_window->saveGeometry().toHex().data());
+    QString state = QString(document_window->saveState().toHex().data());
+
+    return PythonSupport::instance()->build()("ss", geometry.toUtf8().data(), state.toUtf8().data());
+}
+
 static PyObject *DocumentWindow_setCentralWidget(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5437,6 +5461,7 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_insertMenu", DocumentWindow_insertMenu, METH_VARARGS, "DocumentWindow_insertMenu."},
     {"DocumentWindow_removeDockWidget", DocumentWindow_removeDockWidget, METH_VARARGS, "DocumentWindow_removeDockWidget."},
     {"DocumentWindow_restore", DocumentWindow_restore, METH_VARARGS, "DocumentWindow_restore."},
+    {"DocumentWindow_save", DocumentWindow_save, METH_VARARGS, "DocumentWindow_save."},
     {"DocumentWindow_setCentralWidget", DocumentWindow_setCentralWidget, METH_VARARGS, "DocumentWindow_setCentralWidget."},
     {"DocumentWindow_setPosition", DocumentWindow_setPosition, METH_VARARGS, "DocumentWindow_setPosition."},
     {"DocumentWindow_setSize", DocumentWindow_setSize, METH_VARARGS, "DocumentWindow_setSize."},
