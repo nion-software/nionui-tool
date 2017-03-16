@@ -1106,6 +1106,8 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
                     font.setCapitalization(QFont::SmallCaps);
                 if (font_part == "bold")
                     font.setWeight(QFont::Bold);
+                if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toInt() > 0)
+                    font.setPointSizeF(font_part.left(font_part.length() - 2).toFloat());
                 if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toInt() > 0)
                     font.setPixelSize(font_part.left(font_part.length() - 2).toInt());
                 family = font_part;
@@ -1679,6 +1681,8 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
                     font.setCapitalization(QFont::SmallCaps);
                 if (font_part == "bold")
                     font.setWeight(QFont::Bold);
+                if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toInt() > 0)
+                    font.setPointSizeF(font_part.left(font_part.length() - 2).toFloat());
                 if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toInt() > 0)
                     font.setPixelSize(font_part.left(font_part.length() - 2).toInt());
                 family = font_part;

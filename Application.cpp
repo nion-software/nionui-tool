@@ -1135,6 +1135,8 @@ static PyObject *Core_getFontMetrics(PyObject * /*self*/, PyObject *args)
             font.setCapitalization(QFont::SmallCaps);
         if (font_part == "bold")
             font.setWeight(QFont::Bold);
+        if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toInt() > 0)
+            font.setPointSizeF(font_part.left(font_part.length() - 2).toFloat());
         if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toInt() > 0)
             font.setPixelSize(font_part.left(font_part.length() - 2).toInt());
         family = font_part;
