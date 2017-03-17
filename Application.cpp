@@ -1484,6 +1484,35 @@ static PyObject *DocumentWindow_create(PyObject * /*self*/, PyObject *args)
     return WrapQObject(document_window);
 }
 
+static PyObject *DocumentWindow_getDisplayScaling(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
+    if (document_window == NULL)
+        return NULL;
+
+    //QTextStream cout(stdout);
+    //cout << document_window->colorCount()
+    //    << "," << document_window->depth()
+    //    << "," << document_window->devicePixelRatio()
+    //    << "," << document_window->devicePixelRatioF()
+    //    << "," << document_window->width()
+    //    << "," << document_window->height()
+    //    << "," << document_window->logicalDpiX()
+    //    << "," << document_window->logicalDpiY()
+    //    << "," << document_window->physicalDpiX()
+    //    << "," << document_window->physicalDpiY();
+
+#ifdef Q_OS_MAC
+    return PythonSupport::instance()->build()("f", document_window->logicalDpiY() / 72.0);
+#else
+    return PythonSupport::instance()->build()("f", document_window->logicalDpiY() / 96.0);
+#endif
+}
+
 static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
 {
     // simple wrapper for the QtFile dialogs. This way plugins can
@@ -5463,6 +5492,7 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_close", DocumentWindow_close, METH_VARARGS, "DocumentWindow_close."},
     {"DocumentWindow_connect", DocumentWindow_connect, METH_VARARGS, "DocumentWindow_connect."},
     {"DocumentWindow_create", DocumentWindow_create, METH_VARARGS, "DocumentWindow_create."},
+    {"DocumentWindow_getDisplayScaling", DocumentWindow_getDisplayScaling, METH_VARARGS, "DocumentWindow_getDisplayScaling."},
     {"DocumentWindow_getFilePath", DocumentWindow_getFilePath, METH_VARARGS, "DocumentWindow_getFilePath."},
     {"DocumentWindow_getScreenSize", DocumentWindow_getScreenSize, METH_VARARGS, "DocumentWindow_getScreenSize."},
     {"DocumentWindow_insertMenu", DocumentWindow_insertMenu, METH_VARARGS, "DocumentWindow_insertMenu."},
