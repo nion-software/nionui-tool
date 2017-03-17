@@ -1687,6 +1687,7 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
                     font.setPixelSize(font_part.left(font_part.length() - 2).toInt());
                 family = font_part;
             }
+            font.setStyleStrategy(QFont::PreferAntialias);
             font.setFamily(family);
             text_font = font;
         }
@@ -1820,7 +1821,7 @@ void PyCanvas::render()
 
     QPainter painter(&image);
 
-    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
 
     QList<CanvasDrawingCommand> commands;
 
