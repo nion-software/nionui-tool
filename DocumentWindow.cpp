@@ -261,7 +261,7 @@ void PySlider::valueChanged(int value)
     if (m_py_object.isValid())
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "value_changed", QVariantList() << value);
+        app->dispatchPyMethod(m_py_object, "valueChanged", QVariantList() << value);
     }
 }
 
@@ -270,7 +270,7 @@ void PySlider::sliderPressed()
     if (m_py_object.isValid())
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "slider_pressed", QVariantList());
+        app->dispatchPyMethod(m_py_object, "sliderPressed", QVariantList());
     }
 }
 
@@ -279,7 +279,7 @@ void PySlider::sliderReleased()
     if (m_py_object.isValid())
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "slider_released", QVariantList());
+        app->dispatchPyMethod(m_py_object, "sliderReleased", QVariantList());
     }
 }
 
@@ -288,7 +288,7 @@ void PySlider::sliderMoved(int value)
     if (m_py_object.isValid())
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "slider_moved", QVariantList() << value);
+        app->dispatchPyMethod(m_py_object, "sliderMoved", QVariantList() << value);
     }
 }
 
@@ -303,7 +303,7 @@ void PyLineEdit::editingFinished()
     if (m_py_object.isValid())
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "editing_finished", QVariantList() << text());
+        app->dispatchPyMethod(m_py_object, "editingFinished", QVariantList() << text());
     }
 }
 
@@ -312,7 +312,7 @@ void PyLineEdit::textEdited(const QString &text)
     if (m_py_object.isValid())
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "text_edited", QVariantList() << text);
+        app->dispatchPyMethod(m_py_object, "textEdited", QVariantList() << text);
     }
 }
 
