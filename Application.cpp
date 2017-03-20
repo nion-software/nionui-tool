@@ -5404,6 +5404,21 @@ static PyObject *Widget_widgetByIndex(PyObject * /*self*/, PyObject *args)
     return WrapQObject(widget);
 }
 
+static PyObject *Widget_widgetCount(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    int index = -1;
+    if (!PythonSupport::instance()->parse()(args, "Oi", &obj0, &index))
+        return NULL;
+
+    // Grab the container
+    QWidget *container = Unwrap<QWidget>(obj0);
+    if (container == NULL)
+        return NULL;
+
+    return PythonSupport::instance()->build()("i", container->layout()->count());
+}
+
 //----
 
 void Application::output(const QString &str)
@@ -5644,6 +5659,7 @@ static PyMethodDef Methods[] = {
     {"Widget_show", Widget_show, METH_VARARGS, "Widget_show."},
     {"Widget_ungrabGesture", Widget_ungrabGesture, METH_VARARGS, "Widget_ungrabGesture."},
     {"Widget_widgetByIndex", Widget_widgetByIndex, METH_VARARGS, "Widget_widgetByIndex."},
+    {"Widget_widgetCount", Widget_widgetCount, METH_VARARGS, "Widget_widgetCount."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
