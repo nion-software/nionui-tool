@@ -49,7 +49,7 @@ class HostLibProxy:
 
     def decode_font_metrics(self, font_metrics):
         from nion.ui import UserInterface
-        return UserInterface.QtFontMetrics(width=font_metrics[0], height=font_metrics[1], ascent=font_metrics[2], descent=font_metrics[3], leading=font_metrics[4])
+        return UserInterface.FontMetrics(width=font_metrics[0], height=font_metrics[1], ascent=font_metrics[2], descent=font_metrics[3], leading=font_metrics[4])
 
 
 def bootstrap_main(args):
