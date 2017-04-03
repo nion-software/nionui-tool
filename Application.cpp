@@ -1156,7 +1156,7 @@ QFont ParseFontString(const QString &font_string)
     for (int i = 0; i < family_str.size(); i++)
     {
         QChar current = family_str.at(i);
-        if (quote == 0)
+        if (quote.unicode() == 0)
         {
             if (current == ',')
             {
