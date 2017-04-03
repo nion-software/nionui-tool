@@ -20,6 +20,7 @@
 #include <QtCore/QTimer>
 
 #include <QtGui/QClipboard>
+#include <QtGui/QFontDatabase>
 #include <QtGui/QImageReader>
 #include <QtGui/QImageWriter>
 #include <QtGui/QPainter>
@@ -1114,6 +1115,100 @@ static PyObject *ComboBox_setCurrentText(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+QFont ParseFontString(const QString &font_string)
+{
+    QFont font;
+    QStringList family_parts;
+    bool is_family = false;
+    Q_FOREACH(const QString &font_part, font_string.simplified().split(" "))
+    {
+        if (!is_family)
+        {
+            if (font_part == "italic")
+                font.setStyle(QFont::StyleItalic);
+            else if (font_part == "normal")
+                ;
+            else if (font_part == "oblique")
+                font.setStyle(QFont::StyleOblique);
+            else if (font_part == "small-caps")
+                font.setCapitalization(QFont::SmallCaps);
+            else if (font_part == "bold")
+                font.setWeight(QFont::Bold);
+            else if (font_part == "medium")
+                font.setWeight(QFont::Medium);
+            else if (font_part == "system")
+                font.setStyleHint(QFont::System);
+            else if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toInt() > 0)
+                font.setPointSizeF(font_part.left(font_part.length() - 2).toFloat());
+            else if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toInt() > 0)
+                font.setPixelSize(font_part.left(font_part.length() - 2).toInt());
+            else
+                is_family = true;
+        }
+        if (is_family)
+            family_parts << font_part;
+    }
+
+    QStringList family_list;
+    QString family_str = family_parts.join(" ");
+    QChar quote = 0;
+    QString family;
+    for (int i = 0; i < family_str.size(); i++)
+    {
+        QChar current = family_str.at(i);
+        if (quote == 0)
+        {
+            if (current == ',')
+            {
+                family_list << family.simplified();
+                family.clear();
+            }
+            else if (current == '\'' || current == '\"')
+            {
+                quote = current;
+            }
+            else
+            {
+                family += current;
+            }
+        }
+        else
+        {
+            if (current == quote)
+            {
+                quote = 0;
+            }
+            else
+            {
+                family += current;
+            }
+        }
+    }
+    family_list << family.simplified();
+
+    QStringList families = QFontDatabase().families();
+    Q_FOREACH(const QString &family, family_list)
+    {
+        if (families.contains(family, Qt::CaseInsensitive))
+        {
+            font.setFamily(family);
+            break;
+        }
+        else if (family.compare("serif", Qt::CaseInsensitive))
+        {
+            font.setStyleHint(QFont::Serif);
+        }
+        else if (family.compare("sans-serif", Qt::CaseInsensitive))
+        {
+            font.setStyleHint(QFont::SansSerif);
+        }
+    }
+
+    font.setStyleStrategy(QFont::PreferAntialias);
+
+    return font;
+}
+
 static PyObject *Core_getFontMetrics(PyObject * /*self*/, PyObject *args)
 {
     char *font_c = NULL;
@@ -1123,30 +1218,7 @@ static PyObject *Core_getFontMetrics(PyObject * /*self*/, PyObject *args)
 
     QString text = (text_c != NULL) ? text_c : QString();
 
-    QFont font;
-    QString family;
-    Q_FOREACH(const QString &font_part, QString(font_c).simplified().split(" "))
-    {
-        if (font_part == "italic")
-            font.setStyle(QFont::StyleItalic);
-        if (font_part == "oblique")
-            font.setStyle(QFont::StyleOblique);
-        if (font_part == "small-caps")
-            font.setCapitalization(QFont::SmallCaps);
-        if (font_part == "bold")
-            font.setWeight(QFont::Bold);
-        if (font_part == "medium")
-            font.setWeight(QFont::Medium);
-        if (font_part == "system")
-            font.setStyleHint(QFont::System);
-        if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toInt() > 0)
-            font.setPointSizeF(font_part.left(font_part.length() - 2).toFloat());
-        if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toInt() > 0)
-            font.setPixelSize(font_part.left(font_part.length() - 2).toInt());
-        font.setFamily(family);
-    }
-
-    font.setStyleStrategy(QFont::PreferAntialias);
+    QFont font = ParseFontString(font_c);
 
     QFontMetrics font_metrics(font);
 

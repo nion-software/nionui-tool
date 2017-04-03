@@ -53,6 +53,8 @@
 
 Q_DECLARE_METATYPE(std::string)
 
+QFont ParseFontString(const QString &font_string);
+
 DocumentWindow::DocumentWindow(const QString &title, QWidget *parent)
     : QMainWindow(parent)
     , m_closed(false)
@@ -1094,26 +1096,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         }
         else if (cmd == "font")
         {
-            QFont font;
-            QString family;
-            Q_FOREACH(const QString &font_part, args[0].toString().simplified().split(" "))
-            {
-                if (font_part == "italic")
-                    font.setStyle(QFont::StyleItalic);
-                if (font_part == "oblique")
-                    font.setStyle(QFont::StyleOblique);
-                if (font_part == "small-caps")
-                    font.setCapitalization(QFont::SmallCaps);
-                if (font_part == "bold")
-                    font.setWeight(QFont::Bold);
-                if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toInt() > 0)
-                    font.setPointSizeF(font_part.left(font_part.length() - 2).toFloat());
-                if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toInt() > 0)
-                    font.setPixelSize(font_part.left(font_part.length() - 2).toInt());
-                family = font_part;
-            }
-            font.setFamily(family);
-            text_font = font;
+            text_font = ParseFontString(args[0].toString());
         }
         else if (cmd == "textAlign")
         {
@@ -1668,28 +1651,8 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
         }
         else if (cmd == 0x666f6e74) // font
         {
-            QFont font;
-            QString family;
             QString font_str = read_string(commands, command_index);
-            Q_FOREACH(const QString &font_part, font_str.simplified().split(" "))
-            {
-                if (font_part == "italic")
-                    font.setStyle(QFont::StyleItalic);
-                if (font_part == "oblique")
-                    font.setStyle(QFont::StyleOblique);
-                if (font_part == "small-caps")
-                    font.setCapitalization(QFont::SmallCaps);
-                if (font_part == "bold")
-                    font.setWeight(QFont::Bold);
-                if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toInt() > 0)
-                    font.setPointSizeF(font_part.left(font_part.length() - 2).toFloat());
-                if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toInt() > 0)
-                    font.setPixelSize(font_part.left(font_part.length() - 2).toInt());
-                family = font_part;
-            }
-            font.setStyleStrategy(QFont::PreferAntialias);
-            font.setFamily(family);
-            text_font = font;
+            text_font = ParseFontString(font_str);
         }
         else if (cmd == 0x616c676e) // algn, text align
         {
