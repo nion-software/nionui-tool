@@ -1134,8 +1134,10 @@ QFont ParseFontString(const QString &font_string)
                 font.setCapitalization(QFont::SmallCaps);
             else if (font_part == "bold")
                 font.setWeight(QFont::Bold);
+#if QT_VERSION >= 0x050500
             else if (font_part == "medium")
                 font.setWeight(QFont::Medium);
+#endif
             else if (font_part == "system")
                 font.setStyleHint(QFont::System);
             else if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toInt() > 0)
