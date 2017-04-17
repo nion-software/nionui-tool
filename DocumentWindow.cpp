@@ -620,7 +620,7 @@ PyCanvas::PyCanvas()
 
     m_thread = new PyCanvasRenderThread(this, m_render_request, m_render_request_mutex);
 
-    connect(m_thread, SIGNAL(renderingReady()), this, SLOT(renderingFinished()));
+    connect(m_thread, SIGNAL(renderingReady()), this, SLOT(repaint()));
 
     m_thread->start();
 }
