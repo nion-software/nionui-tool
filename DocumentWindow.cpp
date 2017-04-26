@@ -1882,7 +1882,11 @@ void PyCanvas::paintEvent(QPaintEvent *event)
     {
         painter.save();
         painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
+#if QT_VERSION >= 0x050800
         QString text = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
+#else
+        QString text = QDateTime::currentDateTime().toString(Qt::ISODate);
+#endif
         QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
         QFontMetrics fm(text_font);
         int text_width = fm.width(text);
