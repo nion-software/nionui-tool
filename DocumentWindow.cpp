@@ -18,6 +18,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
 
+#include <QtGui/QFontDatabase>
 #include <QtGui/QPainter>
 
 #include <QtSvg/QSvgWidget>
@@ -614,6 +615,7 @@ PyCanvas::PyCanvas()
     : m_thread(NULL)
     , m_pressed(false)
     , m_grab_mouse_count(0)
+    , m_rendered_timestamp(false)
 {
     setMouseTracking(true);
     setAcceptDrops(true);
@@ -1189,6 +1191,9 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         {
             qDebug() << args[0].toString();
         }
+        else if (cmd == "timestamp")
+        {
+        }
         else if (cmd == "begin_layer")
         {
         }
@@ -1241,8 +1246,10 @@ inline QString read_string(const quint32 *commands, int &command_index)
     return str;
 }
 
-void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_v, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache)
+bool PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_v, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache)
 {
+    bool rendered_timestamp = false;
+
     QPainterPath path;
 
     if (image_cache)
@@ -1402,7 +1409,7 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
             {
                 // just draw a line
                 path.lineTo(p1.x(), p1.y());
-                return;
+//                return;
             }
 
             QPointF p1p0 = p0 - p1;
@@ -1414,7 +1421,7 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
             // all points on a line logic
             if (cos_phi == -1) {
                 path.lineTo(p1.x(), p1.y());
-                return;
+//                return;
             }
             if (cos_phi == 1) {
                 // add infinite far away point
@@ -1422,7 +1429,7 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
                 double factor_max = max_length / p1p0_length;
                 QPointF ep((p0.x() + factor_max * p1p0.x()), (p0.y() + factor_max * p1p0.y()));
                 path.lineTo(ep.x(), ep.y());
-                return;
+//                return;
             }
 
             float tangent = radius / tan(acos(cos_phi) / 2);
@@ -1759,6 +1766,25 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
         {
             qDebug() << read_string(commands, command_index);
         }
+        else if (cmd == 0x74696d65) // time, message
+        {
+            painter.save();
+            QString text = read_string(commands, command_index);
+            QPointF text_pos(12, 12);
+            QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+            QFontMetrics fm(text_font);
+            int text_width = fm.width(text);
+            int text_ascent = fm.ascent();
+            int text_height = fm.height();
+            QPainterPath background;
+            background.addRect(text_pos.x() - 4, text_pos.y() - 4, text_width + 8, text_height + 8);
+            painter.fillPath(background, Qt::white);
+            QPainterPath path;
+            path.addText(text_pos.x(), text_pos.y() + text_ascent, text_font, text);
+            painter.fillPath(path, Qt::black);
+            painter.restore();
+            rendered_timestamp = true;
+        }
 
         // qint64 end = qint64(timer.nsecsElapsed() / 1.0E3);
         // if (end - start > 50)
@@ -1775,6 +1801,8 @@ void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
             }
         }
     }
+
+    return rendered_timestamp;
 }
 
 void PyCanvas::render()
@@ -1800,7 +1828,7 @@ void PyCanvas::render()
 
     //QDateTime start = QDateTime::currentDateTime();
 
-    PaintBinaryCommands(painter, commands_binary, imageMap, &m_image_cache);
+    bool rendered_timestamp = PaintBinaryCommands(painter, commands_binary, imageMap, &m_image_cache);
 
     PaintCommands(painter, commands, &m_image_cache);
 #if 0
@@ -1827,6 +1855,7 @@ void PyCanvas::render()
     {
         QMutexLocker locker(&m_rendered_image_mutex);
         m_rendered_image = image;
+        m_rendered_timestamp = rendered_timestamp;
     }
 }
 
@@ -1839,13 +1868,35 @@ void PyCanvas::paintEvent(QPaintEvent *event)
     painter.begin(this);
 
     QImage image;
+    bool rendered_timestamp;
 
     {
         QMutexLocker locker(&m_rendered_image_mutex);
         image = m_rendered_image;
+        rendered_timestamp = m_rendered_timestamp;
     }
 
     painter.drawImage(QPointF(0, 0), image);
+
+    if (rendered_timestamp)
+    {
+        painter.save();
+        painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
+        QString text = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
+        QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+        QFontMetrics fm(text_font);
+        int text_width = fm.width(text);
+        int text_ascent = fm.ascent();
+        int text_height = fm.height();
+        QPointF text_pos(100, 100);
+        QPainterPath background;
+        background.addRect(text_pos.x() - 4, text_pos.y() - 4, text_width + 8, text_height + 8);
+        painter.fillPath(background, Qt::white);
+        QPainterPath path;
+        path.addText(text_pos.x(), text_pos.y() + text_ascent, text_font, text);
+        painter.fillPath(path, Qt::black);
+        painter.restore();
+    }
 
     painter.end();
 }

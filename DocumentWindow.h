@@ -294,7 +294,7 @@ private:
 
 void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &commands, PaintImageCache *image_cache = NULL);
 
-void PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache);
+bool PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache);
 
 class PyStyledItemDelegate : public QStyledItemDelegate
 {
@@ -607,6 +607,7 @@ private:
     PyCanvasRenderThread *m_thread;
     QMutex m_rendered_image_mutex;
     QImage m_rendered_image;
+    bool m_rendered_timestamp;
     QWaitCondition m_render_request;
     QMutex m_render_request_mutex;
     QMutex m_commands_mutex;
