@@ -542,6 +542,7 @@ public:
     PyCanvasRenderThread(PyCanvas *canvas, QWaitCondition &render_request, QMutex &render_request_mutex);
 
     void cancel() { m_cancel = true; }
+    void needsRender() { m_needs_render = true; }
 
 Q_SIGNALS:
     void renderingReady();
@@ -554,6 +555,7 @@ private:
     QWaitCondition &m_render_request;
     QMutex &m_render_request_mutex;
     bool m_cancel;
+    bool m_needs_render;
 };
 
 class PyCanvas : public QWidget

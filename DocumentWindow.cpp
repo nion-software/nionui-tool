@@ -602,8 +602,9 @@ void PyCanvasRenderThread::run()
         m_render_request.wait(&m_render_request_mutex);
         m_render_request_mutex.unlock();
 
-        if (!m_cancel)
+        while (m_needs_render && !m_cancel)
         {
+            m_needs_render = false;
             m_canvas->render();
             Q_EMIT renderingReady();
         }
@@ -2124,6 +2125,7 @@ void PyCanvas::setCommands(const QList<CanvasDrawingCommand> &commands)
     }
 
     m_render_request_mutex.lock();
+    m_thread->needsRender();
     m_render_request.wakeAll();
     m_render_request_mutex.unlock();
 }
@@ -2137,6 +2139,7 @@ void PyCanvas::setBinaryCommands(const std::vector<quint32> &commands, const QMa
     }
 
     m_render_request_mutex.lock();
+    m_thread->needsRender();
     m_render_request.wakeAll();
     m_render_request_mutex.unlock();
 }
