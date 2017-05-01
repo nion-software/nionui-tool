@@ -5261,7 +5261,16 @@ static PyObject *Widget_removeWidget(PyObject * /*self*/, PyObject *args)
     if (widget == NULL)
         return NULL;
 
-    delete widget;
+    // deleting a some items (canvas) requires a render thread to finish.
+    // but the render thread may need the GIL to finish. so release
+    // the GIL here until the render thread finishes and this object
+    // has been deleted.
+
+    {
+        Python_ThreadAllow thread_allow;
+        
+        delete widget;
+    }
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
