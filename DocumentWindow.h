@@ -88,6 +88,9 @@ public:
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
 
+    virtual void focusInEvent(QFocusEvent *event) override;
+    virtual void focusOutEvent(QFocusEvent *event) override;
+
 protected:
     virtual void resizeEvent(QResizeEvent *event) override;
 
@@ -496,6 +499,9 @@ public:
 
     virtual void resizeEvent(QResizeEvent *event) override;
     virtual bool eventFilter(QObject *obj, QEvent *event) override;
+
+    virtual void focusInEvent(QFocusEvent *event) override;
+    virtual void focusOutEvent(QFocusEvent *event) override;
 
 public Q_SLOTS:
     void scrollBarChanged(int value);

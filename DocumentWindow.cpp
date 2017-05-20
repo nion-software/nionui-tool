@@ -177,6 +177,32 @@ void DockWidget::resizeEvent(QResizeEvent *event)
     app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << event->size().width() << event->size().height());
 }
 
+void DockWidget::focusInEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        app->dispatchPyMethod(m_py_object, "focusIn", QVariantList());
+    }
+
+    QDockWidget::focusInEvent(event);
+}
+
+void DockWidget::focusOutEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        app->dispatchPyMethod(m_py_object, "focusOut", QVariantList());
+    }
+
+    QDockWidget::focusOutEvent(event);
+}
+
 PyPushButton::PyPushButton()
 {
     connect(this, SIGNAL(clicked()), this, SLOT(clicked()));
@@ -559,6 +585,32 @@ void PyScrollArea::scrollBarChanged(int value)
     Q_UNUSED(value)
 
     notifyViewportChanged();
+}
+
+void PyScrollArea::focusInEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        app->dispatchPyMethod(m_py_object, "focusIn", QVariantList());
+    }
+
+    QScrollArea::focusInEvent(event);
+}
+
+void PyScrollArea::focusOutEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        app->dispatchPyMethod(m_py_object, "focusOut", QVariantList());
+    }
+
+    QScrollArea::focusOutEvent(event);
 }
 
 void PyScrollArea::resizeEvent(QResizeEvent *event)

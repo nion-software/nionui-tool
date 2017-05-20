@@ -752,23 +752,6 @@ static PyObject *Canvas_setCursorShape(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
-static PyObject *Canvas_setFocusPolicy(PyObject * /*self*/, PyObject *args)
-{
-    PyObject *obj0 = NULL;
-    int policy;
-
-    if (!PythonSupport::instance()->parse()(args, "Oi", &obj0, &policy))
-        return NULL;
-
-    PyCanvas *canvas = Unwrap<PyCanvas>(obj0);
-    if (canvas == NULL)
-        return NULL;
-
-    canvas->setFocusPolicy((Qt::FocusPolicy)policy);
-
-    return PythonSupport::instance()->getNoneReturnValue();
-}
-
 static PyObject *CheckBox_connect(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5321,6 +5304,37 @@ static PyObject *Widget_setFocus(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *Widget_setFocusPolicy(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    char *policy_c = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Os", &obj0, &policy_c))
+        return NULL;
+
+    QWidget *widget = Unwrap<QWidget>(obj0);
+    if (widget == NULL)
+        return NULL;
+
+    QString policy_str(policy_c);
+
+    Qt::FocusPolicy focusPolicy;
+    if (policy_str.compare("tab_focus", Qt::CaseInsensitive) == 0)
+        focusPolicy = Qt::TabFocus;
+    else if (policy_str.compare("click_focus", Qt::CaseInsensitive) == 0)
+        focusPolicy = Qt::ClickFocus;
+    else if (policy_str.compare("strong_focus", Qt::CaseInsensitive) == 0)
+        focusPolicy = Qt::StrongFocus;
+    else if (policy_str.compare("wheel_focus", Qt::CaseInsensitive) == 0)
+        focusPolicy = Qt::WheelFocus;
+    else
+        focusPolicy = Qt::NoFocus;
+
+    widget->setFocusPolicy(focusPolicy);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *Widget_setToolTip(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5558,7 +5572,6 @@ static PyMethodDef Methods[] = {
     {"Canvas_grabMouse", Canvas_grabMouse, METH_VARARGS, "Canvas_grabMouse."},
     {"Canvas_releaseMouse", Canvas_releaseMouse, METH_VARARGS, "Canvas_releaseMouse."},
     {"Canvas_setCursorShape", Canvas_setCursorShape, METH_VARARGS, "Canvas_setCursorShape."},
-    {"Canvas_setFocusPolicy", Canvas_setFocusPolicy, METH_VARARGS, "Canvas_setFocusPolicy."},
     {"CheckBox_connect", CheckBox_connect, METH_VARARGS, "CheckBox_connect."},
     {"CheckBox_getCheckState", CheckBox_getCheckState, METH_VARARGS, "CheckBox_getCheckState."},
     {"CheckBox_getIsTristate", CheckBox_getIsTristate, METH_VARARGS, "CheckBox_getIsTristate."},
@@ -5735,6 +5748,7 @@ static PyMethodDef Methods[] = {
     {"Widget_removeWidget", Widget_removeWidget, METH_VARARGS, "Widget_removeWidget."},
     {"Widget_setEnabled", Widget_setEnabled, METH_VARARGS, "Widget_setEnabled."},
     {"Widget_setFocus", Widget_setFocus, METH_VARARGS, "Widget_setFocus."},
+    {"Widget_setFocusPolicy", Widget_setFocusPolicy, METH_VARARGS, "Widget_setFocusPolicy."},
     {"Widget_setToolTip", Widget_setToolTip, METH_VARARGS, "Widget_setToolTip."},
     {"Widget_setVisible", Widget_setVisible, METH_VARARGS, "Widget_setVisible."},
     {"Widget_setWidgetProperty", Widget_setWidgetProperty, METH_VARARGS, "Widget_setWidgetProperty."},
