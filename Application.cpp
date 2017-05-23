@@ -4977,6 +4977,33 @@ static PyObject *Widget_hide(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *Widget_getFocusPolicy(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    QWidget *widget = Unwrap<QWidget>(obj0);
+    if (widget == NULL)
+        return NULL;
+
+    QString policy_str;
+
+    if (widget->focusPolicy() == Qt::TabFocus)
+        policy_str = "tab_focus";
+    else if (widget->focusPolicy() == Qt::ClickFocus)
+        policy_str = "click_focus";
+    else if (widget->focusPolicy() == Qt::StrongFocus)
+        policy_str = "strong_focus";
+    else if (widget->focusPolicy() == Qt::WheelFocus)
+        policy_str = "wheel_focus";
+    else
+        policy_str = "no_focus";
+
+    return QVariantToPyObject(policy_str);
+}
+
 static PyObject *Widget_getWidgetProperty(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
@@ -5319,13 +5346,13 @@ static PyObject *Widget_setFocusPolicy(PyObject * /*self*/, PyObject *args)
     QString policy_str(policy_c);
 
     Qt::FocusPolicy focusPolicy;
-    if (policy_str.compare("tab_focus", Qt::CaseInsensitive) == 0)
+    if (policy_str.compare("tab_focus", Qt::CaseInsensitive) == 0) // 0001
         focusPolicy = Qt::TabFocus;
-    else if (policy_str.compare("click_focus", Qt::CaseInsensitive) == 0)
+    else if (policy_str.compare("click_focus", Qt::CaseInsensitive) == 0) // 0010
         focusPolicy = Qt::ClickFocus;
-    else if (policy_str.compare("strong_focus", Qt::CaseInsensitive) == 0)
+    else if (policy_str.compare("strong_focus", Qt::CaseInsensitive) == 0) // 1011
         focusPolicy = Qt::StrongFocus;
-    else if (policy_str.compare("wheel_focus", Qt::CaseInsensitive) == 0)
+    else if (policy_str.compare("wheel_focus", Qt::CaseInsensitive) == 0) // 1111
         focusPolicy = Qt::WheelFocus;
     else
         focusPolicy = Qt::NoFocus;
@@ -5734,6 +5761,7 @@ static PyMethodDef Methods[] = {
     {"Widget_addWidget", Widget_addWidget, METH_VARARGS, "Widget_addWidget."},
     {"Widget_adjustSize", Widget_adjustSize, METH_VARARGS, "Widget_adjustSize."},
     {"Widget_clearFocus", Widget_clearFocus, METH_VARARGS, "Widget_clearFocus."},
+    {"Widget_getFocusPolicy", Widget_getFocusPolicy , METH_VARARGS, "Widget_getFocusPolicy."},
     {"Widget_getWidgetProperty", Widget_getWidgetProperty, METH_VARARGS, "Widget_getWidgetProperty."},
     {"Widget_getWidgetSize", Widget_getWidgetSize, METH_VARARGS, "Widget_getWidgetSize."},
     {"Widget_grabGesture", Widget_grabGesture, METH_VARARGS, "Widget_grabGesture."},
