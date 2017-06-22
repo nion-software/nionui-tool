@@ -6,6 +6,7 @@
 #define DOCUMENT_WINDOW_H
 
 #include <QtCore/QAbstractListModel>
+#include <QtCore/QDateTime>
 #include <QtCore/QMutex>
 #include <QtCore/QThread>
 #include <QtCore/QWaitCondition>
@@ -297,7 +298,11 @@ private:
 
 void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &commands, PaintImageCache *image_cache = NULL);
 
-bool PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache);
+typedef QPair<QTransform, QDateTime> RenderedTimeStamp;
+
+typedef QList<RenderedTimeStamp> RenderedTimeStamps;
+
+RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache);
 
 class PyStyledItemDelegate : public QStyledItemDelegate
 {
@@ -615,7 +620,7 @@ private:
     PyCanvasRenderThread *m_thread;
     QMutex m_rendered_image_mutex;
     QImage m_rendered_image;
-    bool m_rendered_timestamp;
+    RenderedTimeStamps m_rendered_timestamps;
     QWaitCondition m_render_request;
     QMutex m_render_request_mutex;
     QMutex m_commands_mutex;

@@ -668,7 +668,6 @@ PyCanvas::PyCanvas()
     : m_thread(NULL)
     , m_pressed(false)
     , m_grab_mouse_count(0)
-    , m_rendered_timestamp(false)
 {
     setMouseTracking(true);
     setAcceptDrops(true);
@@ -1299,9 +1298,9 @@ inline QString read_string(const quint32 *commands, int &command_index)
     return str;
 }
 
-bool PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_v, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache)
+RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_v, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache)
 {
-    bool rendered_timestamp = false;
+    RenderedTimeStamps rendered_timestamps;
 
     QPainterPath path;
 
@@ -1823,6 +1822,8 @@ bool PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
         {
             painter.save();
             QString text = read_string(commands, command_index);
+            QDateTime date_time = QDateTime::fromString(text, Qt::ISODateWithMs);
+            date_time.setTimeSpec(Qt::UTC);
             QPointF text_pos(12, 12);
             QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
             QFontMetrics fm(text_font);
@@ -1836,7 +1837,7 @@ bool PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
             path.addText(text_pos.x(), text_pos.y() + text_ascent, text_font, text);
             painter.fillPath(path, Qt::black);
             painter.restore();
-            rendered_timestamp = true;
+            rendered_timestamps.append(RenderedTimeStamp(painter.worldTransform(), date_time));
         }
 
         // qint64 end = qint64(timer.nsecsElapsed() / 1.0E3);
@@ -1855,7 +1856,7 @@ bool PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_
         }
     }
 
-    return rendered_timestamp;
+    return rendered_timestamps;
 }
 
 void PyCanvas::render()
@@ -1881,7 +1882,7 @@ void PyCanvas::render()
 
     //QDateTime start = QDateTime::currentDateTime();
 
-    bool rendered_timestamp = PaintBinaryCommands(painter, commands_binary, imageMap, &m_image_cache);
+    RenderedTimeStamps rendered_timestamps = PaintBinaryCommands(painter, commands_binary, imageMap, &m_image_cache);
 
     PaintCommands(painter, commands, &m_image_cache);
 #if 0
@@ -1908,7 +1909,7 @@ void PyCanvas::render()
     {
         QMutexLocker locker(&m_rendered_image_mutex);
         m_rendered_image = image;
-        m_rendered_timestamp = rendered_timestamp;
+        m_rendered_timestamps = rendered_timestamps;
     }
 }
 
@@ -1921,31 +1922,32 @@ void PyCanvas::paintEvent(QPaintEvent *event)
     painter.begin(this);
 
     QImage image;
-    bool rendered_timestamp;
+    RenderedTimeStamps rendered_timestamps;
 
     {
         QMutexLocker locker(&m_rendered_image_mutex);
         image = m_rendered_image;
-        rendered_timestamp = m_rendered_timestamp;
+        rendered_timestamps = m_rendered_timestamps;
     }
 
     painter.drawImage(QPointF(0, 0), image);
 
-    if (rendered_timestamp)
+    Q_FOREACH(const RenderedTimeStamp &rendered_timestamp, rendered_timestamps)
     {
         painter.save();
         painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
-#if QT_VERSION >= 0x050800
-        QString text = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
-#else
-        QString text = QDateTime::currentDateTime().toString(Qt::ISODate);
-#endif
+        QDateTime utc = QDateTime::currentDateTimeUtc();
+        QDateTime dt = rendered_timestamp.second;
+        qint64 millisecondsDiff = dt.msecsTo(utc);
+        QString text = "Latency " + QString::number(millisecondsDiff);
         QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
         QFontMetrics fm(text_font);
         int text_width = fm.width(text);
         int text_ascent = fm.ascent();
         int text_height = fm.height();
-        QPointF text_pos(100, 100);
+        QPointF text_pos(12, 12 + text_height + 16);
+        QTransform world_transform = rendered_timestamp.first;
+        painter.setWorldTransform(world_transform);
         QPainterPath background;
         background.addRect(text_pos.x() - 4, text_pos.y() - 4, text_width + 8, text_height + 8);
         painter.fillPath(background, Qt::white);
