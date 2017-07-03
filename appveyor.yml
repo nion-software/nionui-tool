@@ -1,17 +1,25 @@
 version: '#{build}'
 platform: x64
 configuration: Release
+
 environment:
   QT_BASE_X64: C:\Qt\5.9\msvc2015_64
   PYTHON3_BASE_X64: C:\Miniconda36-x64
+
 install:
 - cmd: C:\Miniconda36-x64\Scripts\conda install numpy=1.12 -y
+
 build:
   project: NionUILauncher.vcxproj
   verbosity: minimal
+
+after_build:
+  - ps: Get-ChildItem -Include *.pdb -Recurse | foreach { $_.Delete() }
+
 artifacts:
 - path: x64\Release\
   name: NionUILauncher-Windows
+
 deploy:
   provider: GitHub
   auth_token:
