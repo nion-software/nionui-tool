@@ -1822,7 +1822,11 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
         {
             painter.save();
             QString text = read_string(commands, command_index);
+#if QT_VERSION >= 0x050800
             QDateTime date_time = QDateTime::fromString(text, Qt::ISODateWithMs);
+#else
+            QDateTime date_time = QDateTime::fromString(text, Qt::ISODate);
+#endif
             date_time.setTimeSpec(Qt::UTC);
             QPointF text_pos(12, 12);
             QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
