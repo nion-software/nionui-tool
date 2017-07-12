@@ -1918,7 +1918,7 @@ static PyObject *DocumentWindow_show(PyObject * /*self*/, PyObject *args)
     if (!window_styles.contains(window_style_c))
         return NULL;
 
-    QString window_style = QString::fromStdString(window_style_c);
+    QString window_style = QString::fromUtf8(window_style_c);
 
     if (window_style == "dialog")
         document_window->setWindowFlags(Qt::Dialog);
@@ -3355,7 +3355,7 @@ static PyObject *MimeData_dataAsString(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     // Grab the format
-    QString format = QString::fromStdString(format_c);
+    QString format = QString::fromUtf8(format_c);
 
     return PythonSupport::instance()->build()("s", QString::fromUtf8(mime_data->data(format)).toUtf8().data());
 }
@@ -3386,10 +3386,10 @@ static PyObject *MimeData_setDataAsString(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     // Grab the format
-    QString format = QString::fromStdString(format_c);
+    QString format = QString::fromUtf8(format_c);
 
     // Grab the data
-    QString data = QString::fromStdString(data_c);
+    QString data = QString::fromUtf8(data_c);
 
     mime_data->setData(format, data.toUtf8().data());
 
@@ -3762,7 +3762,7 @@ static PyObject *Settings_getString(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     // Grab the key
-    QString key = QString::fromStdString(key_c);
+    QString key = QString::fromUtf8(key_c);
 
     QSettings settings;
 
@@ -3781,7 +3781,7 @@ static PyObject *Settings_remove(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     // Grab the key
-    QString key = QString::fromStdString(key_c);
+    QString key = QString::fromUtf8(key_c);
 
     QSettings settings;
 
@@ -3798,10 +3798,10 @@ static PyObject *Settings_setString(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     // Grab the key
-    QString key = QString::fromStdString(key_c);
+    QString key = QString::fromUtf8(key_c);
 
     // Grab the value
-    QString value = QString::fromStdString(value_c);
+    QString value = QString::fromUtf8(value_c);
 
     QSettings settings;
 
@@ -5016,7 +5016,7 @@ static PyObject *Widget_getWidgetProperty(PyObject * /*self*/, PyObject *args)
     if (widget == NULL)
         return NULL;
 
-    QVariant result = Widget_getWidgetProperty_(widget, QString::fromStdString(property_c));
+    QVariant result = Widget_getWidgetProperty_(widget, QString::fromUtf8(property_c));
 
     return QVariantToPyObject(result);
 }
@@ -5209,7 +5209,7 @@ static PyObject *Widget_loadIntrinsicWidget(PyObject * /*self*/, PyObject *args)
     if (!PythonSupport::instance()->parse()(args, "s", &intrinsic_id_c))
         return NULL;
 
-    QWidget *widget = Widget_makeIntrinsicWidget(QString::fromStdString(intrinsic_id_c));
+    QWidget *widget = Widget_makeIntrinsicWidget(QString::fromUtf8(intrinsic_id_c));
 
     return WrapQObject(widget);
 }
@@ -5430,7 +5430,7 @@ static PyObject *Widget_setWidgetProperty(PyObject * /*self*/, PyObject *args)
     // Grab the value (a python object)
     QVariant py_value = PyObjectToQVariant(obj2);
 
-    Widget_setWidgetProperty_(widget, QString::fromStdString(property_c), py_value);
+    Widget_setWidgetProperty_(widget, QString::fromUtf8(property_c), py_value);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -5549,7 +5549,7 @@ void Application::output(const QString &str)
 {
     QString str_ = str.trimmed();
     if (!str_.isEmpty())
-        qDebug() << str.trimmed().toStdString().c_str();
+        qDebug() << str.trimmed().toUtf8().constData();
 }
 
 Application::Application(int & argv, char **args)

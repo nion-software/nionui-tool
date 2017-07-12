@@ -215,12 +215,12 @@ PythonSupport::PythonSupport(const QString &python_home)
     QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.dylib");
     QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.dylib");
     QString file_path = QFile(file_path_36).exists() ? file_path_36 : file_path_35;
-    void *dl = dlopen(file_path.toStdString().c_str(), RTLD_LAZY);
+    void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY);
 #elif defined(Q_OS_LINUX)
     QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.so");
     QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.so");
     QString file_path = QFile(file_path_36).exists() ? file_path_36 : file_path_35;
-    void *dl = dlopen(file_path.toStdString().c_str(), RTLD_LAZY);
+    void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY);
 #else
     QString file_path_36 = QDir(python_home).absoluteFilePath("Python36.dll");
     QString file_path_35 = QDir(python_home).absoluteFilePath("Python35.dll");
@@ -401,7 +401,7 @@ void PythonSupport::initialize(const QString &python_home)
 #if !(defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON)
 #if defined(Q_OS_MAC) && !defined(DEBUG)
     if (!python_home.isEmpty())
-        setenv("PYTHONHOME", python_home.toStdString().c_str(), 1);
+        setenv("PYTHONHOME", python_home.toUtf8().constData(), 1);
 #endif
 #else
     if (!python_home.isEmpty())
@@ -895,7 +895,7 @@ void PythonSupport::bufferRelease(Py_buffer *buffer)
 
 void PythonSupport::setErrorString(const QString &error_string)
 {
-    CALL_PY(PyErr_SetString)(module_exception, error_string.toStdString().c_str());
+    CALL_PY(PyErr_SetString)(module_exception, error_string.toUtf8().constData());
 }
 
 PyObject *PythonSupport::getPyListFromStrings(const QStringList &strings)
