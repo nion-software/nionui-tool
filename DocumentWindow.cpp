@@ -1269,28 +1269,28 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
     }
 }
 
-inline quint32 read_uint32(const quint32 *commands, int &command_index)
+inline quint32 read_uint32(const quint32 *commands, unsigned int &command_index)
 {
     return commands[command_index++];
 }
 
-inline float read_float(const quint32 *commands, int &command_index)
+inline float read_float(const quint32 *commands, unsigned int &command_index)
 {
     return *(float *)(&commands[command_index++]);
 }
 
-inline double read_double(const quint32 *commands, int &command_index)
+inline double read_double(const quint32 *commands, unsigned int &command_index)
 {
     return *(double *)(&commands[command_index]);
     command_index += 2;
 }
 
-inline bool read_bool(const quint32 *commands, int &command_index)
+inline bool read_bool(const quint32 *commands, unsigned int &command_index)
 {
     return *(quint32 *)(&commands[command_index++]) != 0;
 }
 
-inline QString read_string(const quint32 *commands, int &command_index)
+inline QString read_string(const quint32 *commands, unsigned int &command_index)
 {
     quint32 str_len = read_uint32(commands, command_index);
     QString str = QString::fromUtf8((const char *)&commands[command_index], str_len);
@@ -1332,7 +1332,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
 
     QVariantList stack;
 
-    int command_index = 0;
+    unsigned int command_index = 0;
 
     const quint32 *commands = &commands_v[0];
 
