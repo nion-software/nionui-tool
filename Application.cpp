@@ -3942,6 +3942,27 @@ static PyObject *Splitter_restoreState(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *Splitter_setOrientation(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    char *orientation_c = NULL;
+    if (!PythonSupport::instance()->parse()(args, "Os", &obj0, &orientation_c))
+        return NULL;
+
+    // Grab the splitter
+    QSplitter *splitter = Unwrap<QSplitter>(obj0);
+    if (splitter == NULL)
+        return NULL;
+
+    Qt::Orientation orientation = Qt::Vertical;
+    if (strcmp(orientation_c, "horizontal") == 0)
+        orientation = Qt::Horizontal;
+
+    splitter->setOrientation(orientation);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *Splitter_saveState(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
@@ -3960,11 +3981,11 @@ static PyObject *Splitter_saveState(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
-static PyObject *Splitter_setOrientation(PyObject * /*self*/, PyObject *args)
+static PyObject *Splitter_setSizes(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
-    char *orientation_c = NULL;
-    if (!PythonSupport::instance()->parse()(args, "Os", &obj0, &orientation_c))
+    PyObject *obj1 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
         return NULL;
 
     // Grab the splitter
@@ -3972,11 +3993,14 @@ static PyObject *Splitter_setOrientation(PyObject * /*self*/, PyObject *args)
     if (splitter == NULL)
         return NULL;
 
-    Qt::Orientation orientation = Qt::Vertical;
-    if (strcmp(orientation_c, "horizontal") == 0)
-        orientation = Qt::Horizontal;
+    QVariantList variant_list_sizes = PyObjectToQVariant(obj1).toList();
+    QList<int>  sizes;
+    Q_FOREACH(const QVariant &variant_size, variant_list_sizes)
+    {
+        sizes.append(variant_size.toInt());
+    }
 
-    splitter->setOrientation(orientation);
+    splitter->setSizes(sizes);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4610,6 +4634,67 @@ static PyObject *TreeWidget_connect(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *TreeWidget_resizeToContent(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    // Grab the data view
+    QWidget *content_view = Unwrap<QWidget>(obj0);
+    if (content_view == NULL)
+        return NULL;
+    QScrollArea *scroll_area = dynamic_cast<QScrollArea *>(content_view->layout()->itemAt(0)->widget());
+    if (scroll_area == NULL)
+        return NULL;
+    TreeWidget *py_tree_widget = dynamic_cast<TreeWidget *>(scroll_area->widget());
+    if (py_tree_widget == NULL)
+        return NULL;
+
+    ItemModel *py_item_model = dynamic_cast<ItemModel *>(py_tree_widget->model());
+    if (py_item_model == NULL)
+        return NULL;
+
+    QSize size = py_tree_widget->size();
+
+    QSize new_size;
+
+    int row_count = py_item_model->rowCount(QModelIndex());
+
+    if (row_count > 0)
+    {
+        QMargins margins = py_tree_widget->contentsMargins();
+
+        QRect last = py_tree_widget->visualRect(py_item_model->index(row_count - 1, 0, QModelIndex()));
+
+        new_size = QSize(size.width(), last.bottom() + margins.top() + margins.bottom());
+    }
+    else
+    {
+        new_size = QSize(size.width(), 20);
+    }
+
+    // force size to adjust
+    content_view->setMinimumSize(new_size);  // required within scroll area. ugh.
+    content_view->setMaximumSize(new_size);  // required within scroll area. ugh.
+    content_view->resize(new_size);
+    scroll_area->setMinimumSize(new_size);  // required within scroll area. ugh.
+    scroll_area->setMaximumSize(new_size);  // required within scroll area. ugh.
+    scroll_area->resize(new_size);
+    py_tree_widget->setMinimumSize(new_size);  // required within scroll area. ugh.
+    py_tree_widget->setMaximumSize(new_size);  // required within scroll area. ugh.
+    py_tree_widget->resize(new_size);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+
 static PyObject *TreeWidget_setCurrentRow(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -4754,9 +4839,7 @@ static PyObject *TreeWidget_setSelectedIndexes(PyObject * /*self*/, PyObject *ar
     py_tree_widget->selectionModel()->reset();
     Q_FOREACH(QModelIndex model_index, model_index_list)
     {
-        qDebug() << "Start setting index " << model_index;
         py_tree_widget->selectionModel()->setCurrentIndex(model_index, QItemSelectionModel::Select);
-        qDebug() << "End setting index " << model_index;
     }
 
     return PythonSupport::instance()->getNoneReturnValue();
@@ -5723,8 +5806,9 @@ static PyMethodDef Methods[] = {
     {"Slider_setMinimum", Slider_setMinimum, METH_VARARGS, "Slider_setMinimum."},
     {"Slider_setValue", Slider_setValue, METH_VARARGS, "Slider_setValue."},
     {"Splitter_restoreState", Splitter_restoreState, METH_VARARGS, "Splitter_restoreState"},
-    {"Splitter_saveState", Splitter_saveState, METH_VARARGS, "Splitter_saveState"},
     {"Splitter_setOrientation", Splitter_setOrientation, METH_VARARGS, "Splitter_setOrientation"},
+    {"Splitter_saveState", Splitter_saveState, METH_VARARGS, "Splitter_saveState"},
+    {"Splitter_setSizes", Splitter_setSizes, METH_VARARGS, "Splitter_setSizes"},
     {"StackWidget_addWidget", StackWidget_addWidget, METH_VARARGS, "StackWidget_addWidget"},
     {"StackWidget_removeWidget", StackWidget_removeWidget, METH_VARARGS, "StackWidget_removeWidget"},
     {"StackWidget_setCurrentIndex", StackWidget_setCurrentIndex, METH_VARARGS, "StackWidget_setCurrentIndex"},
@@ -5750,6 +5834,7 @@ static PyMethodDef Methods[] = {
     {"TextEdit_setTextColor", TextEdit_setTextColor, METH_VARARGS, "TextEdit_setTextColor."},
     {"TextEdit_setWordWrapMode", TextEdit_setWordWrapMode, METH_VARARGS, "TextEdit_setWordWrapMode."},
     {"TreeWidget_connect", TreeWidget_connect, METH_VARARGS, "TreeWidget_connect."},
+    {"TreeWidget_resizeToContent", TreeWidget_resizeToContent, METH_VARARGS, "TreeWidget_resizeToContent."},
     {"TreeWidget_setCurrentRow", TreeWidget_setCurrentRow, METH_VARARGS, "TreeWidget_setCurrentRow."},
     {"TreeWidget_setItemDelegate", TreeWidget_setItemDelegate, METH_VARARGS, "TreeWidget_setItemDelegate."},
     {"TreeWidget_setModel", TreeWidget_setModel, METH_VARARGS, "TreeWidget_setModel."},
