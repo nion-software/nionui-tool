@@ -1530,13 +1530,16 @@ static PyObject *DocumentWindow_create(PyObject * /*self*/, PyObject *args)
         return NULL;
     }
 
+    PyObject *parent_window_obj = NULL;
     Py_UNICODE *title_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "Z", &title_u))
+    if (!PythonSupport::instance()->parse()(args, "OZ", &parent_window_obj, &title_u))
         return NULL;
+
+    DocumentWindow *parent_window = Unwrap<DocumentWindow>(parent_window_obj);
 
     QString title = title_u ? Py_UNICODE_to_QString(title_u) : QString();
 
-    DocumentWindow *document_window = new DocumentWindow(title);
+    DocumentWindow *document_window = new DocumentWindow(title, parent_window);
 
     return WrapQObject(document_window);
 }
@@ -1913,7 +1916,7 @@ static PyObject *DocumentWindow_show(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     QStringList window_styles;
-    window_styles << "window" << "dialog" << "popup" << "mousegrab";
+    window_styles << "window" << "dialog" << "popup" << "mousegrab" << "tool";
 
     if (!window_styles.contains(window_style_c))
         return NULL;
@@ -1929,6 +1932,8 @@ static PyObject *DocumentWindow_show(PyObject * /*self*/, PyObject *args)
         document_window->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
         document_window->setAttribute(Qt::WA_TranslucentBackground);
     }
+    else if (window_style == "tool")
+        document_window->setWindowFlags(Qt::Tool | Qt::WindowStaysOnTopHint);
 
     document_window->show();
 
