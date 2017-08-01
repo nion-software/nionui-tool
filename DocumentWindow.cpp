@@ -984,6 +984,14 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
             addArcToPath(path, p.x(), p.y(), radius, sa, ea, anticlockwise);
         }
+        else if (cmd == "cubicTo")
+        {
+            path.cubicTo(args[0].toFloat(), args[1].toFloat(), args[2].toFloat(), args[3].toFloat(), args[4].toFloat(), args[5].toFloat());
+        }
+        else if (cmd == "quadraticTo")
+        {
+            path.quadTo(args[0].toFloat(), args[1].toFloat(), args[2].toFloat(), args[3].toFloat());
+        }
         else if (cmd == "statistics")
         {
             QString label = args[0].toString().simplified();
@@ -1524,6 +1532,24 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
             path.lineTo(t_p1p0.x(), t_p1p0.y());
 
             addArcToPath(path, p.x(), p.y(), radius, sa, ea, anticlockwise);
+        }
+        else if (cmd == 0x63756263) // cubc, cubic to
+        {
+            float a0 = read_float(commands, command_index);
+            float a1 = read_float(commands, command_index);
+            float a2 = read_float(commands, command_index);
+            float a3 = read_float(commands, command_index);
+            float a4 = read_float(commands, command_index);
+            float a5 = read_float(commands, command_index);
+            path.cubicTo(a0, a1, a2, a3, a4, a5);
+        }
+        else if (cmd == 0x71756164) // quad, quadratic to
+        {
+            float a0 = read_float(commands, command_index);
+            float a1 = read_float(commands, command_index);
+            float a2 = read_float(commands, command_index);
+            float a3 = read_float(commands, command_index);
+            path.quadTo(a0, a1, a2, a3);
         }
         else if (cmd == 0x73746174) // stat, statistics
         {
