@@ -1,4 +1,5 @@
 import importlib
+import importlib.util
 import os
 import sys
 import HostLib  # host supplies this module
@@ -52,6 +53,47 @@ class HostLibProxy:
         return UserInterface.FontMetrics(width=font_metrics[0], height=font_metrics[1], ascent=font_metrics[2], descent=font_metrics[3], leading=font_metrics[4])
 
 
+def load_module_as_path(path):
+    if os.path.isfile(path):
+        dirname = os.path.dirname(path)
+        module_name = os.path.splitext(os.path.basename(path))[0]
+        sys.path.insert(0, dirname)
+        module = importlib.import_module(module_name)
+        return getattr(module, "main", None)
+    return None
+
+
+def load_module_as_package(package):
+    try:
+        module = importlib.import_module(package)
+        main_fn = getattr(module, "main", None)
+        if main_fn:
+            return main_fn
+    except ImportError:
+        pass
+    try:
+        module = importlib.import_module(package + ".main")
+        main_fn = getattr(module, "main", None)
+        if main_fn:
+            return main_fn
+    except ImportError:
+        pass
+    return None
+
+
+def load_module_local(path=None):
+    try:
+        if path:
+            sys.path.insert(0, path)
+        module = importlib.import_module("main")
+        main_fn = getattr(module, "main", None)
+        if main_fn:
+            return main_fn
+    except ImportError:
+        pass
+    return None
+
+
 def bootstrap_main(args):
     """
     Main function explicitly called from the C++ code.
@@ -61,14 +103,14 @@ def bootstrap_main(args):
     if version_info.major != 3 or version_info.minor != 6:
         return None, "python36"
     proxy = HostLibProxy(HostLib)
-    module_name = "main"
+    main_fn = None
     if len(args) > 2:
         path = os.path.abspath(args[2])
-        if os.path.isfile(path):
-            dirname = os.path.dirname(path)
-            module_name = os.path.splitext(os.path.basename(path))[0]
-            sys.path.insert(0, dirname)
-        else:
-            sys.path.insert(0, path)
-    module = importlib.import_module(module_name)
-    return getattr(module, "main")(args, {"proxy": proxy}), None
+        main_fn = load_module_as_path(path)
+        main_fn = main_fn or load_module_as_package(args[2])
+        main_fn = main_fn or load_module_local(path)
+    if len(args) == 1:
+        main_fn = main_fn or load_module_local()
+    if main_fn:
+        return main_fn(args, {"proxy": proxy}), None
+    return None, "main"
