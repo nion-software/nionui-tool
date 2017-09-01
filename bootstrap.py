@@ -109,7 +109,7 @@ def bootstrap_main(args):
         main_fn = load_module_as_path(path)
         main_fn = main_fn or load_module_as_package(args[2])
         main_fn = main_fn or load_module_local(path)
-    if len(args) == 1:
+    if len(args) >= 1:
         main_fn = main_fn or load_module_local()
     if main_fn:
         return main_fn(args, {"proxy": proxy}), None
