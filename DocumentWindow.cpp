@@ -1962,12 +1962,16 @@ void PyCanvas::paintEvent(QPaintEvent *event)
 
     painter.drawImage(QPointF(0, 0), image);
 
+    QMap<QDateTime, QDateTime> known_dts = m_known_dts;
+    m_known_dts.clear();
+
     Q_FOREACH(const RenderedTimeStamp &rendered_timestamp, rendered_timestamps)
     {
         painter.save();
         painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
-        QDateTime utc = QDateTime::currentDateTimeUtc();
         QDateTime dt = rendered_timestamp.second;
+        QDateTime utc = known_dts.contains(dt) ? known_dts[dt] : QDateTime::currentDateTimeUtc();
+        m_known_dts[dt] = utc;
         qint64 millisecondsDiff = dt.msecsTo(utc);
         QString text = "Latency " + QString::number(millisecondsDiff);
         QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);

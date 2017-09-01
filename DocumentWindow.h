@@ -419,7 +419,7 @@ public:
     virtual void keyPressEvent(QKeyEvent *event) override;
     virtual void insertFromMimeData(const QMimeData *source) override;
 
-    private Q_SLOTS:
+private Q_SLOTS:
     void cursorPositionChanged();
     void selectionChanged();
     void textChanged();
@@ -621,6 +621,7 @@ private:
     QMutex m_rendered_image_mutex;
     QImage m_rendered_image;
     RenderedTimeStamps m_rendered_timestamps;
+    QMap<QDateTime, QDateTime> m_known_dts;
     QWaitCondition m_render_request;
     QMutex m_render_request_mutex;
     QMutex m_commands_mutex;
