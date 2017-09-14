@@ -1065,7 +1065,51 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
                     if (ndarray_py)
                     {
-                        image = PythonSupport::instance()->imageFromArray(ndarray_py);
+                        image = PythonSupport::instance()->imageFromRGBA(ndarray_py);
+
+                        FreePyObject(ndarray_py);
+                    }
+                }
+
+                if (!image.isNull())
+                {
+                    painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
+                    if (image_cache)
+                    {
+                        PaintImageCacheEntry cache_entry(image_id, true, image);
+                        (*image_cache)[image_id] = cache_entry;
+                    }
+                }
+            }
+        }
+        else if (cmd == "data")
+        {
+            int image_id = args[3].toInt();
+
+            if (image_cache && image_cache->contains(image_id))
+            {
+                (*image_cache)[image_id].used = true;
+                QImage image = (*image_cache)[image_id].image;
+                painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
+            }
+            else
+            {
+                QImage image;
+
+                {
+                    Python_ThreadBlock thread_block;
+
+                    // Grab the ndarray
+                    PyObject *ndarray_py = QVariantToPyObject(args[2]);
+
+                    if (ndarray_py)
+                    {
+                        PyObject *colormap_ndarray_py = NULL;
+
+                        if (args[10].toInt() != 0)
+                            colormap_ndarray_py = QVariantToPyObject(args[10]);
+
+                        image = PythonSupport::instance()->imageFromArray(ndarray_py, args[8].toFloat(), args[9].toFloat(), colormap_ndarray_py);
 
                         FreePyObject(ndarray_py);
                     }
@@ -1634,7 +1678,72 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                     PyObject *ndarray_py = (PyObject *)QVariantToPyObject(imageMap[image_key]);
                     if (ndarray_py)
                     {
-                        image = PythonSupport::instance()->imageFromArray(ndarray_py);
+                        image = PythonSupport::instance()->imageFromRGBA(ndarray_py);
+
+                        FreePyObject(ndarray_py);
+                    }
+                }
+                else
+                    qDebug() << "missing " << image_key;
+
+                if (!image.isNull())
+                {
+                    painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
+                    if (image_cache)
+                    {
+                        PaintImageCacheEntry cache_entry(image_id, true, image);
+                        (*image_cache)[image_id] = cache_entry;
+                    }
+                }
+            }
+        }
+        else if (cmd == 0x64617461) // data, image data
+        {
+            read_uint32(commands, command_index); // width
+            read_uint32(commands, command_index); // height
+
+            int image_id = read_uint32(commands, command_index);
+
+            float arg4 = read_float(commands, command_index);
+            float arg5 = read_float(commands, command_index);
+            float arg6 = read_float(commands, command_index);
+            float arg7 = read_float(commands, command_index);
+
+            float low = read_float(commands, command_index);
+            float high = read_float(commands, command_index);
+
+            int color_map_image_id = read_uint32(commands, command_index);
+
+            if (image_cache && image_cache->contains(image_id))
+            {
+                (*image_cache)[image_id].used = true;
+                QImage image = (*image_cache)[image_id].image;
+                painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
+            }
+            else
+            {
+                QImage image;
+
+                QString image_key = QString::number(image_id);
+
+                if (imageMap.contains(image_key))
+                {
+                    Python_ThreadBlock thread_block;
+
+                    // Put the ndarray in image
+                    PyObject *ndarray_py = (PyObject *)QVariantToPyObject(imageMap[image_key]);
+                    if (ndarray_py)
+                    {
+                        PyObject *colormap_ndarray_py = NULL;
+
+                        if (color_map_image_id != 0)
+                        {
+                            QString color_map_image_key = QString::number(color_map_image_id);
+                            if (imageMap.contains(color_map_image_key))
+                                colormap_ndarray_py = (PyObject *)QVariantToPyObject(imageMap[color_map_image_key]);
+                        }
+
+                        image = PythonSupport::instance()->imageFromArray(ndarray_py, low, high, colormap_ndarray_py);
 
                         FreePyObject(ndarray_py);
                     }

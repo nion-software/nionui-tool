@@ -842,19 +842,90 @@ bool PythonSupport::setAttribute(const QVariant &object, const QString &attribut
     return result != -1;
 }
 
-QImage PythonSupport::imageFromArray(PyObject *ndarray_py)
+QImage PythonSupport::imageFromRGBA(PyObject *ndarray_py)
 {
     PyArrayObject *array = (PyArrayObject *)PyArray_ContiguousFromObject(ndarray_py, NPY_UINT32, 2, 2);
     if (array != NULL)
     {
         long width = PyArray_DIMS(array)[1];
         long height = PyArray_DIMS(array)[0];
-        //qDebug() << "grabbing image " << args[3].toInt() << ": " << width << "," << height;
         QImage image((int)width, (int)height, QImage::Format_ARGB32);
         for (int row=0; row<height; ++row)
             memcpy(image.scanLine(row), ((uint32_t *)PyArray_DATA(array)) + row*width, width*sizeof(uint32_t));
         Py_DECREF(array);
         return image;
+    }
+    return QImage();
+}
+
+QImage PythonSupport::imageFromArray(PyObject *ndarray_py, float display_limit_low, float display_limit_high, PyObject *lookup_table_ndarray)
+{
+    PyArrayObject *array = (PyArrayObject *)PyArray_ContiguousFromObject(ndarray_py, NPY_FLOAT32, 2, 2);
+    if (array != NULL)
+    {
+        long width = PyArray_DIMS(array)[1];
+        long height = PyArray_DIMS(array)[0];
+        float m = display_limit_high != display_limit_low ? 255.0 / (display_limit_high - display_limit_low) : 1;
+        if (false)
+        {
+            QImage image((int)width, (int)height, QImage::Format_ARGB32);
+            for (int row=0; row<height; ++row)
+            {
+                float *src = ((float *)PyArray_DATA(array)) + row*width;
+                uint32_t *dst = (uint32_t *)image.scanLine(row);
+                for (int col=0; col<width; ++col)
+                {
+                    float v = *src++;
+                    if (v < display_limit_low)
+                        *dst++ = 0xFF000000;
+                    else if (v > display_limit_high)
+                        *dst++ = 0xFFFFFFFF;
+                    else
+                    {
+                        unsigned char vv = (unsigned char)((v - display_limit_low) * m);
+                        *dst++ = 0xFF << 24 | vv << 16 | vv << 8 | vv;
+                    }
+                }
+            }
+            Py_DECREF(array);
+            return image;
+        }
+        else
+        {
+            QImage image((int)width, (int)height, QImage::Format_Indexed8);
+            for (int row=0; row<height; ++row)
+            {
+                float *src = ((float *)PyArray_DATA(array)) + row*width;
+                uint8_t *dst = (uint8_t *)image.scanLine(row);
+                for (int col=0; col<width; ++col)
+                {
+                    float v = *src++;
+                    if (v < display_limit_low)
+                        *dst++ = 0x00;
+                    else if (v > display_limit_high)
+                        *dst++ = 0xFF;
+                    else
+                        *dst++ = (unsigned char)((v - display_limit_low) * m);
+                }
+            }
+            QVector<QRgb> colorTable;
+            if (lookup_table_ndarray != NULL)
+            {
+                PyArrayObject *lookup_table_array = (PyArrayObject *)PyArray_ContiguousFromObject(lookup_table_ndarray, NPY_UINT32, 1, 1);
+                if (lookup_table_array != NULL)
+                {
+                    uint32_t *lookup_table = ((uint32_t *)PyArray_DATA(lookup_table_array));
+                    for (int i=0; i<256; ++i)
+                        colorTable.push_back(lookup_table[i]);
+                }
+            }
+            if (colorTable.length() == 0)
+                for (int i=0; i<256; ++i)
+                    colorTable.push_back(0xFF << 24 | i << 16 | i << 8 | i);
+            image.setColorTable(colorTable);
+            Py_DECREF(array);
+            return image;
+        }
     }
     return QImage();
 }

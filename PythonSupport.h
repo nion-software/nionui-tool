@@ -78,7 +78,8 @@ public:
     void addResourcePath(const QString &resources_path);
 	void addPyObjectToModuleFromQVariant(PyObject* module, const QString &identifier, const QVariant& object);
 	void addPyObjectToModule(PyObject* module, const QString &identifier, PyObject *object);
-    QImage imageFromArray(PyObject *ndarray_py);
+    QImage imageFromRGBA(PyObject *ndarray_py);
+    QImage imageFromArray(PyObject *ndarray_py, float display_limit_low, float display_limit_high, PyObject *lookup_table);
     PyObject *arrayFromImage(const QImage &image);
     void bufferRelease(Py_buffer *buffer);
     QVariant invokePyMethod(const QVariant &object, const QString &method, const QVariantList &args);

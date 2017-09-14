@@ -1337,7 +1337,7 @@ static PyObject *Core_writeBinaryToImage(PyObject * /*self*/, PyObject *args)
     if (!PythonSupport::instance()->parse()(args, "iiOus", &w, &h, &obj0, &filename_u, &format_c))
         return NULL;
 
-    QImage image = PythonSupport::instance()->imageFromArray(obj0);
+    QImage image = PythonSupport::instance()->imageFromRGBA(obj0);
 
     if (image.isNull())
         return NULL;
@@ -2069,7 +2069,7 @@ static PyObject *Drag_setThumbnail(PyObject * /*self*/, PyObject *args)
 
     if (!PythonSupport::instance()->isNone(obj1))
     {
-        QImage image = PythonSupport::instance()->imageFromArray(obj1);
+        QImage image = PythonSupport::instance()->imageFromRGBA(obj1);
 
         if (image.isNull())
             return NULL;
@@ -3447,7 +3447,7 @@ static PyObject *PushButton_setIcon(PyObject * /*self*/, PyObject *args)
 
     if (!PythonSupport::instance()->isNone(obj1))
     {
-        QImage image = PythonSupport::instance()->imageFromArray(obj1);
+        QImage image = PythonSupport::instance()->imageFromRGBA(obj1);
 
         if (image.isNull())
             return NULL;
@@ -3575,7 +3575,7 @@ static PyObject *RadioButton_setIcon(PyObject * /*self*/, PyObject *args)
 
     if (!PythonSupport::instance()->isNone(obj1))
     {
-        QImage image = PythonSupport::instance()->imageFromArray(obj1);
+        QImage image = PythonSupport::instance()->imageFromRGBA(obj1);
 
         if (image.isNull())
             return NULL;
