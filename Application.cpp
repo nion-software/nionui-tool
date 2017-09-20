@@ -841,7 +841,7 @@ static PyObject *CheckBox_setCheckState(PyObject * /*self*/, PyObject *args)
     if (strcmp(check_state_str, "checked") == 0)
         check_box->setCheckState(Qt::Checked);
     else if (strcmp(check_state_str, "partial") == 0)
-        check_box->setCheckState(Qt::Checked);
+        check_box->setCheckState(Qt::PartiallyChecked);
     else
         check_box->setCheckState(Qt::Unchecked);
 
