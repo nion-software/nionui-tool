@@ -3,7 +3,7 @@ set -e # fail script if any command fails
 if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
   xcodebuild -project NionUILauncher.xcodeproj -target "Nion UI Launcher" -configuration Release
   cd build/Release
-  zip -r NionUILauncher-Mac.zip Nion\ UI\ Launcher.app
+  zip -ry NionUILauncher-Mac.zip Nion\ UI\ Launcher.app
   mkdir -p ../../release
   mv NionUILauncher-Mac.zip ../../release
   cd ../..
