@@ -220,7 +220,7 @@ PythonSupport::PythonSupport(const QString &python_home)
     QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.so");
     QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.so");
     QString file_path = QFile(file_path_36).exists() ? file_path_36 : file_path_35;
-    void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY);
+    void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY | RTLD_GLOBAL);
 #else
     QString file_path_36 = QDir(python_home).absoluteFilePath("Python36.dll");
     QString file_path_35 = QDir(python_home).absoluteFilePath("Python35.dll");
