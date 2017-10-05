@@ -4162,6 +4162,23 @@ static PyObject *TabWidget_connect(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *TabWidget_setCurrentIndex(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    int index = -1;
+    if (!PythonSupport::instance()->parse()(args, "Oi", &obj0, &index))
+        return NULL;
+
+    // Grab the container
+    QTabWidget *container = Unwrap<QTabWidget>(obj0);
+    if (container == NULL)
+        return NULL;
+
+    container->setCurrentIndex(index);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *TextEdit_appendText(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5821,6 +5838,7 @@ static PyMethodDef Methods[] = {
     {"StyledDelegate_create", StyledDelegate_create, METH_VARARGS, "StyledDelegate_create."},
     {"TabWidget_addTab", TabWidget_addTab, METH_VARARGS, "TabWidget_addTab."},
     {"TabWidget_connect", TabWidget_connect, METH_VARARGS, "TabWidget_connect."},
+    {"TabWidget_setCurrentIndex", TabWidget_setCurrentIndex, METH_VARARGS, "TabWidget_setCurrentIndex"},
     {"TextEdit_clearSelection", TextEdit_clearSelection, METH_VARARGS, "TextEdit_clearSelection."},
     {"TextEdit_appendText", TextEdit_appendText, METH_VARARGS, "TextEdit_appendText."},
     {"TextEdit_connect", TextEdit_connect, METH_VARARGS, "TextEdit_connect."},
