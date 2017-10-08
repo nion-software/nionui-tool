@@ -2193,6 +2193,29 @@ static PyObject *DrawingContext_paintRGBA_binary(PyObject * /*self*/, PyObject *
     return PythonSupport::instance()->arrayFromImage(image);
 }
 
+static PyObject *GroupBoxWidget_setTitle(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    Py_UNICODE *title_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &title_u))
+        return NULL;
+
+    // Grab the document window
+    QGroupBox *group_box = Unwrap<QGroupBox>(obj0);
+    if (group_box == NULL)
+        return NULL;
+
+    group_box->setTitle(Py_UNICODE_to_QString(title_u));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *ItemModel_beginInsertRows(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5754,7 +5777,8 @@ static PyMethodDef Methods[] = {
     {"Drag_setThumbnail", Drag_setThumbnail, METH_VARARGS, "Drag_setThumbnail."},
     {"DrawingContext_drawCommands", DrawingContext_drawCommands, METH_VARARGS, "DrawingContext_drawCommands."},
     {"DrawingContext_paintRGBA", DrawingContext_paintRGBA, METH_VARARGS, "DrawingContext_paintRGBA."},
-    {"DrawingContext_paintRGBA_binary", DrawingContext_paintRGBA_binary, METH_VARARGS, "DrawingContext_paintRGBA."},
+    {"DrawingContext_paintRGBA_binary", DrawingContext_paintRGBA_binary, METH_VARARGS, "DrawingContext_paintRGBA_binary."},
+    {"GroupBoxWidget_setTitle", GroupBoxWidget_setTitle, METH_VARARGS, "GroupBoxWidget_setTitle."},
     {"ItemModel_beginInsertRows", ItemModel_beginInsertRows, METH_VARARGS, "ItemModel beginInsertRows."},
     {"ItemModel_beginRemoveRows", ItemModel_beginRemoveRows, METH_VARARGS, "ItemModel beginRemoveRows."},
     {"ItemModel_connect", ItemModel_connect, METH_VARARGS, "ItemModel_connect."},

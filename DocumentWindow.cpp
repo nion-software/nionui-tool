@@ -28,6 +28,7 @@
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QGestureEvent>
+#include <QtWidgets/QGroupBox>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMenuBar>
@@ -2499,6 +2500,21 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
             stylesheet_file.close();
         }
         return stack;
+    }
+    else if (intrinsic_id == "group")
+    {
+        QGroupBox *group_box = new QGroupBox();
+        QVBoxLayout *column_layout = new QVBoxLayout(group_box);
+        column_layout->setContentsMargins(0, 0, 0, 0);
+        column_layout->setSpacing(0);
+        QFile stylesheet_file(":/app/stylesheet.qss");
+        if (stylesheet_file.open(QIODevice::ReadOnly))
+        {
+            QString stylesheet = stylesheet_file.readAll();
+            group_box->setStyleSheet(stylesheet);
+            stylesheet_file.close();
+        }
+        return group_box;
     }
     else if (intrinsic_id == "scrollarea")
     {
