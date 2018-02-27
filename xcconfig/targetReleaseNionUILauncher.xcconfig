@@ -30,7 +30,7 @@ GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp
 
 DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
 
-MACOSX_DEPLOYMENT_TARGET = 10.7
+MACOSX_DEPLOYMENT_TARGET = 10.11
 
 CODE_SIGN_IDENTITY = Developer ID Application: Nion, Inc.
 
