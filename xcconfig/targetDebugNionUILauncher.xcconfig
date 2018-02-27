@@ -1,7 +1,7 @@
 // set the base Qt version
 QT_VERSION = 59
 
-QTDIR_59 = $(HOME)/Developer/Qt/5.9/clang_64
+QTDIR_59 = $(HOME)/Developer/Qt/5.10.1/clang_64
 
 QTDIR = $(QTDIR_$(QT_VERSION))
 
