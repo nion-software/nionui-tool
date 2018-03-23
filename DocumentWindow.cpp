@@ -2764,7 +2764,7 @@ Drag::Drag(QWidget *widget)
 
 void Drag::execute()
 {
-    Qt::DropAction action = exec();
+    Qt::DropAction action = exec(Qt::CopyAction | Qt::MoveAction);
     QMap<Qt::DropAction, QString> mapping;
     mapping[Qt::CopyAction] = "copy";
     mapping[Qt::MoveAction] = "move";
