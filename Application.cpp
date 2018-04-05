@@ -4053,6 +4053,27 @@ static PyObject *StackWidget_addWidget(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->build()("i", container->addWidget(widget));
 }
 
+static PyObject *StackWidget_insertWidget(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    PyObject *obj1 = NULL;
+    int index = -1;
+    if (!PythonSupport::instance()->parse()(args, "OOi", &obj0, &obj1, &index))
+        return NULL;
+
+    // Grab the container
+    QStackedWidget *container = Unwrap<QStackedWidget>(obj0);
+    if (container == NULL)
+        return NULL;
+
+    // Grab the widget to add
+    QWidget *widget = Unwrap<QWidget>(obj1);
+    if (widget == NULL)
+        return NULL;
+
+    return PythonSupport::instance()->build()("i", container->insertWidget(index, widget));
+}
+
 static PyObject *StackWidget_removeWidget(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
@@ -5856,6 +5877,7 @@ static PyMethodDef Methods[] = {
     {"Splitter_saveState", Splitter_saveState, METH_VARARGS, "Splitter_saveState"},
     {"Splitter_setSizes", Splitter_setSizes, METH_VARARGS, "Splitter_setSizes"},
     {"StackWidget_addWidget", StackWidget_addWidget, METH_VARARGS, "StackWidget_addWidget"},
+    {"StackWidget_insertWidget", StackWidget_insertWidget, METH_VARARGS, "StackWidget_insertWidget"},
     {"StackWidget_removeWidget", StackWidget_removeWidget, METH_VARARGS, "StackWidget_removeWidget"},
     {"StackWidget_setCurrentIndex", StackWidget_setCurrentIndex, METH_VARARGS, "StackWidget_setCurrentIndex"},
     {"StyledDelegate_connect", StyledDelegate_connect, METH_VARARGS, "StyledDelegate_connect."},
