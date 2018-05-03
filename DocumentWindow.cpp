@@ -2616,35 +2616,6 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
 
         return content_view;
     }
-    else if (intrinsic_id == "pylist")
-    {
-        ListWidget *py_list_widget = new ListWidget();
-        py_list_widget->setStyleSheet("QListView { border: none; background-color: transparent; }");
-
-        QScrollArea *scroll_area = new QScrollArea();
-        scroll_area->setWidgetResizable(true);
-        scroll_area->setWidget(py_list_widget);
-        scroll_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        scroll_area->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
-        // Set up the system wide stylesheet
-        QFile stylesheet_file(":/app/stylesheet.qss");
-        if (stylesheet_file.open(QIODevice::ReadOnly))
-        {
-            scroll_area->setStyleSheet(stylesheet_file.readAll());
-            stylesheet_file.close();
-        }
-
-        QWidget *content_view = new QWidget();
-        content_view->setContentsMargins(0, 0, 0, 0);
-        content_view->setStyleSheet("border: none");
-        QVBoxLayout *content_view_layout = new QVBoxLayout(content_view);
-        content_view_layout->setContentsMargins(0, 0, 0, 0);
-        content_view_layout->setSpacing(0);
-        content_view_layout->addWidget(scroll_area);
-
-        return content_view;
-    }
 
     return NULL;
 }
@@ -3018,21 +2989,10 @@ void TreeWidget::doubleClicked(const QModelIndex &index)
 // ItemModel
 // -----------------------------------------------------------
 
-ItemModel::ItemModel(const QStringList &role_names, QObject *parent)
+ItemModel::ItemModel(QObject *parent)
     : QAbstractItemModel(parent)
     , m_last_drop_action(Qt::IgnoreAction)
 {
-    int role = Qt::UserRole + 1;
-    Q_FOREACH(const QString &role_name, role_names)
-    {
-        m_role_names.insert(role, role_name.toUtf8());
-        ++role;
-    }
-}
-
-QHash<int, QByteArray> ItemModel::roleNames() const
-{
-    return m_role_names;
 }
 
 Qt::DropActions ItemModel::supportedDropActions() const
@@ -3120,10 +3080,6 @@ QVariant ItemModel::data(const QModelIndex &index, int role) const
         role_name = "display";
     else if (role == Qt::EditRole)
         role_name = "edit";
-    else if (m_role_names.contains(role))
-        role_name = m_role_names.value(role);
-    else
-        role_name = "unknown";
 
     //qDebug() << "ItemModel::data " << role_name << ":" << index;
 
@@ -3307,179 +3263,6 @@ QModelIndex ItemModel::indexInParent(int row, int parent_row, int parent_item_id
     return index(row, 0, parent);
 }
 
-
-// -----------------------------------------------------------
-// ListWidget
-// -----------------------------------------------------------
-
-ListWidget::ListWidget()
-{
-    setAcceptDrops(true);
-    setDropIndicatorShown(true);
-    setDragDropMode(QAbstractItemView::DragDrop);
-    setDefaultDropAction(Qt::MoveAction);
-    setDragEnabled(true);
-
-    connect(this, SIGNAL(clicked(QModelIndex)), this, SLOT(clicked(QModelIndex)));
-    connect(this, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(doubleClicked(QModelIndex)));
-}
-
-void ListWidget::focusInEvent(QFocusEvent *event)
-{
-    Q_UNUSED(event)
-
-    if (m_py_object.isValid())
-    {
-        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "focusIn", QVariantList());
-    }
-
-    QListView::focusInEvent(event);
-}
-
-void ListWidget::focusOutEvent(QFocusEvent *event)
-{
-    Q_UNUSED(event)
-
-    if (m_py_object.isValid())
-    {
-        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "focusOut", QVariantList());
-    }
-
-    QListView::focusOutEvent(event);
-}
-
-void ListWidget::setModelAndConnect(ListModel *py_list_model)
-{
-    setModel(py_list_model);
-
-    connect(py_list_model, SIGNAL(modelAboutToBeReset()), this, SLOT(modelAboutToBeReset()));
-    connect(py_list_model, SIGNAL(modelReset()), this, SLOT(modelReset()));
-}
-
-void ListWidget::keyPressEvent(QKeyEvent *event)
-{
-    if (event->type() == QEvent::KeyPress && handleKey(event->text(), event->key(), event->modifiers()))
-        return;
-
-    QListView::keyPressEvent(event);
-}
-
-void ListWidget::dropEvent(QDropEvent *event)
-{
-    QListView::dropEvent(event);
-    if (event->isAccepted())
-    {
-        ListModel *py_list_model = dynamic_cast<ListModel *>(model());
-        event->setDropAction(py_list_model->lastDropAction());
-    }
-}
-
-void ListWidget::currentChanged(const QModelIndex &current, const QModelIndex &previous)
-{
-    QListView::currentChanged(current, previous);
-
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    int row = current.row();
-
-    app->dispatchPyMethod(m_py_object, "listItemChanged", QVariantList() << row);
-}
-
-void ListWidget::selectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
-{
-    // note the parameters passed represent the CHANGES not the new and old selection
-
-    QListView::selectionChanged(selected, deselected);
-
-    QVariantList selected_indexes;
-
-    Q_FOREACH(const QModelIndex &index, selectedIndexes())
-    {
-        selected_indexes.push_back(index.row());
-    }
-
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    QVariantList args;
-
-    args.push_back(selected_indexes);
-
-    app->dispatchPyMethod(m_py_object, "listSelectionChanged", args);
-}
-
-void ListWidget::contextMenuEvent(QContextMenuEvent *event)
-{
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    QVariantList args;
-
-    args.push_back(event->pos().x());
-    args.push_back(event->pos().y());
-    args.push_back(event->globalPos().x());
-    args.push_back(event->globalPos().y());
-
-    app->dispatchPyMethod(m_py_object, "contextMenuEvent", args);
-}
-
-void ListWidget::modelAboutToBeReset()
-{
-    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
-    m_saved_index = currentIndex().row();
-}
-
-void ListWidget::modelReset()
-{
-    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
-    setCurrentIndex(model()->index(m_saved_index, 0));
-}
-
-bool ListWidget::handleKey(const QString &text, int key, int modifiers)
-{
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    QVariantList selected_indexes;
-
-    Q_FOREACH(const QModelIndex &index, selectedIndexes())
-    {
-        selected_indexes.push_back(index.row());
-    }
-
-    if (selected_indexes.size() == 1)
-    {
-        if (app->dispatchPyMethod(m_py_object, "listItemKeyPressed", QVariantList() << selected_indexes[0] << text << key << modifiers).toBool())
-            return true;
-    }
-
-    QVariantList args;
-
-    args.push_back(selected_indexes);
-    args.push_back(text);
-    args.push_back(key);
-    args.push_back(modifiers);
-
-    return app->dispatchPyMethod(m_py_object, "keyPressed", args).toBool();
-}
-
-void ListWidget::clicked(const QModelIndex &index)
-{
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    int row = index.row();
-
-    app->dispatchPyMethod(m_py_object, "listItemClicked", QVariantList() << row);
-}
-
-void ListWidget::doubleClicked(const QModelIndex &index)
-{
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    int row = index.row();
-
-    app->dispatchPyMethod(m_py_object, "listItemDoubleClicked", QVariantList() << row);
-}
-
 // -----------------------------------------------------------
 // PyDrawingContext
 // -----------------------------------------------------------
@@ -3567,201 +3350,148 @@ QSize PyStyledItemDelegate::sizeHint(const QStyleOptionViewItem &option, const Q
     return QSize(result_list[0].toInt(), result_list[1].toInt());
 }
 
+#include <sstream>
+#include <string>
+#include <iostream>
+#include <stdio.h>
+#include <QtWidgets/QLayout>
+#include <QtWidgets/QWidget>
 
-// -----------------------------------------------------------
-// ListModel
-// -----------------------------------------------------------
+#if _MSC_VER
+#define snprintf _snprintf
+#endif
 
-ListModel::ListModel(const QStringList &role_names, QObject *parent)
-    : QAbstractListModel(parent)
-    , m_last_drop_action(Qt::IgnoreAction)
-    , m_row_count(0)
+
+std::string toString(const QSizePolicy::Policy& policy)
 {
-    int role = Qt::UserRole + 1;
-    Q_FOREACH(const QString &role_name, role_names)
-    {
-        m_role_names.insert(role, role_name.toUtf8());
-        ++role;
+    switch (policy) {
+        case QSizePolicy::Fixed: return "Fixed";
+        case QSizePolicy::Minimum: return "Minimum";
+        case QSizePolicy::Maximum: return "Maximum";
+        case QSizePolicy::Preferred: return "Preferred";
+        case QSizePolicy::MinimumExpanding: return "MinimumExpanding";
+        case QSizePolicy::Expanding: return "Expanding";
+        case QSizePolicy::Ignored: return "Ignored";
+    }
+    return "unknown";
+}
+std::string toString(const QSizePolicy& policy)
+{
+    return "(" + toString(policy.horizontalPolicy()) + ", " + toString(policy.verticalPolicy()) + ")" ;
+}
+
+std::string toString(QLayout::SizeConstraint constraint)
+{
+    switch (constraint) {
+        case QLayout::SetDefaultConstraint: return "SetDefaultConstraint";
+        case QLayout::SetNoConstraint: return "SetNoConstraint";
+        case QLayout::SetMinimumSize: return "SetMinimumSize";
+        case QLayout::SetFixedSize: return "SetFixedSize";
+        case QLayout::SetMaximumSize: return "SetMaximumSize";
+        case QLayout::SetMinAndMaxSize: return "SetMinAndMaxSize";
+    }
+    return "unknown";
+}
+std::string getWidgetInfo(const QWidget& w)
+{
+    const QRect & geom = w.geometry();
+    QSize hint = w.sizeHint();
+    char buf[1024];
+    snprintf(buf, 1023, "%s %p ('%s'), pos (%d, %d), size (%d x %d), hint (%d x %d) pol: %s %s\n",
+             w.metaObject()->className(), (void*)&w, w.objectName().toStdString().c_str(),
+             geom.x(), geom.y(), geom.width(), geom.height(),
+             hint.width(), hint.height(),
+             toString(w.sizePolicy()).c_str(),
+             (w.isVisible() ? "" : "**HIDDEN**")
+             );
+    return buf;
+}
+
+std::string getLayoutItemInfo(QLayoutItem* item)
+{
+    if (dynamic_cast<QWidgetItem*>(item)) {
+        QWidgetItem* wi=dynamic_cast<QWidgetItem*>(item);
+        if (wi->widget()) {
+            return getWidgetInfo(*wi->widget());
+        }
+
+    } else if (dynamic_cast<QSpacerItem*>(item)) {
+        QSpacerItem* si=dynamic_cast<QSpacerItem*>(item);
+        QSize hint=si->sizeHint();
+        char buf[1024];
+        snprintf(buf, 1023, " SpacerItem hint (%d x %d) policy: %s constraint: ss\n",
+                 hint.width(), hint.height(),
+                 toString(si->sizePolicy()).c_str()
+//                 ,
+//                 toString(si->layout()->sizeConstraint()).c_str()
+                 );
+        buf[1023] = 0;
+        return buf;
+    }
+    return "";
+}
+
+//------------------------------------------------------------------------
+void dumpWidgetAndChildren(std::ostream& os, const QWidget* w, int level)
+{
+    std::string padding("");
+    for (int i = 0; i <= level; i++)
+        padding+="  ";
+
+    QLayout* layout=w->layout();
+    QList<QWidget*> dumpedChildren;
+    if (layout && layout->isEmpty()==false) {
+
+        os << padding << "Layout ";
+        QMargins margins=layout->contentsMargins();
+        os << " margin: (" << margins.left() << "," << margins.top()
+        << "," << margins.right() << "," << margins.bottom() << "), constraint: "
+        << toString(layout->sizeConstraint());
+
+        if (dynamic_cast<QBoxLayout*>(layout)) {
+            QBoxLayout* boxLayout=dynamic_cast<QBoxLayout*>(layout);
+            os << " spacing: " <<  boxLayout->spacing();
+        }
+        os << ":\n";
+
+        int numItems=layout->count();
+        for (int i=0; i<numItems; i++) {
+            QLayoutItem* layoutItem=layout->itemAt(i);
+            std::string itemInfo=getLayoutItemInfo(layoutItem);
+
+            os << padding << " " << itemInfo;
+
+            QWidgetItem* wi=dynamic_cast<QWidgetItem*>(layoutItem);
+            if (wi && wi->widget()) {
+                dumpWidgetAndChildren(os, wi->widget(), level+1);
+                dumpedChildren.push_back(wi->widget());
+            }
+        }
+    }
+
+    // now output any child widgets that weren't dumped as part of the layout
+    QList<QWidget *> widgets = w->findChildren<QWidget *>(QString(), Qt::FindDirectChildrenOnly);
+    QList<QWidget*> undumpedChildren;
+    Q_FOREACH (QWidget* child, widgets) {
+        if (dumpedChildren.indexOf(child)==-1) {
+            undumpedChildren.push_back(child);
+        }
+    }
+
+    if (undumpedChildren.empty()==false) {
+        os << padding << " non-layout children:\n";
+        Q_FOREACH (QWidget* child, undumpedChildren) {
+            dumpWidgetAndChildren(os, child, level + 1);
+        }
     }
 }
 
-ListModel::~ListModel()
+//------------------------------------------------------------------------
+void dumpWidgetHierarchy(const QWidget* w)
 {
+    std::ostringstream oss;
+    oss << getWidgetInfo(*w);
+    dumpWidgetAndChildren(oss, w, 0);
+    qDebug() << QString::fromStdString(oss.str());
 }
 
-QHash<int, QByteArray> ListModel::roleNames() const
-{
-    return m_role_names;
-}
-
-Qt::DropActions ListModel::supportedDropActions() const
-{
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    return Qt::DropActions(app->dispatchPyMethod(m_py_object, "supportedDropActions", QVariantList()).toInt());
-}
-
-int ListModel::columnCount(const QModelIndex &parent) const
-{
-    Q_UNUSED(parent)
-
-    return 1;
-}
-
-int ListModel::rowCount(const QModelIndex &parent) const
-{
-    Q_UNUSED(parent)
-
-    return m_row_count;
-}
-
-Qt::ItemFlags ListModel::flags(const QModelIndex &index) const
-{
-    Qt::ItemFlags default_flags = QAbstractListModel::flags(index);
-
-    if (index.isValid())
-    {
-        return default_flags | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled | Qt::ItemIsEnabled;
-    }
-    else
-        return default_flags | Qt::ItemIsDropEnabled;
-}
-
-QVariant ListModel::data(const QModelIndex &index, int role) const
-{
-    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    QString role_name;
-    if (role == Qt::DisplayRole)
-        role_name = "display";
-    else if (role == Qt::EditRole)
-        role_name = "edit";
-    else if (m_role_names.contains(role))
-        role_name = m_role_names.value(role);
-    else
-        role_name = "unknown";
-
-    if (role == Qt::DisplayRole)
-    {
-        return app->dispatchPyMethod(m_py_object, "itemValue", QVariantList() << role_name << index.row());
-    }
-
-    return QVariant();
-}
-
-QStringList ListModel::mimeTypes() const
-{
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    return app->dispatchPyMethod(m_py_object, "mimeTypesForDrop", QVariantList()).toStringList();
-}
-
-QMimeData *ListModel::mimeData(const QModelIndexList &indexes) const
-{
-    // simplifying assumption for now
-    if (indexes.size() != 1)
-        return NULL;
-
-    QModelIndex index = indexes[0];
-
-    int row = index.row();
-
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    QVariant v_mime_data = app->dispatchPyMethod(m_py_object, "itemMimeData", QVariantList() << row);
-
-    if (v_mime_data.isNull())
-        return NULL;
-
-    QMimeData *mime_data = *(QMimeData **)v_mime_data.constData();
-
-    return mime_data;
-}
-
-bool ListModel::canDropMimeData(const QMimeData *mime_data, Qt::DropAction action, int row, int column, const QModelIndex &parent) const
-{
-    if (column > 0)
-        return false;
-
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    // parent row allows clients to distinguish between dropping on or between rows
-    int parent_row = -1;
-    if (parent.isValid())
-        parent_row = parent.row();
-
-    QVariantList args;
-
-    args << QVariant::fromValue((QObject *)mime_data) << (int)action << row << parent_row;
-
-    return app->dispatchPyMethod(m_py_object, "canDropMimeData", args).toInt();
-}
-
-bool ListModel::dropMimeData(const QMimeData *mime_data, Qt::DropAction action, int row, int column, const QModelIndex &parent)
-{
-    if (action == Qt::IgnoreAction)
-        return true;
-
-    if (column > 0)
-        return false;
-
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    // parent row allows clients to distinguish between dropping on or between rows
-    int parent_row = -1;
-    if (parent.isValid())
-        parent_row = parent.row();
-
-    QVariantList args;
-
-    args << QVariant::fromValue((QObject *)mime_data) << (int)action << row << parent_row;
-
-    Qt::DropAction drop_action = (Qt::DropAction)app->dispatchPyMethod(m_py_object, "itemDropMimeData", args).toInt();
-
-    m_last_drop_action = drop_action;
-
-    return drop_action != Qt::IgnoreAction;
-}
-
-void ListModel::beginInsertRowsInList(int first_row, int last_row)
-{
-    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
-    beginInsertRows(QModelIndex(), first_row, last_row);
-    m_row_count += last_row - first_row + 1;
-}
-
-void ListModel::beginRemoveRowsInList(int first_row, int last_row)
-{
-    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
-    beginRemoveRows(QModelIndex(), first_row, last_row);
-    m_row_count -= last_row - first_row + 1;
-}
-
-void ListModel::endInsertRowsInList()
-{
-    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
-    endInsertRows();
-}
-
-void ListModel::endRemoveRowsInList()
-{
-    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
-    endRemoveRows();
-}
-
-bool ListModel::removeRows(int row, int count, const QModelIndex &parent)
-{
-    Q_UNUSED(parent)
-
-    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-
-    return app->dispatchPyMethod(m_py_object, "removeRows", QVariantList() << row << count).toBool();
-}
-
-void ListModel::dataChangedInList()
-{
-    Q_ASSERT(QApplication::instance()->thread() == QThread::currentThread());
-    int rows = rowCount(QModelIndex());
-    Q_EMIT dataChanged(index(0,0), index(rows-1, 0));
-}

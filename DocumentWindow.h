@@ -193,7 +193,7 @@ class ItemModel : public QAbstractItemModel
     Q_OBJECT
 
 public:
-    ItemModel(const QStringList &role_names, QObject *parent = 0);
+    ItemModel(QObject *parent = 0);
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
 
@@ -221,49 +221,10 @@ public:
     virtual bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) override;
     virtual QModelIndex index(int row, int column, const QModelIndex &parent) const override;
     virtual QModelIndex parent(const QModelIndex &index) const override;
-    virtual QHash<int, QByteArray> roleNames() const override;
 
 private:
     QVariant m_py_object;
-    QHash<int, QByteArray> m_role_names;
     Qt::DropAction m_last_drop_action;
-};
-
-
-class ListWidget : public QListView
-{
-    Q_OBJECT
-
-public:
-    ListWidget();
-
-    void setModelAndConnect(ListModel *py_item_model);
-
-    void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-
-    // Override
-    virtual void keyPressEvent(QKeyEvent *event) override;
-    virtual void dropEvent(QDropEvent *event) override;
-
-    virtual void focusInEvent(QFocusEvent *event) override;
-    virtual void focusOutEvent(QFocusEvent *event) override;
-
-public Q_SLOTS:
-    void modelAboutToBeReset();
-    void modelReset();
-    void clicked(const QModelIndex &index);
-    void doubleClicked(const QModelIndex &index);
-
-protected:
-    virtual void currentChanged(const QModelIndex &current, const QModelIndex &previous) override;
-    virtual void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) override;
-    virtual void contextMenuEvent(QContextMenuEvent *e) override;
-
-private:
-    bool handleKey(const QString &text, int key, int modifiers);
-
-    QVariant m_py_object;
-    int m_saved_index;
 };
 
 
@@ -320,45 +281,6 @@ private Q_SLOTS:
 
 private:
     QVariant m_py_object;
-};
-
-
-class ListModel : public QAbstractListModel
-{
-    Q_OBJECT
-public:
-    ListModel(const QStringList &role_names, QObject *parent = 0);
-    ~ListModel();
-
-    void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
-
-    Qt::DropAction lastDropAction() const { return m_last_drop_action; }
-
-    // public methods
-    void dataChangedInList();
-    void beginInsertRowsInList(int first_row, int last_row);
-    void beginRemoveRowsInList(int first_row, int last_row);
-    void endInsertRowsInList();
-    void endRemoveRowsInList();
-
-    // from QAbstractListModel
-    virtual Qt::DropActions supportedDropActions() const override;
-    virtual int columnCount (const QModelIndex & parent) const override;
-    virtual int rowCount (const QModelIndex & parent) const override;
-    virtual Qt::ItemFlags flags(const QModelIndex &index) const override;
-    virtual QVariant data(const QModelIndex &index, int role) const override;
-    virtual bool removeRows(int row, int count, const QModelIndex &parent) override;
-    virtual QStringList mimeTypes() const override;
-    virtual QMimeData *mimeData(const QModelIndexList &indexes) const override;
-    virtual bool canDropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) const override;
-    virtual bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent) override;
-    virtual QHash<int, QByteArray> roleNames() const override;
-
-private:
-    QVariant m_py_object;
-    QHash<int, QByteArray> m_role_names;
-    Qt::DropAction m_last_drop_action;
-    unsigned m_row_count;
 };
 
 class PyPushButton : public QPushButton
