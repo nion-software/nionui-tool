@@ -5,12 +5,14 @@ import sys
 
 def main():
     if sys.platform == "darwin":
-        app_path = pkg_resources.resource_filename("nui", "macosx/Nion UI Launcher.app")
+        app_path = pkg_resources.resource_filename("nion.nionui_qt", "macosx/Nion UI Launcher.app")
         exe_path = os.path.join(app_path, "Contents", "MacOS", "Nion UI Launcher")
     elif sys.platform == "linux":
-        exe_path = pkg_resources.resource_filename("nui", "linux/NionUILauncher")
+        app_dir = pkg_resources.resource_filename("nion.nionui_qt", "linux")
+        exe_path = os.path.join(app_dir, "NionUILauncher")
     elif sys.platform == "win32":
-        exe_path = pkg_resources.resource_filename("nui", "windows/NionUILauncher.exe")
+        app_dir = pkg_resources.resource_filename("nion.nionui_qt", "windows")
+        exe_path = os.path.join(app_dir, "NionUILauncher.exe")
     else:
         exe_path = None
     if exe_path:

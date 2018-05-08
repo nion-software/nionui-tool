@@ -9,16 +9,16 @@ def package_files(directory):
     paths = []
     for (path, directories, filenames) in os.walk(directory):
         for filename in filenames:
-            paths.append(os.path.join('..', path, filename))
+            paths.append(os.path.join('..', '..', path, filename))
     return paths
 
-extra_files = package_files('nui/macosx')
+extra_files = package_files('nion/nionui_tool/macosx')
 
-modules = ["nui"]
+modules = ["nion.nionui_tool"]
 
 setup(
     name='nionui-tool',
-    version='0.3.10',
+    version='0.3.11',
     zip_safe=False,
     packages=modules,
     package_data={'': extra_files},
@@ -30,7 +30,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'nui=nui.command:main',
+            'nionui-tool=nion.nionui_tool.command:main',
             ],
         },
 )
