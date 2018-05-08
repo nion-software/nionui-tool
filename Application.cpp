@@ -1228,13 +1228,21 @@ static PyObject *Core_getLocation(PyObject * /*self*/, PyObject *args)
 
     QStandardPaths::StandardLocation location = QStandardPaths::DocumentsLocation;
     if (location_str == "data")
+#if QT_VERSION >= 0x050500
         location = QStandardPaths::AppDataLocation;
+#else
+        location = QStandardPaths::DataLocation;
+#endif
     else if (location_str == "documents")
         location = QStandardPaths::DocumentsLocation;
     else if (location_str == "temporary")
         location = QStandardPaths::TempLocation;
     else if (location_str == "configuration")
+#if QT_VERSION >= 0x050500
         location = QStandardPaths::AppConfigLocation;
+#else
+        location = QStandardPaths::ConfigLocation;
+#endif
     QDir dir(QStandardPaths::writableLocation(location));
     QString data_location;
     data_location = dir.absolutePath();
