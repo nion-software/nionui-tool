@@ -3421,7 +3421,11 @@ std::string getLayoutItemInfo(QLayoutItem* item)
         char buf[1024];
         snprintf(buf, 1023, " SpacerItem hint (%d x %d) policy: %s constraint: ss\n",
                  hint.width(), hint.height(),
+#if QT_VERSION >= 0x050500
                  toString(si->sizePolicy()).c_str()
+#else
+                 ""
+#endif
 //                 ,
 //                 toString(si->layout()->sizeConstraint()).c_str()
                  );
