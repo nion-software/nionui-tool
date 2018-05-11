@@ -8,7 +8,7 @@ source:
   - path: setup.py
   - path: NionUILauncher-Mac.zip  # [osx]
   - path: NionUILauncher-Windows  # [win64]
-    folder: NionUILauncher-Windows
+    folder: NionUILauncher-Windows  # [win64]
   - path: NionUILauncher-Linux.zip  # [linux64]
 
 build:
