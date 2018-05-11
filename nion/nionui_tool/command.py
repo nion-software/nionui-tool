@@ -1,21 +1,20 @@
 import os
-import pkg_resources
 import subprocess
 import sys
 
-def main():
+def launch(argv):
     if sys.platform == "darwin":
-        app_path = pkg_resources.resource_filename("nion.nionui_qt", "macosx/Nion UI Launcher.app")
-        exe_path = os.path.join(app_path, "Contents", "MacOS", "Nion UI Launcher")
+        exe_path = os.path.join(sys.exec_prefix, "bin", "Nion UI Launcher.app", "Contents", "MacOS", "Nion UI Launcher")
     elif sys.platform == "linux":
-        app_dir = pkg_resources.resource_filename("nion.nionui_qt", "linux")
-        exe_path = os.path.join(app_dir, "NionUILauncher")
+        exe_path = os.path.join(sys.exec_prefix, "bin", "NionUILauncher", "NionUILauncher")
     elif sys.platform == "win32":
-        app_dir = pkg_resources.resource_filename("nion.nionui_qt", "windows")
-        exe_path = os.path.join(app_dir, "NionUILauncher.exe")
+        exe_path = os.path.join(sys.exec_prefix, "Scripts", "NionUILauncher", "NionUILauncher.exe")
     else:
         exe_path = None
     if exe_path:
         python_prefix = os.sys.prefix
-        proc = subprocess.Popen([exe_path, python_prefix] + sys.argv[1:], universal_newlines=True)
+        proc = subprocess.Popen([exe_path, python_prefix] + argv[1:], universal_newlines=True)
         proc.communicate()
+
+def main():
+    launch(sys.argv)
