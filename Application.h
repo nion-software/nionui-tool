@@ -8,6 +8,8 @@
 #include <QtWidgets/QApplication>
 #include <QtCore/QVariant>
 
+float GetDisplayScaling();
+
 class DocumentWindow;
 
 typedef QList<DocumentWindow *> DocumentWindowList;

@@ -11,6 +11,7 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMimeData>
 #include <QtCore/QQueue>
+#include <QtCore/QRegularExpression>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QSettings>
 #include <QtCore/QTextCodec>
@@ -55,7 +56,7 @@
 
 Q_DECLARE_METATYPE(std::string)
 
-QFont ParseFontString(const QString &font_string);
+QFont ParseFontString(const QString &font_string, float display_scaling = 1.0);
 
 DocumentWindow::DocumentWindow(const QString &title, QWidget *parent)
     : QMainWindow(parent)
@@ -116,14 +117,18 @@ void DocumentWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
 
-    application()->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << event->size().width() << event->size().height());
+    float display_scaling = GetDisplayScaling();
+
+    application()->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << int(event->size().width() / display_scaling) << int(event->size().height() / display_scaling));
 }
 
 void DocumentWindow::moveEvent(QMoveEvent *event)
 {
     QMainWindow::moveEvent(event);
 
-    application()->dispatchPyMethod(m_py_object, "positionChanged", QVariantList() << event->pos().x() << event->pos().y());
+    float display_scaling = GetDisplayScaling();
+
+    application()->dispatchPyMethod(m_py_object, "positionChanged", QVariantList() << int(event->pos().x() / display_scaling) << int(event->pos().y() / display_scaling));
 }
 
 void DocumentWindow::changeEvent(QEvent *event)
@@ -174,8 +179,10 @@ void DockWidget::resizeEvent(QResizeEvent *event)
 {
     QDockWidget::resizeEvent(event);
 
+    float display_scaling = GetDisplayScaling();
+
     Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-    app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << event->size().width() << event->size().height());
+    app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << int(event->size().width() / display_scaling) << int(event->size().height()) / display_scaling);
 }
 
 void DockWidget::focusInEvent(QFocusEvent *event)
@@ -574,10 +581,12 @@ void PyScrollArea::notifyViewportChanged()
 {
     if (m_py_object.isValid())
     {
+        float display_scaling = GetDisplayScaling();
+
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
         QPoint offset = widget()->mapFrom(viewport(), QPoint(0, 0));
         QRect viewport_rect = viewport()->rect().translated(offset.x(), offset.y());
-        app->dispatchPyMethod(m_py_object, "viewportChanged", QVariantList() << viewport_rect.left() << viewport_rect.top() << viewport_rect.width() << viewport_rect.height());
+        app->dispatchPyMethod(m_py_object, "viewportChanged", QVariantList() << int(viewport_rect.left() / display_scaling) << int(viewport_rect.top() / display_scaling) << int(viewport_rect.width() / display_scaling) << int(viewport_rect.height() / display_scaling));
     }
 }
 
@@ -619,8 +628,10 @@ void PyScrollArea::resizeEvent(QResizeEvent *event)
     QScrollArea::resizeEvent(event);
     if (m_py_object.isValid())
     {
+        float display_scaling = GetDisplayScaling();
+
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << event->size().width() << event->size().height());
+        app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << int(event->size().width() / display_scaling) << int(event->size().height()) / display_scaling);
         notifyViewportChanged();
     }
 }
@@ -789,9 +800,11 @@ void addArcToPath(QPainterPath &path, float x, float y, float radius, float star
     }
 }
 
-void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &commands, PaintImageCache *image_cache)
+void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &commands, PaintImageCache *image_cache, float display_scaling)
 {
     QPainterPath path;
+
+    display_scaling = display_scaling ? display_scaling : GetDisplayScaling();
 
     if (image_cache)
     {
@@ -864,15 +877,15 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         }
         else if (cmd == "clip")
         {
-            painter.setClipRect(args[0].toFloat(), args[1].toFloat(), args[2].toFloat(), args[3].toFloat(), Qt::IntersectClip);
+            painter.setClipRect(args[0].toFloat() * display_scaling, args[1].toFloat() * display_scaling, args[2].toFloat() * display_scaling, args[3].toFloat() * display_scaling, Qt::IntersectClip);
         }
         else if (cmd == "translate")
         {
-            painter.translate(args[0].toFloat(), args[1].toFloat());
+            painter.translate(args[0].toFloat() * display_scaling, args[1].toFloat() * display_scaling);
         }
         else if (cmd == "scale")
         {
-            painter.scale(args[0].toFloat(), args[1].toFloat());
+            painter.scale(args[0].toFloat() * display_scaling, args[1].toFloat() * display_scaling);
         }
         else if (cmd == "rotate")
         {
@@ -880,24 +893,24 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         }
         else if (cmd == "moveTo")
         {
-            path.moveTo(args[0].toFloat(), args[1].toFloat());
+            path.moveTo(args[0].toFloat() * display_scaling, args[1].toFloat() * display_scaling);
         }
         else if (cmd == "lineTo")
         {
-            path.lineTo(args[0].toFloat(), args[1].toFloat());
+            path.lineTo(args[0].toFloat() * display_scaling, args[1].toFloat() * display_scaling);
         }
         else if (cmd == "rect")
         {
-            path.addRect(args[0].toFloat(), args[1].toFloat(), args[2].toFloat(), args[3].toFloat());
+            path.addRect(args[0].toFloat() * display_scaling, args[1].toFloat() * display_scaling, args[2].toFloat() * display_scaling, args[3].toFloat() * display_scaling);
         }
         else if (cmd == "arc")
         {
             // see http://www.w3.org/TR/2dcontext/#dom-context-2d-arc
             // see https://qt.gitorious.org/qt/qtdeclarative/source/e3eba2902fcf645bf88764f5272e2987e8992cd4:src/quick/items/context2d/qquickcontext2d.cpp#L3801-3815
 
-            float x = args[0].toFloat();
-            float y = args[1].toFloat();
-            float radius = args[2].toFloat();
+            float x = args[0].toFloat() * display_scaling;
+            float y = args[1].toFloat() * display_scaling;
+            float radius = args[2].toFloat() * display_scaling;
             float start_angle_radians = args[3].toFloat();
             float end_angle_radians = args[4].toFloat();
             bool clockwise = !args[5].toBool();
@@ -911,9 +924,9 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             // see https://bug-23003-attachments.webkit.org/attachment.cgi?id=26267
 
             QPointF p0 = path.currentPosition();
-            QPointF p1(args[0].toFloat(), args[1].toFloat());
-            QPointF p2(args[2].toFloat(), args[3].toFloat());
-            float radius = args[4].toFloat();
+            QPointF p1(args[0].toFloat() * display_scaling, args[1].toFloat() * display_scaling);
+            QPointF p2(args[2].toFloat() * display_scaling, args[3].toFloat() * display_scaling);
+            float radius = args[4].toFloat() * display_scaling;
 
             // Draw only a straight line to p1 if any of the points are equal or the radius is zero
             // or the points are collinear (triangle that the points form has area of zero value).
@@ -987,11 +1000,11 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         }
         else if (cmd == "cubicTo")
         {
-            path.cubicTo(args[0].toFloat(), args[1].toFloat(), args[2].toFloat(), args[3].toFloat(), args[4].toFloat(), args[5].toFloat());
+            path.cubicTo(args[0].toFloat() * display_scaling, args[1].toFloat() * display_scaling, args[2].toFloat() * display_scaling, args[3].toFloat() * display_scaling, args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling);
         }
         else if (cmd == "quadraticTo")
         {
-            path.quadTo(args[0].toFloat(), args[1].toFloat(), args[2].toFloat(), args[3].toFloat());
+            path.quadTo(args[0].toFloat() * display_scaling, args[1].toFloat() * display_scaling, args[2].toFloat() * display_scaling, args[3].toFloat() * display_scaling);
         }
         else if (cmd == "statistics")
         {
@@ -1052,7 +1065,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             {
                 (*image_cache)[image_id].used = true;
                 QImage image = (*image_cache)[image_id].image;
-                painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
+                painter.drawImage(QRectF(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling)), image);
             }
             else
             {
@@ -1091,7 +1104,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             {
                 (*image_cache)[image_id].used = true;
                 QImage image = (*image_cache)[image_id].image;
-                painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
+                painter.drawImage(QRectF(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling)), image);
             }
             else
             {
@@ -1118,7 +1131,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
                 if (!image.isNull())
                 {
-                    painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
+                    painter.drawImage(QRectF(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling)), image);
                     if (image_cache)
                     {
                         PaintImageCacheEntry cache_entry(image_id, true, image);
@@ -1130,13 +1143,13 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         else if (cmd == "stroke")
         {
             QPen pen(line_color);
-            pen.setWidthF(line_width);
+            pen.setWidthF(line_width * display_scaling);
             pen.setJoinStyle(line_join);
             pen.setCapStyle(line_cap);
             if (line_dash > 0.0)
             {
                 QVector<qreal> dashes;
-                dashes << line_dash << line_dash;
+                dashes << line_dash * display_scaling << line_dash * display_scaling;
                 pen.setDashPattern(dashes);
             }
             painter.strokePath(path, pen);
@@ -1168,7 +1181,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         else if (cmd == "fillText" || cmd == "strokeText")
         {
             QString text = args[0].toString();
-            QPointF text_pos(args[1].toFloat(), args[2].toFloat());
+            QPointF text_pos(args[1].toFloat() * display_scaling, args[2].toFloat() * display_scaling);
             QFontMetrics fm(text_font);
             int text_width = fm.width(text);
             if (text_align == 2 || text_align == 5) // end or right
@@ -1195,7 +1208,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             else
             {
                 QPen pen(line_color);
-                pen.setWidth(line_width);
+                pen.setWidth(line_width * display_scaling);
                 pen.setJoinStyle(line_join);
                 pen.setCapStyle(line_cap);
                 painter.strokePath(path, pen);
@@ -1203,7 +1216,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         }
         else if (cmd == "font")
         {
-            text_font = ParseFontString(args[0].toString());
+            text_font = ParseFontString(args[0].toString(), display_scaling);
         }
         else if (cmd == "textAlign")
         {
@@ -1275,11 +1288,11 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         }
         else if (cmd == "gradient")
         {
-            gradients[args[0].toInt()] = QLinearGradient(args[3].toFloat(), args[4].toFloat(), args[3].toFloat() + args[5].toFloat(), args[4].toFloat() + args[6].toFloat());
+            gradients[args[0].toInt()] = QLinearGradient(args[3].toFloat() * display_scaling, args[4].toFloat() * display_scaling, args[3].toFloat() * display_scaling + args[5].toFloat() * display_scaling, args[4].toFloat() * display_scaling + args[6].toFloat() * display_scaling);
         }
         else if (cmd == "colorStop")
         {
-            gradients[args[0].toInt()].setColorAt(args[1].toFloat(), QColor(args[2].toString()));
+            gradients[args[0].toInt()].setColorAt(args[1].toFloat() * display_scaling, QColor(args[2].toString()));
         }
         else if (cmd == "sleep")
         {
@@ -1351,9 +1364,11 @@ inline QString read_string(const quint32 *commands, unsigned int &command_index)
     return str;
 }
 
-RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_v, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache)
+RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_v, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, float display_scaling)
 {
     RenderedTimeStamps rendered_timestamps;
+
+    display_scaling = display_scaling ? display_scaling : GetDisplayScaling();
 
     QPainterPath path;
 
@@ -1436,22 +1451,22 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
         }
         else if (cmd == 0x636c6970) // clip
         {
-            float a0 = read_float(commands, command_index);
-            float a1 = read_float(commands, command_index);
-            float a2 = read_float(commands, command_index);
-            float a3 = read_float(commands, command_index);
+            float a0 = read_float(commands, command_index) * display_scaling;
+            float a1 = read_float(commands, command_index) * display_scaling;
+            float a2 = read_float(commands, command_index) * display_scaling;
+            float a3 = read_float(commands, command_index) * display_scaling;
             painter.setClipRect(a0, a1, a2, a3, Qt::IntersectClip);
         }
         else if (cmd == 0x7472616e) // tran, translate
         {
-            float a0 = read_float(commands, command_index);
-            float a1 = read_float(commands, command_index);
+            float a0 = read_float(commands, command_index) * display_scaling;
+            float a1 = read_float(commands, command_index) * display_scaling;
             painter.translate(a0, a1);
         }
         else if (cmd == 0x7363616c) // scal, scale
         {
-            float a0 = read_float(commands, command_index);
-            float a1 = read_float(commands, command_index);
+            float a0 = read_float(commands, command_index) * display_scaling;
+            float a1 = read_float(commands, command_index) * display_scaling;
             painter.scale(a0, a1);
         }
         else if (cmd == 0x726f7461) // rota, rotate
@@ -1461,22 +1476,22 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
         }
         else if (cmd == 0x6d6f7665) // move
         {
-            float a0 = read_float(commands, command_index);
-            float a1 = read_float(commands, command_index);
+            float a0 = read_float(commands, command_index) * display_scaling;
+            float a1 = read_float(commands, command_index) * display_scaling;
             path.moveTo(a0, a1);
         }
         else if (cmd == 0x6c696e65) // line
         {
-            float a0 = read_float(commands, command_index);
-            float a1 = read_float(commands, command_index);
+            float a0 = read_float(commands, command_index) * display_scaling;
+            float a1 = read_float(commands, command_index) * display_scaling;
             path.lineTo(a0, a1);
         }
         else if (cmd == 0x72656374) // rect
         {
-            float a0 = read_float(commands, command_index);
-            float a1 = read_float(commands, command_index);
-            float a2 = read_float(commands, command_index);
-            float a3 = read_float(commands, command_index);
+            float a0 = read_float(commands, command_index) * display_scaling;
+            float a1 = read_float(commands, command_index) * display_scaling;
+            float a2 = read_float(commands, command_index) * display_scaling;
+            float a3 = read_float(commands, command_index) * display_scaling;
             path.addRect(a0, a1, a2, a3);
         }
         else if (cmd == 0x61726320) // arc
@@ -1484,9 +1499,9 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
             // see http://www.w3.org/TR/2dcontext/#dom-context-2d-arc
             // see https://qt.gitorious.org/qt/qtdeclarative/source/e3eba2902fcf645bf88764f5272e2987e8992cd4:src/quick/items/context2d/qquickcontext2d.cpp#L3801-3815
 
-            float x = read_float(commands, command_index);
-            float y = read_float(commands, command_index);
-            float radius = read_float(commands, command_index);
+            float x = read_float(commands, command_index) * display_scaling;
+            float y = read_float(commands, command_index) * display_scaling;
+            float radius = read_float(commands, command_index) * display_scaling;
             float start_angle_radians = read_float(commands, command_index);
             float end_angle_radians = read_float(commands, command_index);
             bool clockwise = !read_bool(commands, command_index);
@@ -1500,13 +1515,13 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
             // see https://bug-23003-attachments.webkit.org/attachment.cgi?id=26267
 
             QPointF p0 = path.currentPosition();
-            float a0 = read_float(commands, command_index);
-            float a1 = read_float(commands, command_index);
-            float a2 = read_float(commands, command_index);
-            float a3 = read_float(commands, command_index);
+            float a0 = read_float(commands, command_index) * display_scaling;
+            float a1 = read_float(commands, command_index) * display_scaling;
+            float a2 = read_float(commands, command_index) * display_scaling;
+            float a3 = read_float(commands, command_index) * display_scaling;
             QPointF p1(a0, a1);
             QPointF p2(a2, a3);
-            float radius = read_float(commands, command_index);
+            float radius = read_float(commands, command_index) * display_scaling;
 
             // Draw only a straight line to p1 if any of the points are equal or the radius is zero
             // or the points are collinear (triangle that the points form has area of zero value).
@@ -1580,20 +1595,20 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
         }
         else if (cmd == 0x63756263) // cubc, cubic to
         {
-            float a0 = read_float(commands, command_index);
-            float a1 = read_float(commands, command_index);
-            float a2 = read_float(commands, command_index);
-            float a3 = read_float(commands, command_index);
-            float a4 = read_float(commands, command_index);
-            float a5 = read_float(commands, command_index);
+            float a0 = read_float(commands, command_index) * display_scaling;
+            float a1 = read_float(commands, command_index) * display_scaling;
+            float a2 = read_float(commands, command_index) * display_scaling;
+            float a3 = read_float(commands, command_index) * display_scaling;
+            float a4 = read_float(commands, command_index) * display_scaling;
+            float a5 = read_float(commands, command_index) * display_scaling;
             path.cubicTo(a0, a1, a2, a3, a4, a5);
         }
         else if (cmd == 0x71756164) // quad, quadratic to
         {
-            float a0 = read_float(commands, command_index);
-            float a1 = read_float(commands, command_index);
-            float a2 = read_float(commands, command_index);
-            float a3 = read_float(commands, command_index);
+            float a0 = read_float(commands, command_index) * display_scaling;
+            float a1 = read_float(commands, command_index) * display_scaling;
+            float a2 = read_float(commands, command_index) * display_scaling;
+            float a3 = read_float(commands, command_index) * display_scaling;
             path.quadTo(a0, a1, a2, a3);
         }
         else if (cmd == 0x73746174) // stat, statistics
@@ -1654,10 +1669,10 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
 
             int image_id = read_uint32(commands, command_index);
 
-            float arg4 = read_float(commands, command_index);
-            float arg5 = read_float(commands, command_index);
-            float arg6 = read_float(commands, command_index);
-            float arg7 = read_float(commands, command_index);
+            float arg4 = read_float(commands, command_index) * display_scaling;
+            float arg5 = read_float(commands, command_index) * display_scaling;
+            float arg6 = read_float(commands, command_index) * display_scaling;
+            float arg7 = read_float(commands, command_index) * display_scaling;
 
             if (image_cache && image_cache->contains(image_id))
             {
@@ -1705,10 +1720,10 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
 
             int image_id = read_uint32(commands, command_index);
 
-            float arg4 = read_float(commands, command_index);
-            float arg5 = read_float(commands, command_index);
-            float arg6 = read_float(commands, command_index);
-            float arg7 = read_float(commands, command_index);
+            float arg4 = read_float(commands, command_index) * display_scaling;
+            float arg5 = read_float(commands, command_index) * display_scaling;
+            float arg6 = read_float(commands, command_index) * display_scaling;
+            float arg7 = read_float(commands, command_index) * display_scaling;
 
             float low = read_float(commands, command_index);
             float high = read_float(commands, command_index);
@@ -1766,13 +1781,13 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
         else if (cmd == 0x7374726b) // strk, stroke
         {
             QPen pen(line_color);
-            pen.setWidthF(line_width);
+            pen.setWidthF(line_width * display_scaling);
             pen.setJoinStyle(line_join);
             pen.setCapStyle(line_cap);
             if (line_dash > 0.0)
             {
                 QVector<qreal> dashes;
-                dashes << line_dash << line_dash;
+                dashes << line_dash * display_scaling << line_dash * display_scaling;
                 pen.setDashPattern(dashes);
             }
             painter.strokePath(path, pen);
@@ -1804,8 +1819,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
         else if (cmd == 0x74657874 || cmd == 0x73747874) // text, stxt; fill text, stroke text
         {
             QString text = read_string(commands, command_index);
-            float arg1 = read_float(commands, command_index);
-            float arg2 = read_float(commands, command_index);
+            float arg1 = read_float(commands, command_index) * display_scaling;
+            float arg2 = read_float(commands, command_index) * display_scaling;
             read_float(commands, command_index); // max width
             QPointF text_pos(arg1, arg2);
             QFontMetrics fm(text_font);
@@ -1829,7 +1844,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 QBrush brush = fill_gradient >= 0 ? QBrush(gradients[fill_gradient]) : QBrush(fill_color);
                 painter.save();
                 painter.setFont(text_font);
-                painter.setPen(QPen(brush, 1.0));
+                painter.setPen(QPen(brush, 1.0 * display_scaling));
                 painter.drawText(text_pos, text);
                 painter.restore();
             }
@@ -1838,7 +1853,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 QPainterPath path;
                 path.addText(text_pos, text_font, text);
                 QPen pen(line_color);
-                pen.setWidth(line_width);
+                pen.setWidth(line_width * display_scaling);
                 pen.setJoinStyle(line_join);
                 pen.setCapStyle(line_cap);
                 painter.strokePath(path, pen);
@@ -1847,7 +1862,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
         else if (cmd == 0x666f6e74) // font
         {
             QString font_str = read_string(commands, command_index);
-            text_font = ParseFontString(font_str);
+            text_font = ParseFontString(font_str, display_scaling);
         }
         else if (cmd == 0x616c676e) // algn, text align
         {
@@ -1927,16 +1942,16 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
             int arg0 = read_uint32(commands, command_index);
             read_float(commands, command_index);
             read_float(commands, command_index);
-            float arg3 = read_float(commands, command_index);
-            float arg4 = read_float(commands, command_index);
-            float arg5 = read_float(commands, command_index);
-            float arg6 = read_float(commands, command_index);
+            float arg3 = read_float(commands, command_index) * display_scaling;
+            float arg4 = read_float(commands, command_index) * display_scaling;
+            float arg5 = read_float(commands, command_index) * display_scaling;
+            float arg6 = read_float(commands, command_index) * display_scaling;
             gradients[arg0] = QLinearGradient(arg3, arg4, arg3 + arg5, arg4 + arg6);
         }
         else if (cmd == 0x67726373) // grcs, colorStop
         {
             int arg0 = read_uint32(commands, command_index);
-            float arg1 = read_float(commands, command_index);
+            float arg1 = read_float(commands, command_index) * display_scaling;
             QString arg2 = read_string(commands, command_index);
             gradients[arg0].setColorAt(arg1, QColor(arg2));
         }
@@ -2115,7 +2130,8 @@ bool PyCanvas::event(QEvent *event)
             if (pan_gesture)
             {
                 Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-                if (app->dispatchPyMethod(m_py_object, "panGesture", QVariantList() << pan_gesture->delta().x() << pan_gesture->delta().y()).toBool())
+                float display_scaling = GetDisplayScaling();
+                if (app->dispatchPyMethod(m_py_object, "panGesture", QVariantList() << int(pan_gesture->delta().x() / display_scaling) << int(pan_gesture->delta().y() / display_scaling)).toBool())
                     return true;
             }
             QPinchGesture *pinch_gesture = static_cast<QPinchGesture *>(gesture_event->gesture(Qt::PinchGesture));
@@ -2155,8 +2171,10 @@ void PyCanvas::mousePressEvent(QMouseEvent *event)
 {
     if (m_py_object.isValid() && event->button() == Qt::LeftButton)
     {
+        float display_scaling = GetDisplayScaling();
+
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "mousePressed", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+        app->dispatchPyMethod(m_py_object, "mousePressed", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
         m_last_pos = event->pos();
         m_pressed = true;
     }
@@ -2166,13 +2184,15 @@ void PyCanvas::mouseReleaseEvent(QMouseEvent *event)
 {
     if (m_py_object.isValid() && event->button() == Qt::LeftButton)
     {
+        float display_scaling = GetDisplayScaling();
+
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+        app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
         m_pressed = false;
 
-        if ((event->pos() - m_last_pos).manhattanLength() < 6)
+        if ((event->pos() - m_last_pos).manhattanLength() < 6 * display_scaling)
         {
-            app->dispatchPyMethod(m_py_object, "mouseClicked", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+            app->dispatchPyMethod(m_py_object, "mouseClicked", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
         }
     }
 }
@@ -2181,8 +2201,10 @@ void PyCanvas::mouseDoubleClickEvent(QMouseEvent *event)
 {
     if (m_py_object.isValid() && event->button() == Qt::LeftButton)
     {
+        float display_scaling = GetDisplayScaling();
+
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "mouseDoubleClicked", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+        app->dispatchPyMethod(m_py_object, "mouseDoubleClicked", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
     }
 }
 
@@ -2192,22 +2214,24 @@ void PyCanvas::mouseMoveEvent(QMouseEvent *event)
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
 
+        float display_scaling = GetDisplayScaling();
+
         if (m_grab_mouse_count > 0)
         {
             QPoint delta = event->pos() - m_grab_reference_point;
 
-            app->dispatchPyMethod(m_py_object, "grabbedMousePositionChanged", QVariantList() << delta.x() << delta.y() << (int)event->modifiers());
+            app->dispatchPyMethod(m_py_object, "grabbedMousePositionChanged", QVariantList() << int(delta.x() / display_scaling) << int(delta.y() / display_scaling) << (int)event->modifiers());
 
             QCursor::setPos(mapToGlobal(m_grab_reference_point));
             QApplication::changeOverrideCursor(Qt::BlankCursor);
         }
 
-        app->dispatchPyMethod(m_py_object, "mousePositionChanged", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+        app->dispatchPyMethod(m_py_object, "mousePositionChanged", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
 
         // handle case of not getting mouse released event after drag.
         if (m_pressed && !(event->buttons() & Qt::LeftButton))
         {
-            app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << event->x() << event->y() << (int)event->modifiers());
+            app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
             m_pressed = false;
         }
     }
@@ -2219,9 +2243,10 @@ void PyCanvas::wheelEvent(QWheelEvent *event)
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
         QWheelEvent *wheel_event = static_cast<QWheelEvent *>(event);
+        float display_scaling = GetDisplayScaling();
         bool is_horizontal = wheel_event->orientation() == Qt::Horizontal;
         QPoint delta = wheel_event->pixelDelta().isNull() ? wheel_event->angleDelta() : wheel_event->pixelDelta();
-        app->dispatchPyMethod(m_py_object, "wheelChanged", QVariantList() << wheel_event->x() << wheel_event->y() << delta.x() << delta.y() << (bool)is_horizontal);
+        app->dispatchPyMethod(m_py_object, "wheelChanged", QVariantList() << int(wheel_event->x() / display_scaling) << int(wheel_event->y() / display_scaling) << int(delta.x() / display_scaling) << int(delta.y() / display_scaling) << (bool)is_horizontal);
     }
 }
 
@@ -2230,8 +2255,10 @@ void PyCanvas::resizeEvent(QResizeEvent *event)
     QWidget::resizeEvent(event);
     if (m_py_object.isValid())
     {
+        float display_scaling = GetDisplayScaling();
+
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << event->size().width() << event->size().height());
+        app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << int(event->size().width() / display_scaling) << int(event->size().height()) / display_scaling);
     }
 }
 
@@ -2277,10 +2304,12 @@ void PyCanvas::contextMenuEvent(QContextMenuEvent *event)
 
     QVariantList args;
 
-    args.push_back(event->pos().x());
-    args.push_back(event->pos().y());
-    args.push_back(event->globalPos().x());
-    args.push_back(event->globalPos().y());
+    float display_scaling = GetDisplayScaling();
+
+    args.push_back(int(event->pos().x() / display_scaling));
+    args.push_back(int(event->pos().y() / display_scaling));
+    args.push_back(int(event->globalPos().x() / display_scaling));
+    args.push_back(int(event->globalPos().y() / display_scaling));
 
     app->dispatchPyMethod(m_py_object, "contextMenuEvent", args);
 }
@@ -2399,7 +2428,8 @@ void PyCanvas::dragMoveEvent(QDragMoveEvent *event)
     if (m_py_object.isValid())
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        QString action = app->dispatchPyMethod(m_py_object, "dragMoveEvent", QVariantList() << QVariant::fromValue((QObject *)event->mimeData()) << event->pos().x() << event->pos().y()).toString();
+        float display_scaling = GetDisplayScaling();
+        QString action = app->dispatchPyMethod(m_py_object, "dragMoveEvent", QVariantList() << QVariant::fromValue((QObject *)event->mimeData()) << int(event->pos().x() / display_scaling) << int(event->pos().y() / display_scaling)).toString();
         if (action == "copy")
         {
             event->setDropAction(Qt::CopyAction);
@@ -2431,7 +2461,8 @@ void PyCanvas::dropEvent(QDropEvent *event)
     if (m_py_object.isValid())
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        QString action = app->dispatchPyMethod(m_py_object, "dropEvent", QVariantList() << QVariant::fromValue((QObject *)event->mimeData()) << event->pos().x() << event->pos().y()).toString();
+        float display_scaling = GetDisplayScaling();
+        QString action = app->dispatchPyMethod(m_py_object, "dropEvent", QVariantList() << QVariant::fromValue((QObject *)event->mimeData()) << int(event->pos().x() / display_scaling) << int(event->pos().y() / display_scaling)).toString();
         if (action == "copy")
         {
             event->setDropAction(Qt::CopyAction);
@@ -2457,8 +2488,47 @@ void PyCanvas::dropEvent(QDropEvent *event)
     }
 }
 
+void ApplyStylesheet(QWidget *widget)
+{
+    static QString stylesheet = NULL;
+
+    if (stylesheet == NULL)
+    {
+        QFile stylesheet_file(":/app/stylesheet.qss");
+        if (stylesheet_file.open(QIODevice::ReadOnly))
+        {
+            stylesheet = stylesheet_file.readAll();
+
+            float display_scaling = GetDisplayScaling();
+
+            while (true)
+            {
+                QRegularExpression re("(\\d+)px");
+                QRegularExpressionMatch match = re.match(stylesheet);
+                if (match.hasMatch())
+                {
+                    int new_size = int(match.captured(1).toInt() * display_scaling);
+                    stylesheet.replace(match.capturedStart(0), match.capturedLength(0), QString::number(new_size) + "QZ");
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            stylesheet.replace("QZ", "px");
+
+            stylesheet_file.close();
+        }
+    }
+
+    widget->setStyleSheet(stylesheet);
+}
+
 QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
 {
+    float display_scaling = GetDisplayScaling();
+
     if (intrinsic_id == "row")
     {
         QWidget *row = new QWidget();
@@ -2480,25 +2550,13 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
         PyTabWidget *group = new PyTabWidget();
         group->setTabsClosable(false);
         group->setMovable(false);
-        QFile stylesheet_file(":/app/stylesheet.qss");
-        if (stylesheet_file.open(QIODevice::ReadOnly))
-        {
-            QString stylesheet = stylesheet_file.readAll();
-            group->setStyleSheet(stylesheet);
-            stylesheet_file.close();
-        }
+        ApplyStylesheet(group);
         return group;
     }
     else if (intrinsic_id == "stack")
     {
         QStackedWidget *stack = new QStackedWidget();
-        QFile stylesheet_file(":/app/stylesheet.qss");
-        if (stylesheet_file.open(QIODevice::ReadOnly))
-        {
-            QString stylesheet = stylesheet_file.readAll();
-            stack->setStyleSheet(stylesheet);
-            stylesheet_file.close();
-        }
+        ApplyStylesheet(stack);
         return stack;
     }
     else if (intrinsic_id == "group")
@@ -2507,38 +2565,21 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
         QVBoxLayout *column_layout = new QVBoxLayout(group_box);
         column_layout->setContentsMargins(0, 0, 0, 0);
         column_layout->setSpacing(0);
-        QFile stylesheet_file(":/app/stylesheet.qss");
-        if (stylesheet_file.open(QIODevice::ReadOnly))
-        {
-            QString stylesheet = stylesheet_file.readAll();
-            group_box->setStyleSheet(stylesheet);
-            stylesheet_file.close();
-        }
+        ApplyStylesheet(group_box);
         return group_box;
     }
     else if (intrinsic_id == "scrollarea")
     {
         PyScrollArea *scroll_area = new PyScrollArea();
         // Set up the system wide stylesheet
-        QFile stylesheet_file(":/app/stylesheet.qss");
-        if (stylesheet_file.open(QIODevice::ReadOnly))
-        {
-            scroll_area->setStyleSheet(stylesheet_file.readAll());
-            stylesheet_file.close();
-        }
+        ApplyStylesheet(scroll_area);
         return scroll_area;
     }
     else if (intrinsic_id == "splitter")
     {
         QSplitter *splitter = new QSplitter();
         splitter->setOrientation(Qt::Vertical);
-        QFile stylesheet_file(":/app/stylesheet.qss");
-        if (stylesheet_file.open(QIODevice::ReadOnly))
-        {
-            QString stylesheet = stylesheet_file.readAll();
-            splitter->setStyleSheet(stylesheet);
-            stylesheet_file.close();
-        }
+        ApplyStylesheet(splitter);
         return splitter;
     }
     else if (intrinsic_id == "pushbutton")
@@ -2599,12 +2640,7 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
         scroll_area->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
         // Set up the system wide stylesheet
-        QFile stylesheet_file(":/app/stylesheet.qss");
-        if (stylesheet_file.open(QIODevice::ReadOnly))
-        {
-            scroll_area->setStyleSheet(stylesheet_file.readAll());
-            stylesheet_file.close();
-        }
+        ApplyStylesheet(scroll_area);
 
         QWidget *content_view = new QWidget();
         content_view->setContentsMargins(0, 0, 0, 0);
@@ -2632,71 +2668,71 @@ void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const Q
 {
     if (property == "margin")
     {
-        int margin = variant.toInt();
+        int margin = int(variant.toInt() * GetDisplayScaling());
         widget->setContentsMargins(margin, margin, margin, margin);
     }
     else if (property == "margin-top")
     {
-        int value = variant.toInt();
+        int value = int(variant.toInt() * GetDisplayScaling());
         QMargins margin = widget->contentsMargins();
         margin.setTop(value);
         widget->setContentsMargins(margin);
     }
     else if (property == "margin-left")
     {
-        int value = variant.toInt();
+        int value = int(variant.toInt() * GetDisplayScaling());
         QMargins margin = widget->contentsMargins();
         margin.setLeft(value);
         widget->setContentsMargins(margin);
     }
     else if (property == "margin-bottom")
     {
-        int value = variant.toInt();
+        int value = int(variant.toInt() * GetDisplayScaling());
         QMargins margin = widget->contentsMargins();
         margin.setBottom(value);
         widget->setContentsMargins(margin);
     }
     else if (property == "margin-right")
     {
-        int value = variant.toInt();
+        int value = int(variant.toInt() * GetDisplayScaling());
         QMargins margin = widget->contentsMargins();
         margin.setRight(value);
         widget->setContentsMargins(margin);
     }
     else if (property == "min-width")
     {
-        widget->setMinimumWidth(variant.toInt());
+        widget->setMinimumWidth(int(variant.toInt() * GetDisplayScaling()));
         QSizePolicy size_policy = widget->sizePolicy();
         size_policy.setHorizontalPolicy(QSizePolicy::Expanding);
         widget->setSizePolicy(size_policy);
     }
     else if (property == "min-height")
     {
-        widget->setMinimumHeight(variant.toInt());
+        widget->setMinimumHeight(int(variant.toInt() * GetDisplayScaling()));
         QSizePolicy size_policy = widget->sizePolicy();
         size_policy.setVerticalPolicy(QSizePolicy::Expanding);
         widget->setSizePolicy(size_policy);
     }
     else if (property == "width")
     {
-        widget->setMinimumWidth(variant.toInt());
-        widget->setMaximumWidth(variant.toInt());
+        widget->setMinimumWidth(int(variant.toInt() * GetDisplayScaling()));
+        widget->setMaximumWidth(int(variant.toInt() * GetDisplayScaling()));
     }
     else if (property == "height")
     {
-        widget->setMinimumHeight(variant.toInt());
-        widget->setMaximumHeight(variant.toInt());
+        widget->setMinimumHeight(int(variant.toInt() * GetDisplayScaling()));
+        widget->setMaximumHeight(int(variant.toInt() * GetDisplayScaling()));
     }
     else if (property == "spacing")
     {
         QBoxLayout *layout = dynamic_cast<QBoxLayout *>(widget->layout());
         if (layout)
-            layout->setSpacing(variant.toInt());
+            layout->setSpacing(int(variant.toInt() * GetDisplayScaling()));
     }
     else if (property == "font-size")
     {
         QFont font = widget->font();
-        font.setPointSize(variant.toInt());
+        font.setPointSize(int(variant.toInt() * GetDisplayScaling()));
         widget->setFont(font);
     }
     else if (property == "stylesheet")
@@ -2786,6 +2822,8 @@ TreeWidget::TreeWidget()
     setDragDropMode(QAbstractItemView::DragDrop);
     setDefaultDropAction(Qt::MoveAction);
     setDragEnabled(true);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     connect(this, SIGNAL(clicked(QModelIndex)), this, SLOT(clicked(QModelIndex)));
     connect(this, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(doubleClicked(QModelIndex)));

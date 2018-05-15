@@ -257,13 +257,13 @@ private:
     PaintImageCache m_image_cache;
 };
 
-void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &commands, PaintImageCache *image_cache = NULL);
+void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &commands, PaintImageCache *image_cache = NULL, float display_scaling = 0.0);
 
 typedef QPair<QTransform, QDateTime> RenderedTimeStamp;
 
 typedef QList<RenderedTimeStamp> RenderedTimeStamps;
 
-RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache);
+RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, float display_scaling = 0.0);
 
 class PyStyledItemDelegate : public QStyledItemDelegate
 {

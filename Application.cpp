@@ -164,6 +164,16 @@ QStringList GetOpenFileNames(QWidget *parent,
     return QStringList();
 }
 
+float GetDisplayScaling()
+{
+    float logical_dpi = qApp->primaryScreen()->logicalDotsPerInch();
+#ifdef Q_OS_MAC
+    return logical_dpi / 72.0;
+#else
+    return logical_dpi / 96.0;
+#endif
+}
+
 QSizePolicy::Policy ParseSizePolicy(const QString &policy_str)
 {
     if (policy_str.compare("maximum", Qt::CaseInsensitive) == 0)
@@ -668,7 +678,9 @@ static PyObject *Canvas_grabMouse(PyObject * /*self*/, PyObject *args)
     if (canvas == NULL)
         return NULL;
 
-    canvas->grabMouse0(QPoint(gx, gy));
+    float display_scaling = GetDisplayScaling();
+
+    canvas->grabMouse0(QPoint(gx * display_scaling, gy * display_scaling));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -1098,7 +1110,7 @@ static PyObject *ComboBox_setCurrentText(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
-QFont ParseFontString(const QString &font_string)
+QFont ParseFontString(const QString &font_string, float display_scaling = 1.0)
 {
     QFont font;
     QStringList family_parts;
@@ -1124,9 +1136,9 @@ QFont ParseFontString(const QString &font_string)
             else if (font_part == "system")
                 font.setStyleHint(QFont::System);
             else if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toInt() > 0)
-                font.setPointSizeF(font_part.left(font_part.length() - 2).toFloat());
+                font.setPointSizeF(font_part.left(font_part.length() - 2).toFloat() * display_scaling);
             else if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toInt() > 0)
-                font.setPixelSize(font_part.left(font_part.length() - 2).toInt());
+                font.setPixelSize(font_part.left(font_part.length() - 2).toInt() * display_scaling);
             else
                 is_family = true;
         }
@@ -1201,19 +1213,21 @@ static PyObject *Core_getFontMetrics(PyObject * /*self*/, PyObject *args)
     if (!PythonSupport::instance()->parse()(args, "sz", &font_c, &text_c))
         return NULL;
 
+    float display_scaling = GetDisplayScaling();
+
     QString text = (text_c != NULL) ? text_c : QString();
 
-    QFont font = ParseFontString(font_c);
+    QFont font = ParseFontString(font_c, display_scaling);
 
     QFontMetrics font_metrics(font);
 
     QVariantList result;
 
-    result << font_metrics.width(text);
-    result << font_metrics.height();
-    result << font_metrics.ascent();
-    result << font_metrics.descent();
-    result << font_metrics.leading();
+    result << font_metrics.width(text) / display_scaling;
+    result << font_metrics.height() / display_scaling;
+    result << font_metrics.ascent() / display_scaling;
+    result << font_metrics.descent() / display_scaling;
+    result << font_metrics.leading() / display_scaling;
 
     return QVariantToPyObject(result);
 }
@@ -1895,7 +1909,9 @@ static PyObject *DocumentWindow_setPosition(PyObject * /*self*/, PyObject *args)
     if (document_window == NULL)
         return NULL;
 
-    document_window->move(QPoint(gx, gy));
+    float display_scaling = GetDisplayScaling();
+
+    document_window->move(QPoint(gx * display_scaling, gy * display_scaling));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -2122,8 +2138,10 @@ static PyObject *Drag_setThumbnail(PyObject * /*self*/, PyObject *args)
         if (image.isNull())
             return NULL;
 
+        float display_scaling = GetDisplayScaling();
+
         drag->setPixmap(QPixmap::fromImage(image));
-        drag->setHotSpot(QPoint(x, y));
+        drag->setHotSpot(QPoint(int(x * display_scaling), int(y * display_scaling)));
     }
 
     return PythonSupport::instance()->getNoneReturnValue();
@@ -2181,7 +2199,7 @@ static PyObject *DrawingContext_paintRGBA(PyObject * /*self*/, PyObject *args)
 
     Python_ThreadAllow thread_allow;
 
-    QImage image((int)width, (int)height, QImage::Format_ARGB32);
+    QImage image(width, height, QImage::Format_ARGB32);
     image.fill(QColor(0,0,0,0));
 
     {
@@ -2196,7 +2214,7 @@ static PyObject *DrawingContext_paintRGBA(PyObject * /*self*/, PyObject *args)
             drawing_command.arguments = raw_command.mid(1);
             drawing_commands.append(drawing_command);
         }
-        PaintCommands(painter, drawing_commands, &image_cache);
+        PaintCommands(painter, drawing_commands, &image_cache, 1.0);
     }
 
     if (image.format() != QImage::Format_ARGB32_Premultiplied)
@@ -2220,7 +2238,7 @@ static PyObject *DrawingContext_paintRGBA_binary(PyObject * /*self*/, PyObject *
 
     Python_ThreadAllow thread_allow;
 
-    QImage image((int)width, (int)height, QImage::Format_ARGB32);
+    QImage image(width, height, QImage::Format_ARGB32);
     image.fill(QColor(0,0,0,0));
 
     {
@@ -2228,7 +2246,7 @@ static PyObject *DrawingContext_paintRGBA_binary(PyObject * /*self*/, PyObject *
         PaintImageCache image_cache;
         std::vector<quint32> commands;
         commands.assign((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4);
-        PaintBinaryCommands(painter, commands, imageMap, &image_cache);
+        PaintBinaryCommands(painter, commands, imageMap, &image_cache, 1.0);
     }
 
     if (image.format() != QImage::Format_ARGB32_Premultiplied)
@@ -2916,8 +2934,10 @@ static PyObject *Menu_popup(PyObject * /*self*/, PyObject *args)
     if (menu == NULL)
         return NULL;
 
+    float display_scaling = GetDisplayScaling();
+
     if (!menu->isEmpty())
-        menu->popup(QPoint(gx, gy));
+        menu->popup(QPoint(gx * display_scaling, gy * display_scaling));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -3061,8 +3081,10 @@ static PyObject *PushButton_setIcon(PyObject * /*self*/, PyObject *args)
         if (image.isNull())
             return NULL;
 
+        float display_scaling = GetDisplayScaling();
+
         push_button->setIcon(QIcon(QPixmap::fromImage(image)));
-        push_button->setIconSize(QSize(width, height));
+        push_button->setIconSize(QSize(width * display_scaling, height * display_scaling));
     }
     else
     {
@@ -3189,8 +3211,10 @@ static PyObject *RadioButton_setIcon(PyObject * /*self*/, PyObject *args)
         if (image.isNull())
             return NULL;
 
+        float display_scaling = GetDisplayScaling();
+
         radio_button->setIcon(QIcon(QPixmap::fromImage(image)));
-        radio_button->setIconSize(QSize(width, height));
+        radio_button->setIconSize(QSize(width * display_scaling, height * display_scaling));
     }
     else
     {
@@ -3607,11 +3631,13 @@ static PyObject *Splitter_setSizes(PyObject * /*self*/, PyObject *args)
     if (splitter == NULL)
         return NULL;
 
+    float display_scaling = GetDisplayScaling();
+
     QVariantList variant_list_sizes = PyObjectToQVariant(obj1).toList();
-    QList<int>  sizes;
+    QList<int> sizes;
     Q_FOREACH(const QVariant &variant_size, variant_list_sizes)
     {
-        sizes.append(variant_size.toInt());
+        sizes.append(int(variant_size.toInt() * display_scaling));
     }
 
     splitter->setSizes(sizes);
@@ -4315,7 +4341,7 @@ static PyObject *TreeWidget_resizeToContent(PyObject * /*self*/, PyObject *args)
 
     QSize size = py_tree_widget->size();
 
-    QSize new_size;
+    int new_height = 0;
 
     int row_count = py_item_model->rowCount(QModelIndex());
 
@@ -4325,22 +4351,25 @@ static PyObject *TreeWidget_resizeToContent(PyObject * /*self*/, PyObject *args)
 
         QRect last = py_tree_widget->visualRect(py_item_model->index(row_count - 1, 0, QModelIndex()));
 
-        new_size = QSize(size.width(), last.bottom() + margins.top() + margins.bottom());
+        new_height = last.bottom() + margins.top() + margins.bottom();
     }
     else
     {
-        new_size = QSize(size.width(), 20);
+        float display_scaling = GetDisplayScaling();
+        new_height = 20 * display_scaling;
     }
 
+    QSize new_size(size.width(), new_height);
+
     // force size to adjust
-    content_view->setMinimumSize(new_size);  // required within scroll area. ugh.
-    content_view->setMaximumSize(new_size);  // required within scroll area. ugh.
+    content_view->setMinimumHeight(new_height);  // required within scroll area. ugh.
+    content_view->setMinimumHeight(new_height);  // required within scroll area. ugh.
     content_view->resize(new_size);
-    scroll_area->setMinimumSize(new_size);  // required within scroll area. ugh.
-    scroll_area->setMaximumSize(new_size);  // required within scroll area. ugh.
+    scroll_area->setMinimumHeight(new_height);  // required within scroll area. ugh.
+    scroll_area->setMinimumHeight(new_height);  // required within scroll area. ugh.
     scroll_area->resize(new_size);
-    py_tree_widget->setMinimumSize(new_size);  // required within scroll area. ugh.
-    py_tree_widget->setMaximumSize(new_size);  // required within scroll area. ugh.
+    py_tree_widget->setMinimumHeight(new_height);  // required within scroll area. ugh.
+    py_tree_widget->setMinimumHeight(new_height);  // required within scroll area. ugh.
     py_tree_widget->resize(new_size);
 
     return PythonSupport::instance()->getNoneReturnValue();
@@ -4579,7 +4608,7 @@ static PyObject *Widget_addSpacing(PyObject * /*self*/, PyObject *args)
     return NULL;
 
     QBoxLayout *layout = dynamic_cast<QBoxLayout *>(container->layout());
-    layout->addSpacing(spacing);
+    layout->addSpacing(spacing * GetDisplayScaling());
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4773,9 +4802,11 @@ static PyObject *Widget_getWidgetSize(PyObject * /*self*/, PyObject *args)
     if (container == NULL)
         return NULL;
 
+    float display_scaling = GetDisplayScaling();
+
     QSize size = container->size();
 
-    return PythonSupport::instance()->build()("ii", size.width(), size.height());
+    return PythonSupport::instance()->build()("ii", int(size.width() / display_scaling), int(size.height() / display_scaling));
 }
 
 static PyObject *Widget_grabGesture(PyObject * /*self*/, PyObject *args)
@@ -4963,7 +4994,9 @@ static PyObject *Widget_mapToGlobal(PyObject * /*self*/, PyObject *args)
 
     QPoint p = widget->mapToGlobal(QPoint(x, y));
 
-    return PythonSupport::instance()->build()("ii", p.x(), p.y());
+    float display_scaling = GetDisplayScaling();
+
+    return PythonSupport::instance()->build()("ii", int(p.x() / display_scaling), int(p.y() / display_scaling));
 }
 
 static PyObject *Widget_removeAll(PyObject * /*self*/, PyObject *args)
@@ -5188,9 +5221,11 @@ static PyObject *Widget_setWidgetSize(PyObject * /*self*/, PyObject *args)
     if (container == NULL)
         return NULL;
 
+    float display_scaling = GetDisplayScaling();
+
     // force size to adjust
-    container->setMinimumSize(QSize(width, height));  // required within scroll area. ugh.
-    container->resize(QSize(width, height));
+    container->setMinimumSize(QSize(width * display_scaling, height * display_scaling));  // required within scroll area. ugh.
+    container->resize(QSize(width * display_scaling, height * display_scaling));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
