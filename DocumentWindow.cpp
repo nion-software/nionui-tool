@@ -1087,7 +1087,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
                 if (!image.isNull())
                 {
-                    painter.drawImage(QRectF(QPointF(args[4].toFloat(), args[5].toFloat()), QSizeF(args[6].toFloat(), args[7].toFloat())), image);
+                    painter.drawImage(QRectF(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling)), image);
                     if (image_cache)
                     {
                         PaintImageCacheEntry cache_entry(image_id, true, image);
@@ -2527,8 +2527,6 @@ void ApplyStylesheet(QWidget *widget)
 
 QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
 {
-    float display_scaling = GetDisplayScaling();
-
     if (intrinsic_id == "row")
     {
         QWidget *row = new QWidget();
