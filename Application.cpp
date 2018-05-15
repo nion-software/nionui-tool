@@ -1695,6 +1695,29 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
     return NULL;
 }
 
+static PyObject *DocumentWindow_getScreenDPIInfo(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
+    if (document_window == NULL)
+        return NULL;
+
+    float logical_dpi = document_window->windowHandle()->screen()->logicalDotsPerInch();
+
+    float physical_dpi = document_window->windowHandle()->screen()->physicalDotsPerInch();
+
+    return PythonSupport::instance()->build()("ff", logical_dpi, physical_dpi);
+}
+
 static PyObject *DocumentWindow_getScreenSize(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5346,6 +5369,7 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_getDisplayScaling", DocumentWindow_getDisplayScaling, METH_VARARGS, "DocumentWindow_getDisplayScaling."},
     {"DocumentWindow_getFilePath", DocumentWindow_getFilePath, METH_VARARGS, "DocumentWindow_getFilePath."},
     {"DocumentWindow_getScreenSize", DocumentWindow_getScreenSize, METH_VARARGS, "DocumentWindow_getScreenSize."},
+    {"DocumentWindow_getScreenDPIInfo", DocumentWindow_getScreenDPIInfo , METH_VARARGS, "DocumentWindow_getScreenDPIInfo"},
     {"DocumentWindow_insertMenu", DocumentWindow_insertMenu, METH_VARARGS, "DocumentWindow_insertMenu."},
     {"DocumentWindow_removeDockWidget", DocumentWindow_removeDockWidget, METH_VARARGS, "DocumentWindow_removeDockWidget."},
     {"DocumentWindow_restore", DocumentWindow_restore, METH_VARARGS, "DocumentWindow_restore."},
