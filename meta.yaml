@@ -1,6 +1,6 @@
 package:
   name: 'nionui-tool'
-  version: '0.3.14'
+  version: '0.3.16'
 
 source:
   - path: nion
