@@ -1,6 +1,5 @@
 import importlib
 import importlib.util
-import logging
 import os
 import sys
 import HostLib  # host supplies this module
@@ -15,7 +14,6 @@ class StdoutCatcher:
     def write(self, stuff):
         out_str = str(stuff) if stuff is not None else str()
         HostLib.Core_out(out_str)
-        logging.info(out_str)
     def flush(self):
         pass
 sys.stdout = StdoutCatcher()
