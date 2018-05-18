@@ -1292,7 +1292,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         }
         else if (cmd == "colorStop")
         {
-            gradients[args[0].toInt()].setColorAt(args[1].toFloat() * display_scaling, QColor(args[2].toString()));
+            gradients[args[0].toInt()].setColorAt(args[1].toFloat(), QColor(args[2].toString()));
         }
         else if (cmd == "sleep")
         {
@@ -1951,7 +1951,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
         else if (cmd == 0x67726373) // grcs, colorStop
         {
             int arg0 = read_uint32(commands, command_index);
-            float arg1 = read_float(commands, command_index) * display_scaling;
+            float arg1 = read_float(commands, command_index);
             QString arg2 = read_string(commands, command_index);
             gradients[arg0].setColorAt(arg1, QColor(arg2));
         }
