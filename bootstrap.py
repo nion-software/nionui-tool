@@ -101,7 +101,7 @@ def bootstrap_main(args):
     Return the main application object.
     """
     version_info = sys.version_info
-    if version_info.major != 3 or version_info.minor != 6:
+    if version_info.major != 3 or version_info.minor < 6:
         return None, "python36"
     proxy = HostLibProxy(HostLib)
     main_fn = None

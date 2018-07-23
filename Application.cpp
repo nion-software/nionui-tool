@@ -5610,7 +5610,7 @@ bool Application::initialize()
         QDir dir(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
         QString data_location = dir.absolutePath();
         QString config_file_path = QDir(data_location).absoluteFilePath("PythonConfig.ini");
-        QMessageBox::critical(nullptr, "Unable to Launch", "Unable to launch Python application (requires Python 3.6).\n\n" + m_python_home + "\n\nCheck the Python path passed on the command line or shortcut; or try removing the file at\n\n" + config_file_path);
+        QMessageBox::critical(nullptr, "Unable to Launch", "Unable to launch Python application (requires Python 3.6 or later).\n\n" + m_python_home + "\n\nCheck the Python path passed on the command line or shortcut; or try removing the file at\n\n" + config_file_path);
     }
 
 //    deinitialize();  // not functional yet (numpy and importlib both cause failures).

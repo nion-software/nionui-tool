@@ -212,19 +212,22 @@ PythonSupport::PythonSupport(const QString &python_home)
 {
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 #if defined(Q_OS_MAC)
+    QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.dylib");
     QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.dylib");
     QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.dylib");
-    QString file_path = QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+    QString file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY);
 #elif defined(Q_OS_LINUX)
+    QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.so");
     QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.so");
     QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.so");
-    QString file_path = QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+    QString file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY | RTLD_GLOBAL);
 #else
+    QString file_path_37 = QDir(python_home).absoluteFilePath("Python37.dll");
     QString file_path_36 = QDir(python_home).absoluteFilePath("Python36.dll");
     QString file_path_35 = QDir(python_home).absoluteFilePath("Python35.dll");
-    QString file_path = QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+    QString file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
 
     // Python may have side-by-side DLLs that it uses. This seems to be an issue with how
     // Anaconda handles installation of the VS redist -- they include it in the directory
