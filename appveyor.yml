@@ -8,7 +8,7 @@ environment:
   PYTHON3_BASE_X64: C:\Miniconda36-x64
 
 install:
-- cmd: C:\Miniconda36-x64\Scripts\conda install numpy=1.15 -y
+- cmd: C:\Miniconda36-x64\Scripts\conda install numpy=1.14 -y
 
 build:
   project: NionUILauncher.vcxproj
