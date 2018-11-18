@@ -170,6 +170,42 @@ void DocumentWindow::cleanDocument()
     setWindowModified(false);
 }
 
+void DocumentWindow::keyPressEvent(QKeyEvent *event)
+{
+    if (event->type() == QEvent::KeyPress)
+    {
+        if (m_py_object.isValid())
+        {
+            Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+            if (app->dispatchPyMethod(m_py_object, "keyPressed", QVariantList() << event->text() << event->key() << (int)event->modifiers()).toBool())
+            {
+                event->accept();
+                return;
+            }
+        }
+    }
+
+    QMainWindow::keyPressEvent(event);
+}
+
+void DocumentWindow::keyReleaseEvent(QKeyEvent *event)
+{
+    if (event->type() == QEvent::KeyRelease)
+    {
+        if (m_py_object.isValid())
+        {
+            Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+            if (app->dispatchPyMethod(m_py_object, "keyReleased", QVariantList() << event->text() << event->key() << (int)event->modifiers()).toBool())
+            {
+                event->accept();
+                return;
+            }
+        }
+    }
+
+    QMainWindow::keyReleaseEvent(event);
+}
+
 DockWidget::DockWidget(const QString &title, QWidget *parent)
     : QDockWidget(title, parent)
 {
