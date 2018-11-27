@@ -82,6 +82,8 @@ PyObject* DECLARE_PY(Py_CompileStringExFlags)(const char *str, const char *filen
 void DECLARE_PY(Py_Initialize)();
 void DECLARE_PY(Py_Finalize)();
 void DECLARE_PY(Py_SetPythonHome)(wchar_t *home);
+void DECLARE_PY(Py_SetPath)(wchar_t *home);
+void DECLARE_PY(Py_SetProgramName)(wchar_t *home);
 bool DECLARE_PY(PyBool_Check)(PyObject *o);
 bool DECLARE_PY(PyCapsule_CheckExact)(PyObject *o);
 bool DECLARE_PY(PyFloat_Check)(PyObject *o);

@@ -10,6 +10,7 @@
 #include <QtCore/QMetaType>
 #include <QtCore/QObject>
 #include <QtCore/QProcessEnvironment>
+#include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
@@ -212,10 +213,31 @@ PythonSupport::PythonSupport(const QString &python_home)
 {
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 #if defined(Q_OS_MAC)
-    QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.dylib");
-    QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.dylib");
-    QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.dylib");
-    QString file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+    QString file_path;
+    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
+    if (QFile(venv_conf_file_name).exists())
+    {
+        // probably Python w/ virtual environment
+        QSettings settings(venv_conf_file_name, QSettings::IniFormat);
+        QString home_bin_path = settings.value("home").toString();
+        if (!home_bin_path.isEmpty())
+        {
+            QDir home_dir(home_bin_path);
+            home_dir.cdUp();
+            QString file_path_37 = home_dir.absoluteFilePath("lib/libpython3.7m.dylib");
+            QString file_path_36 = home_dir.absoluteFilePath("lib/libpython3.6m.dylib");
+            QString file_path_35 = home_dir.absoluteFilePath("lib/libpython3.5m.dylib");
+            file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+        }
+    }
+    else
+    {
+        // probably conda or standard Python
+        QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.dylib");
+        QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.dylib");
+        QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.dylib");
+        file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+    }
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY);
 #elif defined(Q_OS_LINUX)
     QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.so");
@@ -398,6 +420,7 @@ void Python_ThreadAllow::grab()
 }
 
 static wchar_t python_home_static[512];
+static wchar_t python_program_name_static[512];
 
 void PythonSupport::initialize(const QString &python_home)
 {
@@ -413,6 +436,37 @@ void PythonSupport::initialize(const QString &python_home)
         python_home.toWCharArray(python_home_static);
         CALL_PY(Py_SetPythonHome)(python_home_static);  // requires a permanent buffer
     }
+#endif
+
+#if defined(Q_OS_MAC)
+    QString python_home_new = python_home;
+    QString python_program_name = QDir(python_home).absoluteFilePath("bin/python3");
+
+    // check if we're running inside a venv, determined by whether pyvenv.cfg exists.
+    // if so, read the config file and find the home key, indicating the python installation
+    // directory (with /bin attached). then call SetPythonHome and SetProgramName with the
+    // installation directory and virtual environment python path respectively. these are
+    // required for the virtual environment to load correctly.
+    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
+    if (QFile(venv_conf_file_name).exists())
+    {
+        QSettings settings(venv_conf_file_name, QSettings::IniFormat);
+        QString home_bin_path = settings.value("home").toString();
+        if (!home_bin_path.isEmpty())
+        {
+            QDir home_dir(home_bin_path);
+            home_dir.cdUp();
+            python_home_new = home_dir.absolutePath();
+        }
+    }
+
+    memset(&python_home_static[0], 0, sizeof(python_home_static));
+    python_home_new.toWCharArray(python_home_static);
+    CALL_PY(Py_SetPythonHome)(python_home_static);  // requires a permanent buffer
+
+    memset(&python_program_name_static[0], 0, sizeof(python_program_name_static));
+    python_program_name.toWCharArray(python_program_name_static);
+    CALL_PY(Py_SetProgramName)(python_program_name_static);  // requires a permanent buffer
 #endif
 
     CALL_PY(Py_Initialize)();

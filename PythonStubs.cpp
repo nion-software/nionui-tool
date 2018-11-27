@@ -94,6 +94,8 @@ typedef PyObject* (*Py_CompileStringExFlagsFn)(const char *str, const char *file
 typedef void (*Py_InitializeFn)();
 typedef void (*Py_FinalizeFn)();
 typedef void(*Py_SetPythonHomeFn)(wchar_t *ph);
+typedef void(*Py_SetPathFn)(wchar_t *ph);
+typedef void(*Py_SetProgramNameFn)(wchar_t *ph);
 
 static PyBuffer_ReleaseFn fBuffer_Release = 0;
 static PyCallable_CheckFn fCallable_Check = 0;
@@ -160,6 +162,8 @@ static Py_CompileStringExFlagsFn fCompileStringExFlags = 0;
 static Py_InitializeFn fInitialize = 0;
 static Py_FinalizeFn fFinalize = 0;
 static Py_SetPythonHomeFn fSetPythonHome = 0;
+static Py_SetPathFn fSetPath = 0;
+static Py_SetProgramNameFn fSetProgramName = 0;
 
 void initialize_pylib(void *dl)
 {
@@ -749,6 +753,20 @@ void DPy_SetPythonHome(wchar_t *ph)
     if (fSetPythonHome == 0)
         fSetPythonHome = (Py_SetPythonHomeFn)LOOKUP_SYMBOL(pylib, "Py_SetPythonHome");
     return fSetPythonHome(ph);
+}
+
+void DPy_SetPath(wchar_t *ph)
+{
+    if (fSetPath == 0)
+        fSetPath = (Py_SetPathFn)LOOKUP_SYMBOL(pylib, "Py_SetPath");
+    return fSetPath(ph);
+}
+
+void DPy_SetProgramName(wchar_t *ph)
+{
+    if (fSetProgramName == 0)
+        fSetProgramName = (Py_SetProgramNameFn)LOOKUP_SYMBOL(pylib, "Py_SetProgramName");
+    return fSetProgramName(ph);
 }
 
 #endif // defined(DYNAMIC_PYTHON)
