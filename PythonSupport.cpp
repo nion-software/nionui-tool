@@ -301,8 +301,8 @@ PythonSupport::PythonSupport(const QString &python_home)
     // DOES NOT WORK
     //QProcessEnvironment::systemEnvironment().insert("PATH", QProcessEnvironment::systemEnvironment().value("PATH") + ";" + python_home);
 
-    // WORKS
-    qputenv("PATH", (qgetenv("PATH") + ";" + python_home).toUtf8());
+    // WORKS. Library/bin added for Anaconda/Miniconda 3.7 compatibility.
+    qputenv("PATH", (qgetenv("PATH") + ";" + python_home + ";" + QDir(python_home).absoluteFilePath("Library/bin")).toUtf8());
 
     // WORKS ALMOST. DOESN'T ALLOW CAMERA PLUG-INS TO LOAD.
     //SetDllDirectory(QDir::toNativeSeparators(python_home).toUtf8());  // ensure that DLLs local to Python can be found
