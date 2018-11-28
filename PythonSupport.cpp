@@ -240,10 +240,29 @@ PythonSupport::PythonSupport(const QString &python_home)
     }
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY);
 #elif defined(Q_OS_LINUX)
+    QString file_path;
+
+    QString file_path_37s = "/usr/lib/x86_64-linux-gnu/libpython3.7m.so";
+    QString file_path_36s = "/usr/lib/x86_64-linux-gnu/libpython3.6m.so";
+    QString file_path_35s = "/usr/lib/x86_64-linux-gnu/libpython3.5m.so";
     QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.so");
     QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.so");
     QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.so");
-    QString file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+
+    QStringList file_paths;
+    file_paths.append(file_path_37);
+    file_paths.append(file_path_36);
+    file_paths.append(file_path_35);
+    file_paths.append(file_path_37s);
+    file_paths.append(file_path_36s);
+    file_paths.append(file_path_35s);
+
+    Q_FOREACH(file_path, file_paths)
+    {
+        if (QFile(file_path).exists())
+            break;
+    }
+
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY | RTLD_GLOBAL);
 #else
     QString python_home_new = python_home;
@@ -551,6 +570,35 @@ void PythonSupport::initialize(const QString &python_home)
                     }
                 }
             }
+        }
+    }
+
+    memset(&python_home_static[0], 0, sizeof(python_home_static));
+    python_home_new.toWCharArray(python_home_static);
+    CALL_PY(Py_SetPythonHome)(python_home_static);  // requires a permanent buffer
+
+    memset(&python_program_name_static[0], 0, sizeof(python_program_name_static));
+    python_program_name.toWCharArray(python_program_name_static);
+    CALL_PY(Py_SetProgramName)(python_program_name_static);  // requires a permanent buffer
+#elif defined(Q_OS_LINUX)
+    QString python_home_new = python_home;
+    QString python_program_name = QDir(python_home).absoluteFilePath("bin/python3");
+
+    // check if we're running inside a venv, determined by whether pyvenv.cfg exists.
+    // if so, read the config file and find the home key, indicating the python installation
+    // directory (with /bin attached). then call SetPythonHome and SetProgramName with the
+    // installation directory and virtual environment python path respectively. these are
+    // required for the virtual environment to load correctly.
+    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
+    if (QFile(venv_conf_file_name).exists())
+    {
+        QSettings settings(venv_conf_file_name, QSettings::IniFormat);
+        QString home_bin_path = settings.value("home").toString();
+        if (!home_bin_path.isEmpty())
+        {
+            QDir home_dir(home_bin_path);
+            home_dir.cdUp();
+            python_home_new = home_dir.absolutePath();
         }
     }
 
