@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='nionui-tool',
-    version='0.3.17',
+    version='0.3.18',
     packages=["nion.nionui_tool"],
     url='http://www.nion.com',
     license='Apache 2.0',
