@@ -246,10 +246,44 @@ PythonSupport::PythonSupport(const QString &python_home)
     QString file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY | RTLD_GLOBAL);
 #else
-    QString file_path_37 = QDir(python_home).absoluteFilePath("Python37.dll");
-    QString file_path_36 = QDir(python_home).absoluteFilePath("Python36.dll");
-    QString file_path_35 = QDir(python_home).absoluteFilePath("Python35.dll");
-    QString file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+    QString python_home_new = python_home;
+    QString file_path;
+    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
+    if (QFile(venv_conf_file_name).exists())
+    {
+        // probably Python w/ virtual environment.
+        // this code makes me hate both Windows and Qt equally. it is necessary to handle backslashes in paths.
+        QFile file(venv_conf_file_name);
+        if (file.open(QFile::ReadOnly))
+        {
+            QByteArray bytes = file.readAll();
+            QString str = QString::fromUtf8(bytes);
+            Q_FOREACH(const QString &line, str.split(QRegExp("[\r\n]"), QString::SkipEmptyParts))
+            {
+                QRegExp re("^home\\s?=\\s?(.+)$");
+                if (re.indexIn(line) >= 0)
+                {
+                    QString home_bin_path = re.cap(1).trimmed();
+                    if (!home_bin_path.isEmpty())
+                    {
+                        QDir home_dir(QDir::fromNativeSeparators(home_bin_path));
+                        python_home_new = home_dir.absolutePath();
+                        QString file_path_37 = QDir(python_home).absoluteFilePath("Scripts/Python37.dll");
+                        QString file_path_36 = QDir(python_home).absoluteFilePath("Scripts/Python36.dll");
+                        QString file_path_35 = QDir(python_home).absoluteFilePath("Scripts/Python35.dll");
+                        file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        QString file_path_37 = QDir(python_home).absoluteFilePath("Python37.dll");
+        QString file_path_36 = QDir(python_home).absoluteFilePath("Python36.dll");
+        QString file_path_35 = QDir(python_home).absoluteFilePath("Python35.dll");
+        file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+    }
 
     // Python may have side-by-side DLLs that it uses. This seems to be an issue with how
     // Anaconda handles installation of the VS redist -- they include it in the directory
@@ -421,6 +455,9 @@ void Python_ThreadAllow::grab()
 
 static wchar_t python_home_static[512];
 static wchar_t python_program_name_static[512];
+#if defined(Q_OS_WIN)
+static wchar_t python_path_static[512];
+#endif
 
 void PythonSupport::initialize(const QString &python_home)
 {
@@ -457,6 +494,63 @@ void PythonSupport::initialize(const QString &python_home)
             QDir home_dir(home_bin_path);
             home_dir.cdUp();
             python_home_new = home_dir.absolutePath();
+        }
+    }
+
+    memset(&python_home_static[0], 0, sizeof(python_home_static));
+    python_home_new.toWCharArray(python_home_static);
+    CALL_PY(Py_SetPythonHome)(python_home_static);  // requires a permanent buffer
+
+    memset(&python_program_name_static[0], 0, sizeof(python_program_name_static));
+    python_program_name.toWCharArray(python_program_name_static);
+    CALL_PY(Py_SetProgramName)(python_program_name_static);  // requires a permanent buffer
+#elif defined(Q_OS_WIN)
+    QString python_home_new = python_home;
+    QString python_program_name = QDir(python_home).absoluteFilePath("Python.exe");
+
+    // check if we're running inside a venv, determined by whether pyvenv.cfg exists.
+    // if so, read the config file and find the home key, indicating the python installation
+    // directory (with /bin attached). then call SetPythonHome and SetProgramName with the
+    // installation directory and virtual environment python path respectively. these are
+    // required for the virtual environment to load correctly.
+    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
+    if (QFile(venv_conf_file_name).exists())
+    {
+        // probably Python w/ virtual environment.
+        // this code makes me hate both Windows and Qt equally. it is necessary to handle backslashes in paths.
+        QFile file(venv_conf_file_name);
+        if (file.open(QFile::ReadOnly))
+        {
+            QByteArray bytes = file.readAll();
+            QString str = QString::fromUtf8(bytes);
+            Q_FOREACH(const QString &line, str.split(QRegExp("[\r\n]"), QString::SkipEmptyParts))
+            {
+                QRegExp re("^home\\s?=\\s?(.+)$");
+                if (re.indexIn(line) >= 0)
+                {
+                    QString home_bin_path = re.cap(1).trimmed();
+                    if (!home_bin_path.isEmpty())
+                    {
+                        QDir home_dir(QDir::fromNativeSeparators(home_bin_path));
+                        python_home_new = home_dir.absolutePath();
+                        python_program_name = QDir(python_home).absoluteFilePath("Scripts/Python.exe");
+
+                        // required to configure the path; see https://bugs.python.org/issue34725
+                        QStringList python_paths;
+                        python_paths.append(QDir(python_home).absoluteFilePath("Scripts/python37.zip"));
+                        python_paths.append(QDir(python_home).absoluteFilePath("Scripts/python36.zip"));
+                        python_paths.append(QDir(python_home).absoluteFilePath("Scripts/python35.zip"));
+                        python_paths.append(QDir(python_home_new).absoluteFilePath("DLLs"));
+                        python_paths.append(QDir(python_home_new).absoluteFilePath("lib"));
+                        python_paths.append(QDir(python_home_new).absolutePath());
+                        python_paths.append(QDir(python_home).absolutePath());
+                        python_paths.append(QDir(python_home).absoluteFilePath("lib/site-packages"));
+                        memset(&python_path_static[0], 0, sizeof(python_path_static));
+                        python_paths.join(";").toWCharArray(python_path_static);
+                        CALL_PY(Py_SetPath)(python_path_static);  // requires a permanent buffer
+                    }
+                }
+            }
         }
     }
 
