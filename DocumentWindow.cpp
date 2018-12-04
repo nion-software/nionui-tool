@@ -1,6 +1,6 @@
 /*
  Copyright (c) 2012-2015 Nion Company.
-*/
+ */
 
 #include <stdint.h>
 
@@ -1451,582 +1451,623 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
 
         // qint64 start = qint64(timer.nsecsElapsed() / 1.0E3);
 
-        if (cmd == 0x73617665)  // save
+        switch (cmd)
         {
-            QVariantList values;
-            values << fill_color << fill_gradient;
-            values << line_color << line_width << line_dash << line_cap << line_join;
-            values << text_font << text_baseline << text_align;
-            stack.push_back(values);
-            painter.save();
-        }
-        else if (cmd == 0x72657374)  // rest, restore
-        {
-            QVariantList values = stack.takeFirst().toList();
-            fill_color = values.takeFirst().value<QColor>();
-            fill_gradient = values.takeFirst().toInt();
-            line_color = values.takeFirst().value<QColor>();
-            line_width = values.takeFirst().toFloat();
-            line_dash = values.takeFirst().toFloat();
-            line_cap = static_cast<Qt::PenCapStyle>(values.takeFirst().toInt());
-            line_join = static_cast<Qt::PenJoinStyle>(values.takeFirst().toInt());
-            text_font = values.takeFirst().value<QFont>();
-            text_baseline = values.takeFirst().toInt();
-            text_align = values.takeFirst().toInt();
-            painter.restore();
-        }
-        else if (cmd == 0x62707468) // bpth, begin path
-        {
-            path = QPainterPath();
-        }
-        else if (cmd == 0x63707468) // cpth, close path
-        {
-            path.closeSubpath();
-        }
-        else if (cmd == 0x636c6970) // clip
-        {
-            float a0 = read_float(commands, command_index) * display_scaling;
-            float a1 = read_float(commands, command_index) * display_scaling;
-            float a2 = read_float(commands, command_index) * display_scaling;
-            float a3 = read_float(commands, command_index) * display_scaling;
-            painter.setClipRect(a0, a1, a2, a3, Qt::IntersectClip);
-        }
-        else if (cmd == 0x7472616e) // tran, translate
-        {
-            float a0 = read_float(commands, command_index) * display_scaling;
-            float a1 = read_float(commands, command_index) * display_scaling;
-            painter.translate(a0, a1);
-        }
-        else if (cmd == 0x7363616c) // scal, scale
-        {
-            float a0 = read_float(commands, command_index) * display_scaling;
-            float a1 = read_float(commands, command_index) * display_scaling;
-            painter.scale(a0, a1);
-        }
-        else if (cmd == 0x726f7461) // rota, rotate
-        {
-            float a0 = read_float(commands, command_index);
-            painter.rotate(a0);
-        }
-        else if (cmd == 0x6d6f7665) // move
-        {
-            float a0 = read_float(commands, command_index) * display_scaling;
-            float a1 = read_float(commands, command_index) * display_scaling;
-            path.moveTo(a0, a1);
-        }
-        else if (cmd == 0x6c696e65) // line
-        {
-            float a0 = read_float(commands, command_index) * display_scaling;
-            float a1 = read_float(commands, command_index) * display_scaling;
-            path.lineTo(a0, a1);
-        }
-        else if (cmd == 0x72656374) // rect
-        {
-            float a0 = read_float(commands, command_index) * display_scaling;
-            float a1 = read_float(commands, command_index) * display_scaling;
-            float a2 = read_float(commands, command_index) * display_scaling;
-            float a3 = read_float(commands, command_index) * display_scaling;
-            path.addRect(a0, a1, a2, a3);
-        }
-        else if (cmd == 0x61726320) // arc
-        {
-            // see http://www.w3.org/TR/2dcontext/#dom-context-2d-arc
-            // see https://qt.gitorious.org/qt/qtdeclarative/source/e3eba2902fcf645bf88764f5272e2987e8992cd4:src/quick/items/context2d/qquickcontext2d.cpp#L3801-3815
-
-            float x = read_float(commands, command_index) * display_scaling;
-            float y = read_float(commands, command_index) * display_scaling;
-            float radius = read_float(commands, command_index) * display_scaling;
-            float start_angle_radians = read_float(commands, command_index);
-            float end_angle_radians = read_float(commands, command_index);
-            bool clockwise = !read_bool(commands, command_index);
-
-            addArcToPath(path, x, y, radius, start_angle_radians, end_angle_radians, !clockwise);
-        }
-        else if (cmd == 0x61726374) // arct, arc to
-        {
-            // see https://github.com/WebKit/webkit/blob/master/Source/WebCore/platform/graphics/cairo/PathCairo.cpp
-            // see https://code.google.com/p/chromium/codesearch#chromium/src/third_party/skia/src/core/SkPath.cpp&sq=package:chromium&type=cs&l=1381&rcl=1424120049
-            // see https://bug-23003-attachments.webkit.org/attachment.cgi?id=26267
-
-            QPointF p0 = path.currentPosition();
-            float a0 = read_float(commands, command_index) * display_scaling;
-            float a1 = read_float(commands, command_index) * display_scaling;
-            float a2 = read_float(commands, command_index) * display_scaling;
-            float a3 = read_float(commands, command_index) * display_scaling;
-            QPointF p1(a0, a1);
-            QPointF p2(a2, a3);
-            float radius = read_float(commands, command_index) * display_scaling;
-
-            // Draw only a straight line to p1 if any of the points are equal or the radius is zero
-            // or the points are collinear (triangle that the points form has area of zero value).
-            if ((p1 == p0) || (p1 == p2) || radius == 0.0 || triangleArea(p0, p1, p2) == 0.0)
+            case 0x73617665:  // save
             {
-                // just draw a line
-                path.lineTo(p1.x(), p1.y());
-//                return;
-            }
-
-            QPointF p1p0 = p0 - p1;
-            QPointF p1p2 = p2 - p1;
-            float p1p0_length = sqrtf(p1p0.x() * p1p0.x() + p1p0.y() * p1p0.y());
-            float p1p2_length = sqrtf(p1p2.x() * p1p2.x() + p1p2.y() * p1p2.y());
-
-            double cos_phi = (p1p0.x() * p1p2.x() + p1p0.y() * p1p2.y()) / (p1p0_length * p1p2_length);
-            // all points on a line logic
-            if (cos_phi == -1) {
-                path.lineTo(p1.x(), p1.y());
-//                return;
-            }
-            if (cos_phi == 1) {
-                // add infinite far away point
-                unsigned int max_length = 65535;
-                double factor_max = max_length / p1p0_length;
-                QPointF ep((p0.x() + factor_max * p1p0.x()), (p0.y() + factor_max * p1p0.y()));
-                path.lineTo(ep.x(), ep.y());
-//                return;
-            }
-
-            float tangent = radius / tan(acos(cos_phi) / 2);
-            float factor_p1p0 = tangent / p1p0_length;
-            QPointF t_p1p0 = p1 + factor_p1p0 * p1p0;
-
-            QPointF orth_p1p0(p1p0.y(), -p1p0.x());
-            float orth_p1p0_length = sqrt(orth_p1p0.x() * orth_p1p0.x() + orth_p1p0.y() * orth_p1p0.y());
-            float factor_ra = radius / orth_p1p0_length;
-
-            // angle between orth_p1p0 and p1p2 to get the right vector orthographic to p1p0
-            double cos_alpha = (orth_p1p0.x() * p1p2.x() + orth_p1p0.y() * p1p2.y()) / (orth_p1p0_length * p1p2_length);
-            if (cos_alpha < 0.f)
-                orth_p1p0 = QPointF(-orth_p1p0.x(), -orth_p1p0.y());
-
-            QPointF p = t_p1p0 + factor_ra * orth_p1p0;
-
-            // calculate angles for addArc
-            orth_p1p0 = QPointF(-orth_p1p0.x(), -orth_p1p0.y());
-            float sa = acos(orth_p1p0.x() / orth_p1p0_length);
-            if (orth_p1p0.y() < 0.f)
-                sa = 2 * M_PI - sa;
-
-            // anticlockwise logic
-            bool anticlockwise = false;
-
-            float factor_p1p2 = tangent / p1p2_length;
-            QPointF t_p1p2 = p1 + factor_p1p2 * p1p2;
-            QPointF orth_p1p2 = t_p1p2 - p;
-            float orth_p1p2_length = sqrtf(orth_p1p2.x() * orth_p1p2.x() + orth_p1p2.y() * orth_p1p2.y());
-            float ea = acosf(orth_p1p2.x() / orth_p1p2_length);
-            if (orth_p1p2.y() < 0) {
-                ea = 2 * M_PI - ea;
-            }
-            if ((sa > ea) && ((sa - ea) < M_PI))
-                anticlockwise = true;
-            if ((sa < ea) && ((ea - sa) > M_PI))
-                anticlockwise = true;
-
-            path.lineTo(t_p1p0.x(), t_p1p0.y());
-
-            addArcToPath(path, p.x(), p.y(), radius, sa, ea, anticlockwise);
-        }
-        else if (cmd == 0x63756263) // cubc, cubic to
-        {
-            float a0 = read_float(commands, command_index) * display_scaling;
-            float a1 = read_float(commands, command_index) * display_scaling;
-            float a2 = read_float(commands, command_index) * display_scaling;
-            float a3 = read_float(commands, command_index) * display_scaling;
-            float a4 = read_float(commands, command_index) * display_scaling;
-            float a5 = read_float(commands, command_index) * display_scaling;
-            path.cubicTo(a0, a1, a2, a3, a4, a5);
-        }
-        else if (cmd == 0x71756164) // quad, quadratic to
-        {
-            float a0 = read_float(commands, command_index) * display_scaling;
-            float a1 = read_float(commands, command_index) * display_scaling;
-            float a2 = read_float(commands, command_index) * display_scaling;
-            float a3 = read_float(commands, command_index) * display_scaling;
-            path.quadTo(a0, a1, a2, a3);
-        }
-        else if (cmd == 0x73746174) // stat, statistics
-        {
-            QString label = read_string(commands, command_index).simplified();
-
-            static QMap<QString, QElapsedTimer> timer_map;
-            static QMap<QString, QQueue<float> > times_map;
-            static QMap<QString, unsigned> count_map;
-
-            if (!timer_map.contains(label))
-                timer_map.insert(label, QElapsedTimer());
-            if (!times_map.contains(label))
-                times_map.insert(label, QQueue<float>());
-            if (!count_map.contains(label))
-                count_map.insert(label, 0);
-
-            QElapsedTimer &timer = timer_map[label];
-            QQueue<float> &times = times_map[label];
-            unsigned &count = count_map[label];
-
-            if (timer.isValid())
-            {
-                times.enqueue(timer.elapsed() / 1000.0);
-                while (times.length() > 50)
-                    times.dequeue();
-
-                count += 1;
-                if (count == 50)
-                {
-                    float sum = 0.0;
-                    float mn = 9999.0;
-                    float mx = 0.0;
-                    Q_FOREACH(float time, times)
-                    {
-                        sum += time;
-                        mn = qMin(mn, time);
-                        mx = qMax(mx, time);
-                    }
-                    float mean = sum / times.length();
-                    float sum_of_squares = 0.0;
-                    Q_FOREACH(float time, times)
-                    {
-                        sum_of_squares += (time - mean) * (time - mean);
-                    }
-                    float std_dev = sqrt(sum_of_squares / times.length());
-                    qDebug() << label << " fps " << int(100 * (1.0 / mean))/100.0 << " mean " << mean << " dev " << std_dev << " min " << mn << " max " << mx;
-                    count = 0;
-                }
-            }
-
-            timer.restart();
-        }
-        else if (cmd == 0x696d6167) // imag, image
-        {
-            read_uint32(commands, command_index); // width
-            read_uint32(commands, command_index); // height
-
-            int image_id = read_uint32(commands, command_index);
-
-            float arg4 = read_float(commands, command_index) * display_scaling;
-            float arg5 = read_float(commands, command_index) * display_scaling;
-            float arg6 = read_float(commands, command_index) * display_scaling;
-            float arg7 = read_float(commands, command_index) * display_scaling;
-
-            if (image_cache && image_cache->contains(image_id))
-            {
-                (*image_cache)[image_id].used = true;
-                QImage image = (*image_cache)[image_id].image;
-                painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
-            }
-            else
-            {
-                QImage image;
-
-                QString image_key = QString::number(image_id);
-
-                if (imageMap.contains(image_key))
-                {
-                    Python_ThreadBlock thread_block;
-
-                    // Put the ndarray in image
-                    PyObject *ndarray_py = (PyObject *)QVariantToPyObject(imageMap[image_key]);
-                    if (ndarray_py)
-                    {
-                        image = PythonSupport::instance()->imageFromRGBA(ndarray_py);
-
-                        FreePyObject(ndarray_py);
-                    }
-                }
-                else
-                    qDebug() << "missing " << image_key;
-
-                if (!image.isNull())
-                {
-                    painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
-                    if (image_cache)
-                    {
-                        PaintImageCacheEntry cache_entry(image_id, true, image);
-                        (*image_cache)[image_id] = cache_entry;
-                    }
-                }
-            }
-        }
-        else if (cmd == 0x64617461) // data, image data
-        {
-            read_uint32(commands, command_index); // width
-            read_uint32(commands, command_index); // height
-
-            int image_id = read_uint32(commands, command_index);
-
-            float arg4 = read_float(commands, command_index) * display_scaling;
-            float arg5 = read_float(commands, command_index) * display_scaling;
-            float arg6 = read_float(commands, command_index) * display_scaling;
-            float arg7 = read_float(commands, command_index) * display_scaling;
-
-            float low = read_float(commands, command_index);
-            float high = read_float(commands, command_index);
-
-            int color_map_image_id = read_uint32(commands, command_index);
-
-            if (image_cache && image_cache->contains(image_id))
-            {
-                (*image_cache)[image_id].used = true;
-                QImage image = (*image_cache)[image_id].image;
-                painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
-            }
-            else
-            {
-                QImage image;
-
-                QString image_key = QString::number(image_id);
-
-                if (imageMap.contains(image_key))
-                {
-                    Python_ThreadBlock thread_block;
-
-                    // Put the ndarray in image
-                    PyObject *ndarray_py = (PyObject *)QVariantToPyObject(imageMap[image_key]);
-                    if (ndarray_py)
-                    {
-                        PyObject *colormap_ndarray_py = NULL;
-
-                        if (color_map_image_id != 0)
-                        {
-                            QString color_map_image_key = QString::number(color_map_image_id);
-                            if (imageMap.contains(color_map_image_key))
-                                colormap_ndarray_py = (PyObject *)QVariantToPyObject(imageMap[color_map_image_key]);
-                        }
-
-                        image = PythonSupport::instance()->imageFromArray(ndarray_py, low, high, colormap_ndarray_py);
-
-                        FreePyObject(ndarray_py);
-                    }
-                }
-                else
-                    qDebug() << "missing " << image_key;
-
-                if (!image.isNull())
-                {
-                    painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
-                    if (image_cache)
-                    {
-                        PaintImageCacheEntry cache_entry(image_id, true, image);
-                        (*image_cache)[image_id] = cache_entry;
-                    }
-                }
-            }
-        }
-        else if (cmd == 0x7374726b) // strk, stroke
-        {
-            QPen pen(line_color);
-            pen.setWidthF(line_width * display_scaling);
-            pen.setJoinStyle(line_join);
-            pen.setCapStyle(line_cap);
-            if (line_dash > 0.0)
-            {
-                QVector<qreal> dashes;
-                dashes << line_dash * display_scaling << line_dash * display_scaling;
-                pen.setDashPattern(dashes);
-            }
-            painter.strokePath(path, pen);
-        }
-        else if (cmd == 0x66696c6c) // fill
-        {
-            QBrush brush = fill_gradient >= 0 ? QBrush(gradients[fill_gradient]) : QBrush(fill_color);
-            painter.fillPath(path, brush);
-        }
-        else if (cmd == 0x666c7374) // flst, fill style
-        {
-            QString color_arg = read_string(commands, command_index).simplified();
-            QRegExp re1("^rgba\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+),\\s*([0-9.]+)\\)$");
-            QRegExp re2("^rgb\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+)\\)$");
-            int pos1 = re1.indexIn(color_arg);
-            int pos2 = re2.indexIn(color_arg);
-            if (pos1 > -1)
-                fill_color = QColor(re1.cap(1).toInt(), re1.cap(2).toInt(), re1.cap(3).toInt(), re1.cap(4).toFloat() * 255);
-            else if (pos2 > -1)
-                fill_color = QColor(re2.cap(1).toInt(), re2.cap(2).toInt(), re2.cap(3).toInt());
-            else
-                fill_color = QColor(color_arg);
-            fill_gradient = -1;
-        }
-        else if (cmd == 0x666c7367) // flsg, fill style gradient
-        {
-            fill_gradient = read_uint32(commands, command_index);
-        }
-        else if (cmd == 0x74657874 || cmd == 0x73747874) // text, stxt; fill text, stroke text
-        {
-            QString text = read_string(commands, command_index);
-            float arg1 = read_float(commands, command_index) * display_scaling;
-            float arg2 = read_float(commands, command_index) * display_scaling;
-            read_float(commands, command_index); // max width
-            QPointF text_pos(arg1, arg2);
-            QFontMetrics fm(text_font);
-            int text_width = fm.width(text);
-            if (text_align == 2 || text_align == 5) // end or right
-                text_pos.setX(text_pos.x() - text_width);
-            else if (text_align == 4) // center
-                text_pos.setX(text_pos.x() - text_width*0.5);
-            if (text_baseline == 1)    // top
-                text_pos.setY(text_pos.y() + fm.ascent());
-            else if (text_baseline == 2)    // hanging
-                text_pos.setY(text_pos.y() + 2 * fm.ascent() - fm.height());
-            else if (text_baseline == 3)    // middle
-                text_pos.setY(text_pos.y() + fm.xHeight() * 0.5);
-            else if (text_baseline == 4 || text_baseline == 5)  // alphabetic or ideographic
-                text_pos.setY(text_pos.y());
-            else if (text_baseline == 5)    // bottom
-                text_pos.setY(text_pos.y() + fm.ascent() - fm.height());
-            if (cmd == 0x74657874) // text, fill text
-            {
-                QBrush brush = fill_gradient >= 0 ? QBrush(gradients[fill_gradient]) : QBrush(fill_color);
+                QVariantList values;
+                values << fill_color << fill_gradient;
+                values << line_color << line_width << line_dash << line_cap << line_join;
+                values << text_font << text_baseline << text_align;
+                stack.push_back(values);
                 painter.save();
-                painter.setFont(text_font);
-                painter.setPen(QPen(brush, 1.0 * display_scaling));
-                painter.drawText(text_pos, text);
-                painter.restore();
+                break;
             }
-            else // stroke text
+            case 0x72657374:  // rest, restore
             {
-                QPainterPath path;
-                path.addText(text_pos, text_font, text);
+                QVariantList values = stack.takeFirst().toList();
+                fill_color = values.takeFirst().value<QColor>();
+                fill_gradient = values.takeFirst().toInt();
+                line_color = values.takeFirst().value<QColor>();
+                line_width = values.takeFirst().toFloat();
+                line_dash = values.takeFirst().toFloat();
+                line_cap = static_cast<Qt::PenCapStyle>(values.takeFirst().toInt());
+                line_join = static_cast<Qt::PenJoinStyle>(values.takeFirst().toInt());
+                text_font = values.takeFirst().value<QFont>();
+                text_baseline = values.takeFirst().toInt();
+                text_align = values.takeFirst().toInt();
+                painter.restore();
+                break;
+            }
+            case 0x62707468: // bpth, begin path
+            {
+                path = QPainterPath();
+                break;
+            }
+            case 0x63707468: // cpth, close path
+            {
+                path.closeSubpath();
+                break;
+            }
+            case 0x636c6970: // clip
+            {
+                float a0 = read_float(commands, command_index) * display_scaling;
+                float a1 = read_float(commands, command_index) * display_scaling;
+                float a2 = read_float(commands, command_index) * display_scaling;
+                float a3 = read_float(commands, command_index) * display_scaling;
+                painter.setClipRect(a0, a1, a2, a3, Qt::IntersectClip);
+                break;
+            }
+            case 0x7472616e: // tran, translate
+            {
+                float a0 = read_float(commands, command_index) * display_scaling;
+                float a1 = read_float(commands, command_index) * display_scaling;
+                painter.translate(a0, a1);
+                break;
+            }
+            case 0x7363616c: // scal, scale
+            {
+                float a0 = read_float(commands, command_index) * display_scaling;
+                float a1 = read_float(commands, command_index) * display_scaling;
+                painter.scale(a0, a1);
+                break;
+            }
+            case 0x726f7461: // rota, rotate
+            {
+                float a0 = read_float(commands, command_index);
+                painter.rotate(a0);
+                break;
+            }
+            case 0x6d6f7665: // move
+            {
+                float a0 = read_float(commands, command_index) * display_scaling;
+                float a1 = read_float(commands, command_index) * display_scaling;
+                path.moveTo(a0, a1);
+                break;
+            }
+            case 0x6c696e65: // line
+            {
+                float a0 = read_float(commands, command_index) * display_scaling;
+                float a1 = read_float(commands, command_index) * display_scaling;
+                path.lineTo(a0, a1);
+                break;
+            }
+            case 0x72656374: // rect
+            {
+                float a0 = read_float(commands, command_index) * display_scaling;
+                float a1 = read_float(commands, command_index) * display_scaling;
+                float a2 = read_float(commands, command_index) * display_scaling;
+                float a3 = read_float(commands, command_index) * display_scaling;
+                path.addRect(a0, a1, a2, a3);
+                break;
+            }
+            case 0x61726320: // arc
+            {
+                // see http://www.w3.org/TR/2dcontext/#dom-context-2d-arc
+                // see https://qt.gitorious.org/qt/qtdeclarative/source/e3eba2902fcf645bf88764f5272e2987e8992cd4:src/quick/items/context2d/qquickcontext2d.cpp#L3801-3815
+
+                float x = read_float(commands, command_index) * display_scaling;
+                float y = read_float(commands, command_index) * display_scaling;
+                float radius = read_float(commands, command_index) * display_scaling;
+                float start_angle_radians = read_float(commands, command_index);
+                float end_angle_radians = read_float(commands, command_index);
+                bool clockwise = !read_bool(commands, command_index);
+
+                addArcToPath(path, x, y, radius, start_angle_radians, end_angle_radians, !clockwise);
+                break;
+            }
+            case 0x61726374: // arct, arc to
+            {
+                // see https://github.com/WebKit/webkit/blob/master/Source/WebCore/platform/graphics/cairo/PathCairo.cpp
+                // see https://code.google.com/p/chromium/codesearch#chromium/src/third_party/skia/src/core/SkPath.cpp&sq=package:chromium&type=cs&l=1381&rcl=1424120049
+                // see https://bug-23003-attachments.webkit.org/attachment.cgi?id=26267
+
+                QPointF p0 = path.currentPosition();
+                float a0 = read_float(commands, command_index) * display_scaling;
+                float a1 = read_float(commands, command_index) * display_scaling;
+                float a2 = read_float(commands, command_index) * display_scaling;
+                float a3 = read_float(commands, command_index) * display_scaling;
+                QPointF p1(a0, a1);
+                QPointF p2(a2, a3);
+                float radius = read_float(commands, command_index) * display_scaling;
+
+                // Draw only a straight line to p1 if any of the points are equal or the radius is zero
+                // or the points are collinear (triangle that the points form has area of zero value).
+                if ((p1 == p0) || (p1 == p2) || radius == 0.0 || triangleArea(p0, p1, p2) == 0.0)
+                {
+                    // just draw a line
+                    path.lineTo(p1.x(), p1.y());
+                    // return;
+                }
+
+                QPointF p1p0 = p0 - p1;
+                QPointF p1p2 = p2 - p1;
+                float p1p0_length = sqrtf(p1p0.x() * p1p0.x() + p1p0.y() * p1p0.y());
+                float p1p2_length = sqrtf(p1p2.x() * p1p2.x() + p1p2.y() * p1p2.y());
+
+                double cos_phi = (p1p0.x() * p1p2.x() + p1p0.y() * p1p2.y()) / (p1p0_length * p1p2_length);
+                // all points on a line logic
+                if (cos_phi == -1) {
+                    path.lineTo(p1.x(), p1.y());
+                    // return;
+                }
+                if (cos_phi == 1) {
+                    // add infinite far away point
+                    unsigned int max_length = 65535;
+                    double factor_max = max_length / p1p0_length;
+                    QPointF ep((p0.x() + factor_max * p1p0.x()), (p0.y() + factor_max * p1p0.y()));
+                    path.lineTo(ep.x(), ep.y());
+                    // return;
+                }
+
+                float tangent = radius / tan(acos(cos_phi) / 2);
+                float factor_p1p0 = tangent / p1p0_length;
+                QPointF t_p1p0 = p1 + factor_p1p0 * p1p0;
+
+                QPointF orth_p1p0(p1p0.y(), -p1p0.x());
+                float orth_p1p0_length = sqrt(orth_p1p0.x() * orth_p1p0.x() + orth_p1p0.y() * orth_p1p0.y());
+                float factor_ra = radius / orth_p1p0_length;
+
+                // angle between orth_p1p0 and p1p2 to get the right vector orthographic to p1p0
+                double cos_alpha = (orth_p1p0.x() * p1p2.x() + orth_p1p0.y() * p1p2.y()) / (orth_p1p0_length * p1p2_length);
+                if (cos_alpha < 0.f)
+                    orth_p1p0 = QPointF(-orth_p1p0.x(), -orth_p1p0.y());
+
+                QPointF p = t_p1p0 + factor_ra * orth_p1p0;
+
+                // calculate angles for addArc
+                orth_p1p0 = QPointF(-orth_p1p0.x(), -orth_p1p0.y());
+                float sa = acos(orth_p1p0.x() / orth_p1p0_length);
+                if (orth_p1p0.y() < 0.f)
+                    sa = 2 * M_PI - sa;
+
+                // anticlockwise logic
+                bool anticlockwise = false;
+
+                float factor_p1p2 = tangent / p1p2_length;
+                QPointF t_p1p2 = p1 + factor_p1p2 * p1p2;
+                QPointF orth_p1p2 = t_p1p2 - p;
+                float orth_p1p2_length = sqrtf(orth_p1p2.x() * orth_p1p2.x() + orth_p1p2.y() * orth_p1p2.y());
+                float ea = acosf(orth_p1p2.x() / orth_p1p2_length);
+                if (orth_p1p2.y() < 0) {
+                    ea = 2 * M_PI - ea;
+                }
+                if ((sa > ea) && ((sa - ea) < M_PI))
+                    anticlockwise = true;
+                if ((sa < ea) && ((ea - sa) > M_PI))
+                    anticlockwise = true;
+
+                path.lineTo(t_p1p0.x(), t_p1p0.y());
+
+                addArcToPath(path, p.x(), p.y(), radius, sa, ea, anticlockwise);
+                break;
+            }
+            case 0x63756263: // cubc, cubic to
+            {
+                float a0 = read_float(commands, command_index) * display_scaling;
+                float a1 = read_float(commands, command_index) * display_scaling;
+                float a2 = read_float(commands, command_index) * display_scaling;
+                float a3 = read_float(commands, command_index) * display_scaling;
+                float a4 = read_float(commands, command_index) * display_scaling;
+                float a5 = read_float(commands, command_index) * display_scaling;
+                path.cubicTo(a0, a1, a2, a3, a4, a5);
+                break;
+            }
+            case 0x71756164: // quad, quadratic to
+            {
+                float a0 = read_float(commands, command_index) * display_scaling;
+                float a1 = read_float(commands, command_index) * display_scaling;
+                float a2 = read_float(commands, command_index) * display_scaling;
+                float a3 = read_float(commands, command_index) * display_scaling;
+                path.quadTo(a0, a1, a2, a3);
+                break;
+            }
+            case 0x73746174: // stat, statistics
+            {
+                QString label = read_string(commands, command_index).simplified();
+
+                static QMap<QString, QElapsedTimer> timer_map;
+                static QMap<QString, QQueue<float> > times_map;
+                static QMap<QString, unsigned> count_map;
+
+                if (!timer_map.contains(label))
+                    timer_map.insert(label, QElapsedTimer());
+                if (!times_map.contains(label))
+                    times_map.insert(label, QQueue<float>());
+                if (!count_map.contains(label))
+                    count_map.insert(label, 0);
+
+                QElapsedTimer &timer = timer_map[label];
+                QQueue<float> &times = times_map[label];
+                unsigned &count = count_map[label];
+
+                if (timer.isValid())
+                {
+                    times.enqueue(timer.elapsed() / 1000.0);
+                    while (times.length() > 50)
+                        times.dequeue();
+
+                    count += 1;
+                    if (count == 50)
+                    {
+                        float sum = 0.0;
+                        float mn = 9999.0;
+                        float mx = 0.0;
+                        Q_FOREACH(float time, times)
+                        {
+                            sum += time;
+                            mn = qMin(mn, time);
+                            mx = qMax(mx, time);
+                        }
+                        float mean = sum / times.length();
+                        float sum_of_squares = 0.0;
+                        Q_FOREACH(float time, times)
+                        {
+                            sum_of_squares += (time - mean) * (time - mean);
+                        }
+                        float std_dev = sqrt(sum_of_squares / times.length());
+                        qDebug() << label << " fps " << int(100 * (1.0 / mean)) / 100.0 << " mean " << mean << " dev " << std_dev << " min " << mn << " max " << mx;
+                        count = 0;
+                    }
+                }
+
+                timer.restart();
+                break;
+            }
+            case 0x696d6167: // imag, image
+            {
+                read_uint32(commands, command_index); // width
+                read_uint32(commands, command_index); // height
+
+                int image_id = read_uint32(commands, command_index);
+
+                float arg4 = read_float(commands, command_index) * display_scaling;
+                float arg5 = read_float(commands, command_index) * display_scaling;
+                float arg6 = read_float(commands, command_index) * display_scaling;
+                float arg7 = read_float(commands, command_index) * display_scaling;
+
+                if (image_cache && image_cache->contains(image_id))
+                {
+                    (*image_cache)[image_id].used = true;
+                    QImage image = (*image_cache)[image_id].image;
+                    painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
+                }
+                else
+                {
+                    QImage image;
+
+                    QString image_key = QString::number(image_id);
+
+                    if (imageMap.contains(image_key))
+                    {
+                        Python_ThreadBlock thread_block;
+
+                        // Put the ndarray in image
+                        PyObject *ndarray_py = (PyObject *)QVariantToPyObject(imageMap[image_key]);
+                        if (ndarray_py)
+                        {
+                            image = PythonSupport::instance()->imageFromRGBA(ndarray_py);
+
+                            FreePyObject(ndarray_py);
+                        }
+                    }
+                    else
+                        qDebug() << "missing " << image_key;
+
+                    if (!image.isNull())
+                    {
+                        painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
+                        if (image_cache)
+                        {
+                            PaintImageCacheEntry cache_entry(image_id, true, image);
+                            (*image_cache)[image_id] = cache_entry;
+                        }
+                    }
+                }
+                break;
+            }
+            case 0x64617461: // data, image data
+            {
+                read_uint32(commands, command_index); // width
+                read_uint32(commands, command_index); // height
+
+                int image_id = read_uint32(commands, command_index);
+
+                float arg4 = read_float(commands, command_index) * display_scaling;
+                float arg5 = read_float(commands, command_index) * display_scaling;
+                float arg6 = read_float(commands, command_index) * display_scaling;
+                float arg7 = read_float(commands, command_index) * display_scaling;
+
+                float low = read_float(commands, command_index);
+                float high = read_float(commands, command_index);
+
+                int color_map_image_id = read_uint32(commands, command_index);
+
+                if (image_cache && image_cache->contains(image_id))
+                {
+                    (*image_cache)[image_id].used = true;
+                    QImage image = (*image_cache)[image_id].image;
+                    painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
+                }
+                else
+                {
+                    QImage image;
+
+                    QString image_key = QString::number(image_id);
+
+                    if (imageMap.contains(image_key))
+                    {
+                        Python_ThreadBlock thread_block;
+
+                        // Put the ndarray in image
+                        PyObject *ndarray_py = (PyObject *)QVariantToPyObject(imageMap[image_key]);
+                        if (ndarray_py)
+                        {
+                            PyObject *colormap_ndarray_py = NULL;
+
+                            if (color_map_image_id != 0)
+                            {
+                                QString color_map_image_key = QString::number(color_map_image_id);
+                                if (imageMap.contains(color_map_image_key))
+                                    colormap_ndarray_py = (PyObject *)QVariantToPyObject(imageMap[color_map_image_key]);
+                            }
+
+                            image = PythonSupport::instance()->imageFromArray(ndarray_py, low, high, colormap_ndarray_py);
+
+                            FreePyObject(ndarray_py);
+                        }
+                    }
+                    else
+                        qDebug() << "missing " << image_key;
+
+                    if (!image.isNull())
+                    {
+                        painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
+                        if (image_cache)
+                        {
+                            PaintImageCacheEntry cache_entry(image_id, true, image);
+                            (*image_cache)[image_id] = cache_entry;
+                        }
+                    }
+                }
+                break;
+            }
+            case 0x7374726b: // strk, stroke
+            {
                 QPen pen(line_color);
-                pen.setWidth(line_width * display_scaling);
+                pen.setWidthF(line_width * display_scaling);
                 pen.setJoinStyle(line_join);
                 pen.setCapStyle(line_cap);
+                if (line_dash > 0.0)
+                {
+                    QVector<qreal> dashes;
+                    dashes << line_dash * display_scaling << line_dash * display_scaling;
+                    pen.setDashPattern(dashes);
+                }
                 painter.strokePath(path, pen);
+                break;
             }
-        }
-        else if (cmd == 0x666f6e74) // font
-        {
-            QString font_str = read_string(commands, command_index);
-            text_font = ParseFontString(font_str, display_scaling);
-        }
-        else if (cmd == 0x616c676e) // algn, text align
-        {
-            QString arg0 = read_string(commands, command_index);
-            if (arg0 == "start")
-                text_align = 1;
-            if (arg0 == "end")
-                text_align = 2;
-            if (arg0 == "left")
-                text_align = 3;
-            if (arg0 == "center")
-                text_align = 4;
-            if (arg0 == "right")
-                text_align = 5;
-        }
-        else if (cmd == 0x74626173) // tbas, textBaseline
-        {
-            QString arg0 = read_string(commands, command_index);
-            if (arg0 == "top")
-                text_baseline = 1;
-            if (arg0 == "hanging")
-                text_baseline = 2;
-            if (arg0 == "middle")
-                text_baseline = 3;
-            if (arg0 == "alphabetic")
-                text_baseline = 4;
-            if (arg0 == "ideographic")
-                text_baseline = 5;
-            if (arg0 == "bottom")
-                text_baseline = 6;
-        }
-        else if (cmd == 0x73747374) // stst, strokeStyle
-        {
-            QString arg0 = read_string(commands, command_index);
-            QString color_arg = arg0.simplified();
-            QRegExp re1("^rgba\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+),\\s*([0-9.]+)\\)$");
-            QRegExp re2("^rgb\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+)\\)$");
-            int pos1 = re1.indexIn(color_arg);
-            int pos2 = re2.indexIn(color_arg);
-            if (pos1 > -1)
-                line_color = QColor(re1.cap(1).toInt(), re1.cap(2).toInt(), re1.cap(3).toInt(), re1.cap(4).toFloat() * 255);
-            else if (pos2 > -1)
-                line_color = QColor(re2.cap(1).toInt(), re2.cap(2).toInt(), re2.cap(3).toInt());
-            else
-                line_color = QColor(color_arg);
-        }
-        else if (cmd == 0x6c647368) // ldsh, line dash
-        {
-            line_dash = read_float(commands, command_index);
-        }
-        else if (cmd == 0x6c696e77) // linw, lineWidth
-        {
-            line_width = read_float(commands, command_index);
-        }
-        else if (cmd == 0x6c636170) // lcap, lineCap
-        {
-            QString arg0 = read_string(commands, command_index);
-            if (arg0 == "square")
-                line_cap = Qt::SquareCap;
-            if (arg0 == "round")
-                line_cap = Qt::RoundCap;
-            if (arg0 == "butt")
-                line_cap = Qt::FlatCap;
-        }
-        else if (cmd == 0x6c6e6a6e) // lnjn, lineJoin
-        {
-            QString arg0 = read_string(commands, command_index);
-            if (arg0 == "round")
-                line_join = Qt::RoundJoin;
-            if (arg0 == "miter")
-                line_join = Qt::MiterJoin;
-            if (arg0 == "bevel")
-                line_join = Qt::BevelJoin;
-        }
-        else if (cmd == 0x67726164) // grad, gradient
-        {
-            int arg0 = read_uint32(commands, command_index);
-            read_float(commands, command_index);
-            read_float(commands, command_index);
-            float arg3 = read_float(commands, command_index) * display_scaling;
-            float arg4 = read_float(commands, command_index) * display_scaling;
-            float arg5 = read_float(commands, command_index) * display_scaling;
-            float arg6 = read_float(commands, command_index) * display_scaling;
-            gradients[arg0] = QLinearGradient(arg3, arg4, arg3 + arg5, arg4 + arg6);
-        }
-        else if (cmd == 0x67726373) // grcs, colorStop
-        {
-            int arg0 = read_uint32(commands, command_index);
-            float arg1 = read_float(commands, command_index);
-            QString arg2 = read_string(commands, command_index);
-            gradients[arg0].setColorAt(arg1, QColor(arg2));
-        }
-        else if (cmd == 0x736c6570) // slep, sleep
-        {
-            unsigned long duration = read_float(commands, command_index) * 1000000L;
-            QThread::usleep(duration);
-        }
-        else if (cmd == 0x6c61746e) // latn, latency
-        {
-            double arg0 = read_double(commands, command_index);
-            qDebug() << "Latency " << qint64((timer.nsecsElapsed() - ((double)arg0 * 1E9 - timer_offset_ns)) / 1.0E6) << "ms";
-        }
-        else if (cmd == 0x6d657367) // mesg, message
-        {
-            qDebug() << read_string(commands, command_index);
-        }
-        else if (cmd == 0x74696d65) // time, message
-        {
-            painter.save();
-            QString text = read_string(commands, command_index);
+            case 0x66696c6c: // fill
+            {
+                QBrush brush = fill_gradient >= 0 ? QBrush(gradients[fill_gradient]) : QBrush(fill_color);
+                painter.fillPath(path, brush);
+                break;
+            }
+            case 0x666c7374: // flst, fill style
+            {
+                QString color_arg = read_string(commands, command_index).simplified();
+                QRegExp re1("^rgba\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+),\\s*([0-9.]+)\\)$");
+                QRegExp re2("^rgb\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+)\\)$");
+                int pos1 = re1.indexIn(color_arg);
+                int pos2 = re2.indexIn(color_arg);
+                if (pos1 > -1)
+                    fill_color = QColor(re1.cap(1).toInt(), re1.cap(2).toInt(), re1.cap(3).toInt(), re1.cap(4).toFloat() * 255);
+                else if (pos2 > -1)
+                    fill_color = QColor(re2.cap(1).toInt(), re2.cap(2).toInt(), re2.cap(3).toInt());
+                else
+                    fill_color = QColor(color_arg);
+                fill_gradient = -1;
+                break;
+            }
+            case 0x666c7367: // flsg, fill style gradient
+            {
+                fill_gradient = read_uint32(commands, command_index);
+                break;
+            }
+            case 0x74657874:
+            case 0x73747874: // text, stxt; fill text, stroke text
+            {
+                QString text = read_string(commands, command_index);
+                float arg1 = read_float(commands, command_index) * display_scaling;
+                float arg2 = read_float(commands, command_index) * display_scaling;
+                read_float(commands, command_index); // max width
+                QPointF text_pos(arg1, arg2);
+                QFontMetrics fm(text_font);
+                int text_width = fm.width(text);
+                if (text_align == 2 || text_align == 5) // end or right
+                    text_pos.setX(text_pos.x() - text_width);
+                else if (text_align == 4) // center
+                    text_pos.setX(text_pos.x() - text_width * 0.5);
+                if (text_baseline == 1)    // top
+                    text_pos.setY(text_pos.y() + fm.ascent());
+                else if (text_baseline == 2)    // hanging
+                    text_pos.setY(text_pos.y() + 2 * fm.ascent() - fm.height());
+                else if (text_baseline == 3)    // middle
+                    text_pos.setY(text_pos.y() + fm.xHeight() * 0.5);
+                else if (text_baseline == 4 || text_baseline == 5)  // alphabetic or ideographic
+                    text_pos.setY(text_pos.y());
+                else if (text_baseline == 5)    // bottom
+                    text_pos.setY(text_pos.y() + fm.ascent() - fm.height());
+                if (cmd == 0x74657874) // text, fill text
+                {
+                    QBrush brush = fill_gradient >= 0 ? QBrush(gradients[fill_gradient]) : QBrush(fill_color);
+                    painter.save();
+                    painter.setFont(text_font);
+                    painter.setPen(QPen(brush, 1.0 * display_scaling));
+                    painter.drawText(text_pos, text);
+                    painter.restore();
+                }
+                else // stroke text
+                {
+                    QPainterPath path;
+                    path.addText(text_pos, text_font, text);
+                    QPen pen(line_color);
+                    pen.setWidth(line_width * display_scaling);
+                    pen.setJoinStyle(line_join);
+                    pen.setCapStyle(line_cap);
+                    painter.strokePath(path, pen);
+                }
+                break;
+            }
+            case 0x666f6e74: // font
+            {
+                QString font_str = read_string(commands, command_index);
+                text_font = ParseFontString(font_str, display_scaling);
+                break;
+            }
+            case 0x616c676e: // algn, text align
+            {
+                QString arg0 = read_string(commands, command_index);
+                if (arg0 == "start")
+                    text_align = 1;
+                if (arg0 == "end")
+                    text_align = 2;
+                if (arg0 == "left")
+                    text_align = 3;
+                if (arg0 == "center")
+                    text_align = 4;
+                if (arg0 == "right")
+                    text_align = 5;
+                break;
+            }
+            case 0x74626173: // tbas, textBaseline
+            {
+                QString arg0 = read_string(commands, command_index);
+                if (arg0 == "top")
+                    text_baseline = 1;
+                if (arg0 == "hanging")
+                    text_baseline = 2;
+                if (arg0 == "middle")
+                    text_baseline = 3;
+                if (arg0 == "alphabetic")
+                    text_baseline = 4;
+                if (arg0 == "ideographic")
+                    text_baseline = 5;
+                if (arg0 == "bottom")
+                    text_baseline = 6;
+                break;
+            }
+            case 0x73747374: // stst, strokeStyle
+            {
+                QString arg0 = read_string(commands, command_index);
+                QString color_arg = arg0.simplified();
+                QRegExp re1("^rgba\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+),\\s*([0-9.]+)\\)$");
+                QRegExp re2("^rgb\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+)\\)$");
+                int pos1 = re1.indexIn(color_arg);
+                int pos2 = re2.indexIn(color_arg);
+                if (pos1 > -1)
+                    line_color = QColor(re1.cap(1).toInt(), re1.cap(2).toInt(), re1.cap(3).toInt(), re1.cap(4).toFloat() * 255);
+                else if (pos2 > -1)
+                    line_color = QColor(re2.cap(1).toInt(), re2.cap(2).toInt(), re2.cap(3).toInt());
+                else
+                    line_color = QColor(color_arg);
+                break;
+            }
+            case 0x6c647368: // ldsh, line dash
+            {
+                line_dash = read_float(commands, command_index);
+                break;
+            }
+            case 0x6c696e77: // linw, lineWidth
+            {
+                line_width = read_float(commands, command_index);
+                break;
+            }
+            case 0x6c636170: // lcap, lineCap
+            {
+                QString arg0 = read_string(commands, command_index);
+                if (arg0 == "square")
+                    line_cap = Qt::SquareCap;
+                if (arg0 == "round")
+                    line_cap = Qt::RoundCap;
+                if (arg0 == "butt")
+                    line_cap = Qt::FlatCap;
+                break;
+            }
+            case 0x6c6e6a6e: // lnjn, lineJoin
+            {
+                QString arg0 = read_string(commands, command_index);
+                if (arg0 == "round")
+                    line_join = Qt::RoundJoin;
+                if (arg0 == "miter")
+                    line_join = Qt::MiterJoin;
+                if (arg0 == "bevel")
+                    line_join = Qt::BevelJoin;
+                break;
+            }
+            case 0x67726164: // grad, gradient
+            {
+                int arg0 = read_uint32(commands, command_index);
+                read_float(commands, command_index);
+                read_float(commands, command_index);
+                float arg3 = read_float(commands, command_index) * display_scaling;
+                float arg4 = read_float(commands, command_index) * display_scaling;
+                float arg5 = read_float(commands, command_index) * display_scaling;
+                float arg6 = read_float(commands, command_index) * display_scaling;
+                gradients[arg0] = QLinearGradient(arg3, arg4, arg3 + arg5, arg4 + arg6);
+                break;
+            }
+            case 0x67726373: // grcs, colorStop
+            {
+                int arg0 = read_uint32(commands, command_index);
+                float arg1 = read_float(commands, command_index);
+                QString arg2 = read_string(commands, command_index);
+                gradients[arg0].setColorAt(arg1, QColor(arg2));
+                break;
+            }
+            case 0x736c6570: // slep, sleep
+            {
+                unsigned long duration = read_float(commands, command_index) * 1000000L;
+                QThread::usleep(duration);
+                break;
+            }
+            case 0x6c61746e: // latn, latency
+            {
+                double arg0 = read_double(commands, command_index);
+                qDebug() << "Latency " << qint64((timer.nsecsElapsed() - ((double)arg0 * 1E9 - timer_offset_ns)) / 1.0E6) << "ms";
+                break;
+            }
+            case 0x6d657367: // mesg, message
+            {
+                qDebug() << read_string(commands, command_index);
+                break;
+            }
+            case 0x74696d65: // time, message
+            {
+                QString text = read_string(commands, command_index);
 #if QT_VERSION >= 0x050800
-            QDateTime date_time = QDateTime::fromString(text, Qt::ISODateWithMs);
+                QDateTime date_time = QDateTime::fromString(text, Qt::ISODateWithMs);
 #else
-            QDateTime date_time = QDateTime::fromString(text, Qt::ISODate);
+                QDateTime date_time = QDateTime::fromString(text, Qt::ISODate);
 #endif
-            date_time.setTimeSpec(Qt::UTC);
-            QPointF text_pos(12, 12);
-            QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-            QFontMetrics fm(text_font);
-            int text_width = fm.width(text);
-            int text_ascent = fm.ascent();
-            int text_height = fm.height();
-            QPainterPath background;
-            background.addRect(text_pos.x() - 4, text_pos.y() - 4, text_width + 8, text_height + 8);
-            painter.fillPath(background, Qt::white);
-            QPainterPath path;
-            path.addText(text_pos.x(), text_pos.y() + text_ascent, text_font, text);
-            painter.fillPath(path, Qt::black);
-            painter.restore();
-            rendered_timestamps.append(RenderedTimeStamp(painter.worldTransform(), date_time));
+                painter.save();
+                date_time.setTimeSpec(Qt::UTC);
+                QPointF text_pos(12, 12);
+                QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+                QFontMetrics fm(text_font);
+                int text_width = fm.width(text);
+                int text_ascent = fm.ascent();
+                int text_height = fm.height();
+                QPainterPath background;
+                background.addRect(text_pos.x() - 4, text_pos.y() - 4, text_width + 8, text_height + 8);
+                painter.fillPath(background, Qt::white);
+                QPainterPath path;
+                path.addText(text_pos.x(), text_pos.y() + text_ascent, text_font, text);
+                painter.fillPath(path, Qt::black);
+                painter.restore();
+                rendered_timestamps.append(RenderedTimeStamp(painter.worldTransform(), date_time));
+                break;
+            }
         }
 
         // qint64 end = qint64(timer.nsecsElapsed() / 1.0E3);
