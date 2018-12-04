@@ -2095,6 +2095,8 @@ void PyCanvas::render()
     time.start();
 #endif
 
+    painter.end();  // ending painter here speeds up QImage assignment below (Windows)
+
     //qDebug() << "Paint " << QDateTime::currentDateTime() << " elapsed " << start.msecsTo(QDateTime::currentDateTime())/1000.0;
 
     {
