@@ -1083,7 +1083,7 @@ QImage PythonSupport::imageFromArray(PyObject *ndarray_py, float display_limit_l
         if (false)
         {
             const QRgb *colorTableP = colorTable.constData();
-            QImage image((int)width, (int)height, QImage::Format_ARGB32);
+            QImage image((int)width, (int)height, QImage::Format_ARGB32_Premultiplied);
             for (int row=0; row<height; ++row)
             {
                 float *src = ((float *)PyArray_DATA(array)) + row*width;

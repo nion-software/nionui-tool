@@ -2090,7 +2090,7 @@ void PyCanvas::focusOutEvent(QFocusEvent *event)
 
 void PyCanvas::render()
 {
-    QImage image((int)size().width(), (int)size().height(), QImage::Format_ARGB32);
+    QImage image((int)size().width(), (int)size().height(), QImage::Format_ARGB32_Premultiplied);
     image.fill(QColor(0,0,0,0));
 
     QPainter painter(&image);
