@@ -83,10 +83,8 @@ DocumentWindow::DocumentWindow(const QString &title, QWidget *parent)
 
 void DocumentWindow::initialize()
 {
-    // TODO: Setup periodic timer
-    m_periodic_timer = new QTimer(this);
-    connect(m_periodic_timer, SIGNAL(timeout()), this, SLOT(periodic()));
-    m_periodic_timer->start(1000.0/50.0);    // 50 times per second
+    // start the timer event
+    m_periodic_timer = startTimer(20);
 
     // reset it here until it is really modified
     cleanDocument();
@@ -97,9 +95,9 @@ Application *DocumentWindow::application() const
     return dynamic_cast<Application *>(QCoreApplication::instance());
 }
 
-void DocumentWindow::periodic()
+void DocumentWindow::timerEvent(QTimerEvent *event)
 {
-    if (isVisible())
+    if (event->timerId() == m_periodic_timer && isVisible())
         application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
 }
 
@@ -2153,8 +2151,6 @@ void PyCanvas::paintEvent(QPaintEvent *event)
         painter.fillPath(path, Qt::black);
         painter.restore();
     }
-
-    painter.end();
 }
 
 bool PyCanvas::event(QEvent *event)

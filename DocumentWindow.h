@@ -60,19 +60,17 @@ protected:
     virtual void keyPressEvent(QKeyEvent *event) override;
     virtual void keyReleaseEvent(QKeyEvent *event) override;
 
-private Q_SLOTS:
-    void periodic();
-
 private:
     // check to save document
     virtual void closeEvent(QCloseEvent *close_event) override;
+    virtual void timerEvent(QTimerEvent *event) override;
 
     // mark the document as clean
     void cleanDocument();
 
     QVariant m_py_object;
 
-    QTimer *m_periodic_timer;
+    int m_periodic_timer;
 
     bool m_closed;
 
