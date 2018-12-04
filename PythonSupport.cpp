@@ -1065,8 +1065,24 @@ QImage PythonSupport::imageFromArray(PyObject *ndarray_py, float display_limit_l
         long width = PyArray_DIMS(array)[1];
         long height = PyArray_DIMS(array)[0];
         float m = display_limit_high != display_limit_low ? 255.0 / (display_limit_high - display_limit_low) : 1;
+        QVector<QRgb> colorTable;
+        if (lookup_table_ndarray != NULL)
+        {
+            PyArrayObject *lookup_table_array = (PyArrayObject *)PyArray_ContiguousFromObject(lookup_table_ndarray, NPY_UINT32, 1, 1);
+            if (lookup_table_array != NULL)
+            {
+                uint32_t *lookup_table = ((uint32_t *)PyArray_DATA(lookup_table_array));
+                for (int i=0; i<256; ++i)
+                    colorTable.push_back(lookup_table[i]);
+                Py_DECREF(lookup_table_array);
+            }
+        }
+        if (colorTable.length() == 0)
+            for (int i=0; i<256; ++i)
+                colorTable.push_back(0xFF << 24 | i << 16 | i << 8 | i);
         if (false)
         {
+            const QRgb *colorTableP = colorTable.constData();
             QImage image((int)width, (int)height, QImage::Format_ARGB32);
             for (int row=0; row<height; ++row)
             {
@@ -1076,13 +1092,13 @@ QImage PythonSupport::imageFromArray(PyObject *ndarray_py, float display_limit_l
                 {
                     float v = *src++;
                     if (v < display_limit_low)
-                        *dst++ = 0xFF000000;
+                        *dst++ = colorTableP[0];
                     else if (v > display_limit_high)
-                        *dst++ = 0xFFFFFFFF;
+                        *dst++ = colorTableP[255];
                     else
                     {
                         unsigned char vv = (unsigned char)((v - display_limit_low) * m);
-                        *dst++ = 0xFF << 24 | vv << 16 | vv << 8 | vv;
+                        *dst++ = colorTableP[vv];
                     }
                 }
             }
@@ -1107,20 +1123,6 @@ QImage PythonSupport::imageFromArray(PyObject *ndarray_py, float display_limit_l
                         *dst++ = (unsigned char)((v - display_limit_low) * m);
                 }
             }
-            QVector<QRgb> colorTable;
-            if (lookup_table_ndarray != NULL)
-            {
-                PyArrayObject *lookup_table_array = (PyArrayObject *)PyArray_ContiguousFromObject(lookup_table_ndarray, NPY_UINT32, 1, 1);
-                if (lookup_table_array != NULL)
-                {
-                    uint32_t *lookup_table = ((uint32_t *)PyArray_DATA(lookup_table_array));
-                    for (int i=0; i<256; ++i)
-                        colorTable.push_back(lookup_table[i]);
-                }
-            }
-            if (colorTable.length() == 0)
-                for (int i=0; i<256; ++i)
-                    colorTable.push_back(0xFF << 24 | i << 16 | i << 8 | i);
             image.setColorTable(colorTable);
             Py_DECREF(array);
             return image;
