@@ -684,86 +684,6 @@ void PyTabWidget::currentChanged(int index)
     }
 }
 
-PyCanvasRenderThread::PyCanvasRenderThread(PyCanvas *canvas, QWaitCondition &render_request, QMutex &render_request_mutex)
-    : m_canvas(canvas)
-    , m_render_request(render_request)
-    , m_render_request_mutex(render_request_mutex)
-    , m_cancel(false)
-{
-}
-
-void PyCanvasRenderThread::run()
-{
-    while (!m_cancel)
-    {
-        m_render_request_mutex.lock();
-        m_render_request.wait(&m_render_request_mutex);
-        m_render_request_mutex.unlock();
-
-        while (m_needs_render && !m_cancel)
-        {
-            m_needs_render = false;
-            m_canvas->render();
-            Q_EMIT renderingReady();
-        }
-    }
-}
-
-
-PyCanvas::PyCanvas()
-    : m_thread(NULL)
-    , m_pressed(false)
-    , m_grab_mouse_count(0)
-{
-    setMouseTracking(true);
-    setAcceptDrops(true);
-
-    m_thread = new PyCanvasRenderThread(this, m_render_request, m_render_request_mutex);
-
-    connect(m_thread, SIGNAL(renderingReady()), this, SLOT(repaint()));
-
-    m_thread->start();
-}
-
-PyCanvas::~PyCanvas()
-{
-    m_thread->cancel();
-
-    m_render_request_mutex.lock();
-    m_render_request.wakeAll();
-    m_render_request_mutex.unlock();
-
-    m_thread->wait();
-    delete m_thread;
-    m_thread = NULL;
-}
-
-void PyCanvas::focusInEvent(QFocusEvent *event)
-{
-    Q_UNUSED(event)
-
-    if (m_py_object.isValid())
-    {
-        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "focusIn", QVariantList());
-    }
-
-    QWidget::focusInEvent(event);
-}
-
-void PyCanvas::focusOutEvent(QFocusEvent *event)
-{
-    Q_UNUSED(event)
-
-    if (m_py_object.isValid())
-    {
-        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "focusOut", QVariantList());
-    }
-
-    QWidget::focusOutEvent(event);
-}
-
 // see http://www.mathopenref.com/coordtrianglearea.html
 static inline float triangleArea(const QPointF &p1, const QPointF &p2, const QPointF &p3)
 {
@@ -2087,6 +2007,85 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
     }
 
     return rendered_timestamps;
+}
+
+PyCanvasRenderThread::PyCanvasRenderThread(PyCanvas *canvas, QWaitCondition &render_request, QMutex &render_request_mutex)
+    : m_canvas(canvas)
+    , m_render_request(render_request)
+    , m_render_request_mutex(render_request_mutex)
+    , m_cancel(false)
+{
+}
+
+void PyCanvasRenderThread::run()
+{
+    while (!m_cancel)
+    {
+        m_render_request_mutex.lock();
+        m_render_request.wait(&m_render_request_mutex);
+        m_render_request_mutex.unlock();
+
+        while (m_needs_render && !m_cancel)
+        {
+            m_needs_render = false;
+            m_canvas->render();
+            Q_EMIT renderingReady();
+        }
+    }
+}
+
+PyCanvas::PyCanvas()
+    : m_thread(NULL)
+    , m_pressed(false)
+    , m_grab_mouse_count(0)
+{
+    setMouseTracking(true);
+    setAcceptDrops(true);
+
+    m_thread = new PyCanvasRenderThread(this, m_render_request, m_render_request_mutex);
+
+    connect(m_thread, SIGNAL(renderingReady()), this, SLOT(repaint()));
+
+    m_thread->start();
+}
+
+PyCanvas::~PyCanvas()
+{
+    m_thread->cancel();
+
+    m_render_request_mutex.lock();
+    m_render_request.wakeAll();
+    m_render_request_mutex.unlock();
+
+    m_thread->wait();
+    delete m_thread;
+    m_thread = NULL;
+}
+
+void PyCanvas::focusInEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        app->dispatchPyMethod(m_py_object, "focusIn", QVariantList());
+    }
+
+    QWidget::focusInEvent(event);
+}
+
+void PyCanvas::focusOutEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        app->dispatchPyMethod(m_py_object, "focusOut", QVariantList());
+    }
+
+    QWidget::focusOutEvent(event);
 }
 
 void PyCanvas::render()
