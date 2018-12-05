@@ -212,14 +212,8 @@ for install_args in installs:
     if old_file_path != new_file_path:
         shutil.move(old_file_path, new_file_path)
     # add the twines command to the list. printing at the end avoids interspersing extraneous output.
-    twines.append(f"twine upload %s -r pypitest" % new_file_path)
+    twines.append(f"twine upload pypi_build/{new_file_path} -r pypitest")
 
 print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 for twine in twines:
     print(twine)
-
-# setup("macosx_10_11_intel", "cp35.cp36.cp37", "abi3", "NionUILauncher-Mac", "bin")
-
-# setup("win_amd64", "cp35.cp36.cp37", "none", "NionUILauncher-Windows", "Scripts/NionUILauncher")
-
-# setup("manylinux1_x86_64", "cp35.cp36.cp37", "abi3", "NionUILauncher-Linux", "bin/NionUILauncher")
