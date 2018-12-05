@@ -24,7 +24,7 @@ build_dir = "conda_build"
 project = "nionui-launcher"
 project_root = "NionUILauncher"
 tool = "nionui-tool"
-version = "v0.3.19"
+version = "v0.3.20"
 
 if sys.platform == "darwin":
     dir_path = f"{project_root}-Mac"

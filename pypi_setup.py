@@ -189,12 +189,9 @@ from multiprocessing import Process
 # define the list of installs to build
 # the fields are: tool_id, platform, python_version, abi, directory_path, install_path, project_id, version_tag
 installs = [
-    ("nionui", "macosx_10_11_intel", "cp35.cp36.cp37", "abi3", "NionUILauncher-Mac", "bin", "nionui-launcher", "v0.3.19"),
-    ("nionui", "win_amd64", "cp35.cp36.cp37", "none", "NionUILauncher-Windows", "Scripts/NionUILauncher", "nionui-launcher", "v0.3.19"),
-    ("nionui", "manylinux1_x86_64", "cp35.cp36.cp37", "abi3", "NionUILauncher-Linux", "bin/NionUILauncher", "nionui-launcher", "v0.3.19"),
-    # ("nionswift", "macosx_10_11_intel", "cp35.cp36.cp37", "abi3", "NionSwiftLauncher-Mac", "bin", "nionswift-launcher", "0.3.17"),
-    # ("nionswift", "win_amd64", "cp35.cp36.cp37", "none", "NionSwiftLauncher-Windows", "Scripts/NionSwiftLauncher", "nionswift-launcher", "0.3.17"),
-    # ("nionswift", "manylinux1_x86_64", "cp35.cp36.cp37", "abi3", "NionSwiftLauncher-Linux", "bin/NionSwiftLauncher", "nionswift-launcher", "0.3.17"),
+    ("nionui", "macosx_10_11_intel", "cp35.cp36.cp37", "abi3", "NionUILauncher-Mac", "bin", "nionui-launcher", "v0.3.20"),
+    ("nionui", "win_amd64", "cp35.cp36.cp37", "none", "NionUILauncher-Windows", "Scripts/NionUILauncher", "nionui-launcher", "v0.3.20"),
+    ("nionui", "manylinux1_x86_64", "cp35.cp36.cp37", "abi3", "NionUILauncher-Linux", "bin/NionUILauncher", "nionui-launcher", "v0.3.20"),
 ]
 
 twines = list()
