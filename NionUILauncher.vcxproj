@@ -115,7 +115,7 @@ mkdir $(TargetDir)\styles
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\styles\qwindowsvistastyle.dll $(TargetDir)\styles
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\imageformats  $(TargetDir)\imageformats
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\d3dcompiler_47.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libEGLd.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libEGL.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libGLESv2.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Core.dll  $(TargetDir)
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Gui.dll  $(TargetDir)
