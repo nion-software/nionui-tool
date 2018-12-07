@@ -754,6 +754,22 @@ void addArcToPath(QPainterPath &path, float x, float y, float radius, float star
     }
 }
 
+struct DrawingContextState
+{
+    QColor fill_color;
+    int fill_gradient;
+    QColor line_color;
+    float line_width;
+    float line_dash;
+    Qt::PenCapStyle line_cap;
+    Qt::PenJoinStyle line_join;
+    QFont text_font;
+    int text_baseline;
+    int text_align;
+    QMap<int, QGradient> gradients;
+    QPainterPath path;
+};
+
 void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &commands, PaintImageCache *image_cache, float display_scaling)
 {
     QPainterPath path;
@@ -788,7 +804,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
     //qDebug() << "BEGIN";
 
-    QVariantList stack;
+    QList<DrawingContextState> stack;
 
     Q_FOREACH(const CanvasDrawingCommand &command, commands)
     {
@@ -799,27 +815,40 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
         if (cmd == "save")
         {
-            QVariantList values;
-            values << fill_color << fill_gradient;
-            values << line_color << line_width << line_dash << line_cap << line_join;
-            values << text_font << text_baseline << text_align;
+            DrawingContextState values;
+            values.fill_color = fill_color;
+            values.fill_gradient = fill_gradient;
+            values.line_color = line_color;
+            values.line_width = line_width;
+            values.line_dash = line_dash;
+            values.line_cap = line_cap;
+            values.line_join = line_join;
+            values.text_font = text_font;
+            values.text_baseline = text_baseline;
+            values.text_align = text_align;
+            values.gradients = gradients;
+            values.path = path;
             stack.push_back(values);
             painter.save();
+            break;
         }
         else if (cmd == "restore")
         {
-            QVariantList values = stack.takeFirst().toList();
-            fill_color = values.takeFirst().value<QColor>();
-            fill_gradient = values.takeFirst().toInt();
-            line_color = values.takeFirst().value<QColor>();
-            line_width = values.takeFirst().toFloat();
-            line_dash = values.takeFirst().toFloat();
-            line_cap = static_cast<Qt::PenCapStyle>(values.takeFirst().toInt());
-            line_join = static_cast<Qt::PenJoinStyle>(values.takeFirst().toInt());
-            text_font = values.takeFirst().value<QFont>();
-            text_baseline = values.takeFirst().toInt();
-            text_align = values.takeFirst().toInt();
+            DrawingContextState values = stack.takeLast();
+            fill_color = values.fill_color;
+            fill_gradient = values.fill_gradient;
+            line_color = values.line_color;
+            line_width = values.line_width;
+            line_dash = values.line_dash;
+            line_cap = values.line_cap;
+            line_join = values.line_join;
+            text_font = values.text_font;
+            text_baseline = values.text_baseline;
+            text_align = values.text_align;
+            gradients = values.gradients;
+            path = values.path;
             painter.restore();
+            break;
         }
         else if (cmd == "beginPath")
         {
@@ -1352,7 +1381,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
 
     painter.fillRect(painter.viewport(), QBrush(fill_color));
 
-    QVariantList stack;
+    QList<DrawingContextState> stack;
 
     unsigned int command_index = 0;
 
@@ -1375,27 +1404,38 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
         {
             case 0x73617665:  // save
             {
-                QVariantList values;
-                values << fill_color << fill_gradient;
-                values << line_color << line_width << line_dash << line_cap << line_join;
-                values << text_font << text_baseline << text_align;
+                DrawingContextState values;
+                values.fill_color = fill_color;
+                values.fill_gradient = fill_gradient;
+                values.line_color = line_color;
+                values.line_width = line_width;
+                values.line_dash = line_dash;
+                values.line_cap = line_cap;
+                values.line_join = line_join;
+                values.text_font = text_font;
+                values.text_baseline = text_baseline;
+                values.text_align = text_align;
+                values.gradients = gradients;
+                values.path = path;
                 stack.push_back(values);
                 painter.save();
                 break;
             }
             case 0x72657374:  // rest, restore
             {
-                QVariantList values = stack.takeFirst().toList();
-                fill_color = values.takeFirst().value<QColor>();
-                fill_gradient = values.takeFirst().toInt();
-                line_color = values.takeFirst().value<QColor>();
-                line_width = values.takeFirst().toFloat();
-                line_dash = values.takeFirst().toFloat();
-                line_cap = static_cast<Qt::PenCapStyle>(values.takeFirst().toInt());
-                line_join = static_cast<Qt::PenJoinStyle>(values.takeFirst().toInt());
-                text_font = values.takeFirst().value<QFont>();
-                text_baseline = values.takeFirst().toInt();
-                text_align = values.takeFirst().toInt();
+                DrawingContextState values = stack.takeLast();
+                fill_color = values.fill_color;
+                fill_gradient = values.fill_gradient;
+                line_color = values.line_color;
+                line_width = values.line_width;
+                line_dash = values.line_dash;
+                line_cap = values.line_cap;
+                line_join = values.line_join;
+                text_font = values.text_font;
+                text_baseline = values.text_baseline;
+                text_align = values.text_align;
+                gradients = values.gradients;
+                path = values.path;
                 painter.restore();
                 break;
             }
