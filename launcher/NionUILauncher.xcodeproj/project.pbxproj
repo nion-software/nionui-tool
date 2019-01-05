@@ -1,0 +1,385 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		FD49434B1B9784B200CE4307 /* PythonSelectDialog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD49434A1B9784B200CE4307 /* PythonSelectDialog.cpp */; };
+		FD49434C1B97A96C00CE4307 /* PythonSelectDialog.h in Sources */ = {isa = PBXBuildFile; fileRef = FD4943491B9784A600CE4307 /* PythonSelectDialog.h */; };
+		FD60C55216C5AD87009C6448 /* PythonSupport.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD60C55116C5AD87009C6448 /* PythonSupport.cpp */; };
+		FD6CB7CF1663CB31000CF2F1 /* DocumentWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD6CB7CD1663CB31000CF2F1 /* DocumentWindow.cpp */; };
+		FD6CB7D01663CB58000CF2F1 /* DocumentWindow.h in Sources */ = {isa = PBXBuildFile; fileRef = FD6CB7CA1663CB29000CF2F1 /* DocumentWindow.h */; };
+		FD840858160D11F700370586 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD840857160D11F600370586 /* Cocoa.framework */; };
+		FD840875160D126000370586 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD840874160D126000370586 /* main.cpp */; };
+		FD84088A160D180200370586 /* Application.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD840888160D180200370586 /* Application.cpp */; };
+		FD84088C160D190200370586 /* Application.h in Sources */ = {isa = PBXBuildFile; fileRef = FD840889160D180200370586 /* Application.h */; };
+		FD8C40741B8F84F500C6D55C /* PythonStubs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD8C40731B8F84F500C6D55C /* PythonStubs.cpp */; };
+		FDB693F21621F95800728B43 /* resources.qrc in Sources */ = {isa = PBXBuildFile; fileRef = FDFA4FE61621F473002D4129 /* resources.qrc */; };
+		FDD5B8721D81C8C200FD8F7B /* bootstrap.py in Resources */ = {isa = PBXBuildFile; fileRef = FDD5B8711D81C8C200FD8F7B /* bootstrap.py */; };
+		FDE306EA16BC27480023B7FD /* Graphics in Resources */ = {isa = PBXBuildFile; fileRef = FDE306E916BC27480023B7FD /* Graphics */; };
+		FDE306ED16BC59370023B7FD /* stylesheet.qss in Resources */ = {isa = PBXBuildFile; fileRef = FDE306EC16BC59360023B7FD /* stylesheet.qss */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXBuildRule section */
+		FD840886160D179A00370586 /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.proxy.script;
+			filePatterns = "*.h";
+			fileType = pattern.proxy;
+			isEditable = 1;
+			outputFiles = (
+				"$(DERIVED_SOURCES_DIR)/$(CURRENT_ARCH)/moc_$(INPUT_FILE_BASE).cpp",
+			);
+			script = "${QTDIR}/bin/moc ${INPUT_FILE_PATH} > ${DERIVED_SOURCES_DIR}/${CURRENT_ARCH}/moc_${INPUT_FILE_BASE}.cpp";
+		};
+		FD840887160D17BA00370586 /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.proxy.script;
+			filePatterns = "*.qrc";
+			fileType = pattern.proxy;
+			isEditable = 1;
+			outputFiles = (
+				"$(DERIVED_SOURCES_DIR)/$(CURRENT_ARCH)/qrc_$(INPUT_FILE_BASE).cpp",
+			);
+			script = "${QTDIR}/bin/rcc -name ${INPUT_FILE_BASE} ${INPUT_FILE_PATH} > ${DERIVED_SOURCES_DIR}/${CURRENT_ARCH}/qrc_${INPUT_FILE_BASE}.cpp";
+		};
+/* End PBXBuildRule section */
+
+/* Begin PBXFileReference section */
+		A1FED4561E5A7526006E1AFF /* fix_deploy.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = fix_deploy.py; sourceTree = SOURCE_ROOT; };
+		FD0ACF42178CDF8300BB53E3 /* targetDebugNionUILauncher.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = targetDebugNionUILauncher.xcconfig; path = xcconfig/targetDebugNionUILauncher.xcconfig; sourceTree = "<group>"; };
+		FD0ACF46178CDF8300BB53E3 /* targetReleaseNionUILauncher.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = targetReleaseNionUILauncher.xcconfig; path = xcconfig/targetReleaseNionUILauncher.xcconfig; sourceTree = "<group>"; };
+		FD4943491B9784A600CE4307 /* PythonSelectDialog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PythonSelectDialog.h; sourceTree = "<group>"; };
+		FD49434A1B9784B200CE4307 /* PythonSelectDialog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PythonSelectDialog.cpp; sourceTree = SOURCE_ROOT; };
+		FD60C55116C5AD87009C6448 /* PythonSupport.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PythonSupport.cpp; sourceTree = SOURCE_ROOT; };
+		FD60C55416C5AD91009C6448 /* PythonSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PythonSupport.h; sourceTree = "<group>"; };
+		FD6CB7CA1663CB29000CF2F1 /* DocumentWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DocumentWindow.h; sourceTree = "<group>"; };
+		FD6CB7CD1663CB31000CF2F1 /* DocumentWindow.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DocumentWindow.cpp; sourceTree = SOURCE_ROOT; };
+		FD840853160D11F600370586 /* Nion UI Launcher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Nion UI Launcher.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD840857160D11F600370586 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		FD84085A160D11F700370586 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		FD84085B160D11F700370586 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
+		FD84085C160D11F700370586 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		FD840874160D126000370586 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = SOURCE_ROOT; };
+		FD840876160D126F00370586 /* NionUILauncher-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "NionUILauncher-Info.plist"; sourceTree = SOURCE_ROOT; };
+		FD840877160D126F00370586 /* NionUILauncher-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NionUILauncher-Prefix.pch"; sourceTree = SOURCE_ROOT; };
+		FD840888160D180200370586 /* Application.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Application.cpp; sourceTree = SOURCE_ROOT; };
+		FD840889160D180200370586 /* Application.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Application.h; sourceTree = SOURCE_ROOT; };
+		FD8C40721B8F84DE00C6D55C /* PythonStubs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PythonStubs.h; sourceTree = "<group>"; };
+		FD8C40731B8F84F500C6D55C /* PythonStubs.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PythonStubs.cpp; sourceTree = SOURCE_ROOT; };
+		FDD5B8711D81C8C200FD8F7B /* bootstrap.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = bootstrap.py; sourceTree = SOURCE_ROOT; };
+		FDE306E916BC27480023B7FD /* Graphics */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Graphics; sourceTree = SOURCE_ROOT; };
+		FDE306EC16BC59360023B7FD /* stylesheet.qss */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = stylesheet.qss; sourceTree = SOURCE_ROOT; };
+		FDFA4FE61621F473002D4129 /* resources.qrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = resources.qrc; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FD840850160D11F600370586 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD840858160D11F700370586 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		FD840848160D11F600370586 = {
+			isa = PBXGroup;
+			children = (
+				FD840879160D136A00370586 /* Configuration */,
+				FD84088B160D181000370586 /* Headers */,
+				FD84085D160D11F700370586 /* Source */,
+				FD84085E160D11F700370586 /* Supporting Files */,
+				FD840856160D11F600370586 /* Frameworks */,
+				FD840854160D11F600370586 /* Products */,
+			);
+			sourceTree = "<group>";
+			usesTabs = 0;
+		};
+		FD840854160D11F600370586 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FD840853160D11F600370586 /* Nion UI Launcher.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		FD840856160D11F600370586 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				FD840857160D11F600370586 /* Cocoa.framework */,
+				FD840859160D11F700370586 /* Other Frameworks */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		FD840859160D11F700370586 /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				FD84085A160D11F700370586 /* AppKit.framework */,
+				FD84085B160D11F700370586 /* CoreData.framework */,
+				FD84085C160D11F700370586 /* Foundation.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		FD84085D160D11F700370586 /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				FD840888160D180200370586 /* Application.cpp */,
+				FD6CB7CD1663CB31000CF2F1 /* DocumentWindow.cpp */,
+				FD840874160D126000370586 /* main.cpp */,
+				FD49434A1B9784B200CE4307 /* PythonSelectDialog.cpp */,
+				FD8C40731B8F84F500C6D55C /* PythonStubs.cpp */,
+				FD60C55116C5AD87009C6448 /* PythonSupport.cpp */,
+			);
+			name = Source;
+			path = NionUILauncher;
+			sourceTree = "<group>";
+		};
+		FD84085E160D11F700370586 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				FD840876160D126F00370586 /* NionUILauncher-Info.plist */,
+				FD840877160D126F00370586 /* NionUILauncher-Prefix.pch */,
+				FDFA4FE61621F473002D4129 /* resources.qrc */,
+				FDE306EC16BC59360023B7FD /* stylesheet.qss */,
+				FDD5B8711D81C8C200FD8F7B /* bootstrap.py */,
+				A1FED4561E5A7526006E1AFF /* fix_deploy.py */,
+				FDE306E916BC27480023B7FD /* Graphics */,
+			);
+			name = "Supporting Files";
+			path = NionUILauncher;
+			sourceTree = "<group>";
+		};
+		FD840879160D136A00370586 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				FD0ACF42178CDF8300BB53E3 /* targetDebugNionUILauncher.xcconfig */,
+				FD0ACF46178CDF8300BB53E3 /* targetReleaseNionUILauncher.xcconfig */,
+			);
+			name = Configuration;
+			sourceTree = "<group>";
+		};
+		FD84088B160D181000370586 /* Headers */ = {
+			isa = PBXGroup;
+			children = (
+				FD840889160D180200370586 /* Application.h */,
+				FD6CB7CA1663CB29000CF2F1 /* DocumentWindow.h */,
+				FD4943491B9784A600CE4307 /* PythonSelectDialog.h */,
+				FD8C40721B8F84DE00C6D55C /* PythonStubs.h */,
+				FD60C55416C5AD91009C6448 /* PythonSupport.h */,
+			);
+			name = Headers;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		FD840852160D11F600370586 /* Nion UI Launcher */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FD840871160D11F700370586 /* Build configuration list for PBXNativeTarget "Nion UI Launcher" */;
+			buildPhases = (
+				FD84084F160D11F600370586 /* Sources */,
+				FD840850160D11F600370586 /* Frameworks */,
+				FD840851160D11F600370586 /* Resources */,
+				FD7C2EC218657ABB0093BB2A /* Qt Deploy */,
+			);
+			buildRules = (
+				FD840887160D17BA00370586 /* PBXBuildRule */,
+				FD840886160D179A00370586 /* PBXBuildRule */,
+			);
+			dependencies = (
+			);
+			name = "Nion UI Launcher";
+			productName = NionUILauncher;
+			productReference = FD840853160D11F600370586 /* Nion UI Launcher.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FD84084A160D11F600370586 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0720;
+				ORGANIZATIONNAME = "Nion Company";
+			};
+			buildConfigurationList = FD84084D160D11F600370586 /* Build configuration list for PBXProject "NionUILauncher" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = FD840848160D11F600370586;
+			productRefGroup = FD840854160D11F600370586 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FD840852160D11F600370586 /* Nion UI Launcher */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FD840851160D11F600370586 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FDD5B8721D81C8C200FD8F7B /* bootstrap.py in Resources */,
+				FDE306EA16BC27480023B7FD /* Graphics in Resources */,
+				FDE306ED16BC59370023B7FD /* stylesheet.qss in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		FD7C2EC218657ABB0093BB2A /* Qt Deploy */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 12;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Qt Deploy";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"${CONFIGURATION}\" != \"Debug\" ]; then\n    \"$QTDIR/bin/macdeployqt\" \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME\"\n    install_name_tool -rpath @loader_path/../../Contents @loader_path/../../Contents/Frameworks \"$TARGET_BUILD_DIR/$EXECUTABLE_PATH\" || true\n    \"$PYTHONHOME/bin/python3\" fix_deploy.py \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/Frameworks\"\n    \"$PYTHONHOME/bin/python3\" fix_deploy.py \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/PlugIns\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		FD84084F160D11F600370586 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD840875160D126000370586 /* main.cpp in Sources */,
+				FD84088A160D180200370586 /* Application.cpp in Sources */,
+				FD6CB7CF1663CB31000CF2F1 /* DocumentWindow.cpp in Sources */,
+				FD49434B1B9784B200CE4307 /* PythonSelectDialog.cpp in Sources */,
+				FD8C40741B8F84F500C6D55C /* PythonStubs.cpp in Sources */,
+				FD84088C160D190200370586 /* Application.h in Sources */,
+				FD6CB7D01663CB58000CF2F1 /* DocumentWindow.h in Sources */,
+				FD49434C1B97A96C00CE4307 /* PythonSelectDialog.h in Sources */,
+				FDB693F21621F95800728B43 /* resources.qrc in Sources */,
+				FD60C55216C5AD87009C6448 /* PythonSupport.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		FD84086F160D11F700370586 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		FD840872160D11F700370586 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = FD0ACF42178CDF8300BB53E3 /* targetDebugNionUILauncher.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LOCAL_LIBRARY_DIR)/Frameworks",
+				);
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "NionUILauncher-Prefix.pch";
+				INFOPLIST_FILE = "$(SRCROOT)/NionUILauncher-Info.plist";
+				PRODUCT_BUNDLE_IDENTIFIER = com.nion.ui.launcher;
+				PRODUCT_NAME = "Nion UI Launcher";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Debug;
+		};
+		FD993FBA1B3A0ABE00C6D55C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		FD993FBB1B3A0ABE00C6D55C /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = FD0ACF46178CDF8300BB53E3 /* targetReleaseNionUILauncher.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LOCAL_LIBRARY_DIR)/Frameworks",
+				);
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "NionUILauncher-Prefix.pch";
+				INFOPLIST_FILE = "$(SRCROOT)/NionUILauncher-Info.plist";
+				PRODUCT_BUNDLE_IDENTIFIER = com.nion.ui.launcher;
+				PRODUCT_NAME = "Nion UI Launcher";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		FD84084D160D11F600370586 /* Build configuration list for PBXProject "NionUILauncher" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD84086F160D11F700370586 /* Debug */,
+				FD993FBA1B3A0ABE00C6D55C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FD840871160D11F700370586 /* Build configuration list for PBXNativeTarget "Nion UI Launcher" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD840872160D11F700370586 /* Debug */,
+				FD993FBB1B3A0ABE00C6D55C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = FD84084A160D11F600370586 /* Project object */;
+}

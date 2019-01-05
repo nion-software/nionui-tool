@@ -1,0 +1,198 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{677A459E-624B-36E5-9ED9-980F6A7D576E}</ProjectGuid>
+    <RootNamespace>NionUILauncher</RootNamespace>
+    <Keyword>Qt4VSv1.0</Keyword>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <OutputDirectory>debug\</OutputDirectory>
+    <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
+    <CharacterSet>NotSet</CharacterSet>
+    <ConfigurationType>Application</ConfigurationType>
+    <IntermediateDirectory>debug\</IntermediateDirectory>
+    <PrimaryOutput>NionUILauncher</PrimaryOutput>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <OutputDirectory>release\</OutputDirectory>
+    <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
+    <CharacterSet>NotSet</CharacterSet>
+    <ConfigurationType>Application</ConfigurationType>
+    <IntermediateDirectory>release\</IntermediateDirectory>
+    <PrimaryOutput>NionUILauncher</PrimaryOutput>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="PropertySheets\Qt5_x64.props" />
+    <Import Project="PropertySheets\Python3_x64.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="PropertySheets\Qt5_x64.props" />
+    <Import Project="PropertySheets\Python3_x64.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NionUILauncher</TargetName>
+    <IgnoreImportLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</IgnoreImportLibrary>
+    <PostBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</PostBuildEventUseInBuild>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NionUILauncher</TargetName>
+    <IgnoreImportLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</IgnoreImportLibrary>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <EmbedManifest>true</EmbedManifest>
+    <IntDir>Intermediate\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreImportLibrary>true</IgnoreImportLibrary>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <SubSystem>Windows</SubSystem>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalManifestDependencies>"type='win32' name='microsoft.vc90.crt' version='9.0.30729.1' publicKeyToken='1fc8b3b9a1e18e3b' processorArchitecture='amd64'"</AdditionalManifestDependencies>
+    </Link>
+    <Midl>
+      <DefaultCharType>Unsigned</DefaultCharType>
+      <EnableErrorChecks>None</EnableErrorChecks>
+      <WarningLevel>0</WarningLevel>
+    </Midl>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;QT_LARGEFILE_SUPPORT;QT_DLL;QT_DECLARATIVE_LIB;QT_GUI_LIB;QT_CORE_LIB;QT_HAVE_MMX;QT_HAVE_3DNOW;QT_HAVE_SSE;QT_HAVE_MMXEXT;QT_HAVE_SSE2;QT_THREAD_SUPPORT;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <PostBuildEvent>
+      <Command>mkdir $(TargetDir)\platforms
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\platforms\qwindowsd.dll  $(TargetDir)\platforms
+mkdir $(TargetDir)\styles
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\styles\qwindowsvistastyled.dll $(TargetDir)\styles
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\imageformats  $(TargetDir)\imageformats
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\d3dcompiler_47.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libEGLd.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libGLESv2d.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Cored.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Guid.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Networkd.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Svgd.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Widgetsd.dll  $(TargetDir)
+xcopy /D /i /y $(ProjectDir)qt.conf  $(TargetDir)
+xcopy /D /i /y $(ProjectDir)bootstrap.py $(TargetDir)
+</Command>
+      <Message>Copy Files</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile />
+    <PostBuildEvent>
+      <Command>mkdir $(TargetDir)\platforms
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\platforms\qwindows.dll  $(TargetDir)\platforms
+mkdir $(TargetDir)\styles
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\styles\qwindowsvistastyle.dll $(TargetDir)\styles
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\imageformats  $(TargetDir)\imageformats
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\d3dcompiler_47.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libEGL.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libGLESv2.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Core.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Gui.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Network.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Svg.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Widgets.dll  $(TargetDir)
+xcopy /D /i /y $(ProjectDir)qt.conf  $(TargetDir)
+xcopy /D /i /y $(ProjectDir)bootstrap.py $(TargetDir)
+</Command>
+      <Message>Copy Files</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="DocumentWindow.cpp" />
+    <ClCompile Include="Intermediate\Release\moc_Application.cpp" />
+    <ClCompile Include="Intermediate\Release\moc_DocumentWindow.cpp" />
+    <ClCompile Include="Intermediate\Release\moc_PythonSelectDialog.cpp" />
+    <ClCompile Include="Intermediate\Release\qrc_resources.cpp" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="PythonSelectDialog.h">
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">moc.exe  -DUNICODE -DWIN32 -DQT_LARGEFILE_SUPPORT -DQT_DLL -DQT_DECLARATIVE_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_HAVE_MMX -DQT_HAVE_3DNOW -DQT_HAVE_SSE -DQT_HAVE_MMXEXT -DQT_HAVE_SSE2 -DQT_THREAD_SUPPORT -D_MSC_VER=1600 -DWIN32 PythonSelectDialog.h -o Intermediate\Release\moc_PythonSelectDialog.cpp</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">moc.exe  -DUNICODE -DWIN32 -DQT_LARGEFILE_SUPPORT -DQT_DLL -DQT_DECLARATIVE_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_HAVE_MMX -DQT_HAVE_3DNOW -DQT_HAVE_SSE -DQT_HAVE_MMXEXT -DQT_HAVE_SSE2 -DQT_THREAD_SUPPORT -D_MSC_VER=1600 -DWIN32 PythonSelectDialog.h -o Intermediate\Release\moc_PythonSelectDialog.cpp</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MOC PythonSelectDialog.h</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MOC PythonSelectDialog.h</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Intermediate\Release\moc_PythonSelectDialog.cpp;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Intermediate\Release\moc_PythonSelectDialog.cpp;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PythonSelectDialog.h;moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PythonSelectDialog.h;moc.exe;%(AdditionalInputs)</AdditionalInputs>
+    </CustomBuild>
+    <ClInclude Include="LauncherConfig.h" />
+    <ClInclude Include="PythonStubs.h" />
+    <ClInclude Include="PythonSupport.h" />
+    <CustomBuild Include="Application.h">
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Application.h;moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">moc.exe  -DUNICODE -DWIN32 -DQT_LARGEFILE_SUPPORT -DQT_DLL -DQT_DECLARATIVE_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_HAVE_MMX -DQT_HAVE_3DNOW -DQT_HAVE_SSE -DQT_HAVE_MMXEXT -DQT_HAVE_SSE2 -DQT_THREAD_SUPPORT -D_MSC_VER=1600 -DWIN32 Application.h -o Intermediate\Release\moc_Application.cpp</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MOC Application.h</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Intermediate\Release\moc_Application.cpp;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Application.h;moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">moc.exe  -DUNICODE -DWIN32 -DQT_LARGEFILE_SUPPORT -DQT_DLL -DQT_NO_DEBUG -DQT_DECLARATIVE_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_HAVE_MMX -DQT_HAVE_3DNOW -DQT_HAVE_SSE -DQT_HAVE_MMXEXT -DQT_HAVE_SSE2 -DQT_THREAD_SUPPORT -D_MSC_VER=1600 -DWIN32 Application.h -o Intermediate\Release\moc_Application.cpp</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MOC Application.h</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Intermediate\Release\moc_Application.cpp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="DocumentWindow.h">
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">moc.exe;DocumentWindow.h;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">moc.exe  -DUNICODE -DWIN32 -DQT_LARGEFILE_SUPPORT -DQT_DLL -DQT_DECLARATIVE_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_HAVE_MMX -DQT_HAVE_3DNOW -DQT_HAVE_SSE -DQT_HAVE_MMXEXT -DQT_HAVE_SSE2 -DQT_THREAD_SUPPORT -D_MSC_VER=1600 -DWIN32 DocumentWindow.h -o Intermediate\Release\moc_DocumentWindow.cpp</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MOC DocumentWindow.h</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Intermediate\Release\moc_DocumentWindow.cpp;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">moc.exe;DocumentWindow.h;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">moc.exe  -DUNICODE -DWIN32 -DQT_LARGEFILE_SUPPORT -DQT_DLL -DQT_NO_DEBUG -DQT_DECLARATIVE_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_HAVE_MMX -DQT_HAVE_3DNOW -DQT_HAVE_SSE -DQT_HAVE_MMXEXT -DQT_HAVE_SSE2 -DQT_THREAD_SUPPORT -D_MSC_VER=1600 -DWIN32 DocumentWindow.h -o Intermediate\Release\moc_DocumentWindow.cpp</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MOC DocumentWindow.h</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Intermediate\Release\moc_DocumentWindow.cpp;%(Outputs)</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="PythonSelectDialog.cpp" />
+    <ClCompile Include="PythonStubs.cpp" />
+    <ClCompile Include="PythonSupport.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="resources.qrc">
+      <FileType>Document</FileType>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">rcc.exe;GoldBalls.png;resources.qrc;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">rcc.exe -name resources resources.qrc -o Intermediate\Release\qrc_resources.cpp</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">RCC resources.qrc</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Intermediate\Release\qrc_resources.cpp;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">rcc.exe;GoldBalls.png;resources.qrc;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">rcc.exe -name resources resources.qrc -o Intermediate\Release\qrc_resources.cpp</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">RCC resources.qrc</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Intermediate\Release\qrc_resources.cpp;%(Outputs)</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Application.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

@@ -1,0 +1,62 @@
+// set the base Qt version
+QT_VERSION = 59
+
+QTDIR_59 = $(HOME)/Developer/Qt/5.10.1/clang_64
+
+QTDIR = $(QTDIR_$(QT_VERSION))
+
+ARCHS = $(ARCHS_STANDARD_32_64_BIT)
+ONLY_ACTIVE_ARCH = YES
+GCC_OPTIMIZATION_LEVEL = 0
+
+// note: headerpad_max_install_names has something to do with using otool to relocate the library paths
+OTHER_LDFLAGS = $(APP_LDFLAGS) $(COND_LDFLAGS) -headerpad_max_install_names -F$(QTDIR)/lib -L$(QTDIR)/lib
+
+HEADER_SEARCH_PATHS_LOCAL = . ..
+
+HEADER_SEARCH_PATHS_QT_EXTRA = $(QTDIR)/mkspecs/macx-xcode $(QTDIR)/include
+
+HEADER_SEARCH_PATHS_ALL = $(HEADER_SEARCH_PATHS_LOCAL) $(HEADER_SEARCH_PATHS_QT_EXTRA) $$(TARGET_HEADER_SEARCH_PATHS) $(COND_HEADER_SEARCH_PATHS)
+
+FRAMEWORK_SEARCH_PATHS = $(QTDIR)/lib /Library/Frameworks/
+
+LIBRARY_SEARCH_PATHS = $(QTDIR)/lib $(TARGET_LIBRARY_SEARCH_PATHS) $(COND_LIBRARY_SEARCH_PATHS) /Library/Frameworks/
+
+// use this to define OTHER_CFLAGS since the preprocessor doesn't seem to be able to use existing definitions when replacing a definition
+OTHER_FLAGS = -pipe -g -Wreturn-type -Wunused-variable -Wno-shorten-64-to-32 -DQT_NO_KEYWORDS -DQT_NETWORK_LIB -DQT_XML_LIB -DQT_OPENGL_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
+
+GCC_INLINES_ARE_PRIVATE_EXTERN = NO
+GCC_SYMBOLS_PRIVATE_EXTERN = NO
+
+GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp
+
+COPY_PHASE_STRIP = NO
+
+CODE_SIGN_IDENTITY = Developer ID Application: Nion, Inc.
+
+LD_RUNPATH_SEARCH_PATHS = $(QTDIR)/lib
+
+APP_LDFLAGS_59 = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_LDFLAGS)
+
+APP_LDFLAGS = $(APP_LDFLAGS_$(QT_VERSION)) -stdlib=libc++
+
+OTHER_CFLAGS = $(OTHER_FLAGS) -DDYNAMIC_PYTHON=1
+
+OTHER_CPLUSPLUSFLAGS = $(OTHER_CFLAGS) -std=c++11 -stdlib=libc++
+
+// numpy is loaded from one of the paths in sys.path. look there to find it if this folder does not work.
+PYTHON_SEARCH_PATHS = $(PYTHON_INCLUDE) $(PYTHON_NUMPY_INCLUDE)
+
+HEADER_SEARCH_PATHS = $(HEADER_SEARCH_PATHS_ALL) $(PYTHON_SEARCH_PATHS)
+
+TARGET_LIBRARY_SEARCH_PATHS = $(PYTHON_LIB_SEARCH)
+
+PYTHON_VERSION = python$(PYTHON_VERSION_NUMBER)$(PYTHON_OPTION)
+PYTHON_INCLUDE = $(PYTHONHOME)/include/$(PYTHON_VERSION)
+PYTHON_NUMPY_INCLUDE = $(PYTHONHOME)/lib/python$(PYTHON_VERSION_NUMBER)/site-packages/numpy/core/include
+PYTHON_LDFLAGS =
+PYTHON_LIB_SEARCH = $(PYTHONHOME)/lib
+
+PYTHONHOME = $(HOME)/Developer/miniconda43
+PYTHON_VERSION_NUMBER = 3.6
+PYTHON_OPTION = m

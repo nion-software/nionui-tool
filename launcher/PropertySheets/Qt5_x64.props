@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <QT_BIN_PATH_X64>$(QT_BASE_X64)\bin</QT_BIN_PATH_X64>
+    <!--debug suffix-->
+    <DebugSuffix Condition="'$(Configuration)'=='Debug'">d</DebugSuffix>
+    <DebugSuffix Condition="'$(Configuration)'!='Debug'">
+    </DebugSuffix>
+    <!--platform-->
+    <ShortPlatform Condition="'$(Platform)' == 'Win32'">x86</ShortPlatform>
+    <ShortPlatform Condition="'$(Platform)' == 'x64'">x64</ShortPlatform>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ExecutablePath>$(QT_BASE_X64)\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(QT_BASE_X64)\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(QT_BASE_X64)\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile />
+    <ClCompile />
+    <Link>
+      <AdditionalDependencies>qtmain$(DebugSuffix).lib;Qt5Gui$(DebugSuffix).lib;Qt5Core$(DebugSuffix).lib;Qt5Svg$(DebugSuffix).lib;Qt5Widgets$(DebugSuffix).lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <ClCompile>
+      <PreprocessorDefinitions>QT_NO_KEYWORDS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="QT_BIN_PATH_X64">
+      <Value>$(QT_BIN_PATH_X64)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

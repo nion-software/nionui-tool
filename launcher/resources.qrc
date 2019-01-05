@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/app">
+        <file alias="stylesheet.qss">stylesheet.qss</file>
+        <file alias="scroll_bg.png">Graphics/scroll_bg.png</file>
+        <file alias="scroll_bg_horizontal.png">Graphics/scroll_bg_horizontal.png</file>
+        <file alias="scroll_gem.png">Graphics/scroll_gem.png</file>
+        <file alias="scroll_gem_horizontal.png">Graphics/scroll_gem_horizontal.png</file>
+        <file alias="scroll_gem_hover.png">Graphics/scroll_gem_hover.png</file>
+        <file alias="scroll_gem_horizontal_hover.png">Graphics/scroll_gem_horizontal_hover.png</file>
+    </qresource>
+</RCC>
