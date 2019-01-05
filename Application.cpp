@@ -4351,7 +4351,7 @@ static PyObject *TreeWidget_resizeToContent(PyObject * /*self*/, PyObject *args)
 
         QRect last = py_tree_widget->visualRect(py_item_model->index(row_count - 1, 0, QModelIndex()));
 
-        new_height = last.bottom() + margins.top() + margins.bottom();
+        new_height = last.bottom() + margins.top() + margins.bottom() + 2;
     }
     else
     {
