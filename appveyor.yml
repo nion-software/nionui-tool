@@ -19,15 +19,14 @@ after_build:
   - cmd: "%PYTHON3_BASE_X64%\\python.exe setup.py bdist_wheel"
 
 artifacts:
-- path: dist\
-  name: nionui_tool-*.whl
+- path: dist\*.whl
 
 deploy:
   provider: GitHub
   auth_token:
     secure: "eaDEb+wFB1I1a53kQyi6eZPpHQPUA4z+WyXGCoHXrw8BjiSRU1xHDadr8o+3Q0H0w/+Bl9wQRV1Kp/eYXmn5ThKyhfH/YNEmBlmSE8dlKYOvm/8UiW97ii7hKiSr8cq/j8qyPeiBVyk599gLSpfBf+onGn5vVYMTgRgVkLjVBee7Ip6UYOMtXNF8SeOU7aDdFdXgONwUcUfscR7HciYbBJlEO8mj0d+8jKU0EyW3+107vbyE5llQefKLWtj19uA8P0HmD1KYD4ya9iZBSfCyrRgGSVLzGA00nz+rdwg4+cIbn8d4sX3rhI09ycSGkj13o0Xs86Mj2iFlcpg97XiKu0hyCIQgb2bAdYC/JOTYhOxZPb+u+y+XXzpEr4rDb2CHPRwKF5So/eLc3d4x60Sp0jL9YS9yP2eLJ6pgSNEWd0tUa/wngKJUVsbNgpYDVJJLiF35xwyroFthsQ1W37wRsR+YvGbn2H4M8AZPCHAesng0ovFPkOJv+o6YUIxXmOvQ5RXa9YfoupeUbIF6IghYt+rAaYcrVuAQsapFUPFooFce0gm3XHdKb7VML74WFc5dVEYMRPyeVhEZxyWx+Egd29c7btZICn1twn3NMqID/RVzAM37QgV7jZiCNPv/TnQINwtvce1h2QS99UJNsJW7LgUMZnI/J4hiHaoPWXxosY4="
   draft: false
-  prerelease: false
+  prerelease: true
   tag: $(appveyor_repo_tag_name)
   on:
     appveyor_repo_tag: true

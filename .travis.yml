@@ -10,7 +10,7 @@ before_install:
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade python; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt5; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip3 install numpy==1.15; fi
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sed -i '' 's/$(HOME)\/Developer\/Qt\/5.12.0\/clang_64/QTDIR = \/usr\/local\/opt\/qt5/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sed -i '' 's/QTDIR = $(HOME)\/Developer\/Qt\/5.12.0\/clang_64/QTDIR = \/usr\/local\/opt\/qt5/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sed -i '' 's/PYTHONHOME = $(HOME)\/Developer\/miniconda43/PYTHONHOME = \/usr\/local\/opt\/python3\/Frameworks\/Python.framework\/Versions\/3.7/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sed -i '' 's/PYTHON_VERSION_NUMBER = 3.7/PYTHON_VERSION_NUMBER = 3.6/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig; fi
 
