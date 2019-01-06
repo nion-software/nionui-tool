@@ -20,7 +20,7 @@ build:
 
 after_build:
   - ps: Get-ChildItem -Include *.pdb -Recurse | foreach { $_.Delete() }
-  - ps: Get-ChildItem launcher\x64\Release\imageformats -Include *d.dll | foreach { $_.Delete() }
+  - ps: Get-ChildItem launcher\x64\Release\imageformats -Include *d.dll -Recurse | foreach { $_.Delete() }
   - cmd: "%PYTHON3_BASE_X64%\\python.exe setup.py bdist_wheel"
 
 artifacts:
