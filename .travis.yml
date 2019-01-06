@@ -35,7 +35,6 @@ after_success:
   - |
     if [ -n "$TRAVIS_TAG" ]; then
       cd ${TRAVIS_BUILD_DIR}
-      source venv/bin/activate
-      pip install twine
+      pip3 install twine
       twine upload dist/*.whl
     fi
