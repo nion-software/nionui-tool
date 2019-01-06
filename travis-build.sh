@@ -5,6 +5,8 @@ if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
   rm -rf launcher/build/Release
   xcodebuild -project launcher/NionUILauncher.xcodeproj -target "Nion UI Launcher" -configuration Release
   rm -rf launcher/build/Release/*.dSYM
+  /usr/local/opt/python/bin/python --version
+  /usr/local/opt/python/bin/python setup.py bdist_wheel
 fi
 
 if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -24,6 +26,6 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
   rm -rf linux/c64
   bash linux_build.sh ~/miniconda
   popd
+  $HOME/miniconda/bin/python --version
+  $HOME/miniconda/bin/python setup.py bdist_wheel
 fi
-
-python setup.py bdist_wheel
