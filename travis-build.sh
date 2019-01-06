@@ -1,12 +1,10 @@
 set -e # fail script if any command fails
 
 if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-  xcodebuild -project NionUILauncher.xcodeproj -target "Nion UI Launcher" -configuration Release
-  cd build/Release
-  zip -ry NionUILauncher-Mac.zip Nion\ UI\ Launcher.app
-  mkdir -p ../../release
-  mv NionUILauncher-Mac.zip ../../release
-  cd ../..
+  rm -rf dist
+  rm -rf launcher/build/Release
+  xcodebuild -project launcher/NionUILauncher.xcodeproj -target "Nion UI Launcher" -configuration Release
+  rm -rf launcher/build/Release/*.dSYM
 fi
 
 if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -22,11 +20,10 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
   hash -r
   conda install --yes numpy=1.14
   conda info -a
+  pushd launcher
+  rm -rf linux/c64
   bash linux_build.sh ~/miniconda
-  mkdir release
-  cd linux/x64
-  zip NionUILauncher-Linux.zip *
-  mkdir -p ../../release
-  cp NionUILauncher-Linux.zip ../../release
-  cd ../..
+  popd
 fi
+
+python setup.py bdist_wheel

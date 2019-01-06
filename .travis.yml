@@ -1,0 +1,39 @@
+sudo: required
+language: c++
+osx_image: xcode9.4
+os:
+- linux
+- osx
+
+before_install:
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade python; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt5; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip3 install numpy==1.15; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sed -i '' 's/$(HOME)\/Developer\/Qt\/5.12.0\/clang_64/QTDIR = \/usr\/local\/opt\/qt5/g' xcconfig/targetReleaseNionUILauncher.xcconfig; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sed -i '' 's/PYTHONHOME = $(HOME)\/Developer\/miniconda43/PYTHONHOME = \/usr\/local\/opt\/python3\/Frameworks\/Python.framework\/Versions\/3.7/g' xcconfig/targetReleaseNionUILauncher.xcconfig; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sed -i '' 's/PYTHON_VERSION_NUMBER = 3.7/PYTHON_VERSION_NUMBER = 3.6/g' xcconfig/targetReleaseNionUILauncher.xcconfig; fi
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-5
+    - g++-5
+    - python3-dev
+
+script:
+  bash travis-build.sh
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: "eaDEb+wFB1I1a53kQyi6eZPpHQPUA4z+WyXGCoHXrw8BjiSRU1xHDadr8o+3Q0H0w/+Bl9wQRV1Kp/eYXmn5ThKyhfH/YNEmBlmSE8dlKYOvm/8UiW97ii7hKiSr8cq/j8qyPeiBVyk599gLSpfBf+onGn5vVYMTgRgVkLjVBee7Ip6UYOMtXNF8SeOU7aDdFdXgONwUcUfscR7HciYbBJlEO8mj0d+8jKU0EyW3+107vbyE5llQefKLWtj19uA8P0HmD1KYD4ya9iZBSfCyrRgGSVLzGA00nz+rdwg4+cIbn8d4sX3rhI09ycSGkj13o0Xs86Mj2iFlcpg97XiKu0hyCIQgb2bAdYC/JOTYhOxZPb+u+y+XXzpEr4rDb2CHPRwKF5So/eLc3d4x60Sp0jL9YS9yP2eLJ6pgSNEWd0tUa/wngKJUVsbNgpYDVJJLiF35xwyroFthsQ1W37wRsR+YvGbn2H4M8AZPCHAesng0ovFPkOJv+o6YUIxXmOvQ5RXa9YfoupeUbIF6IghYt+rAaYcrVuAQsapFUPFooFce0gm3XHdKb7VML74WFc5dVEYMRPyeVhEZxyWx+Egd29c7btZICn1twn3NMqID/RVzAM37QgV7jZiCNPv/TnQINwtvce1h2QS99UJNsJW7LgUMZnI/J4hiHaoPWXxosY4="
+  file: dist/*.whl
+  file_glob: true
+  prerelease: true
+  on:
+    repo: nion-software/nionui-tool
+    tags: true
