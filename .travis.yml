@@ -35,6 +35,6 @@ after_success:
   - |
     if [ -n "$TRAVIS_TAG" ]; then
       cd ${TRAVIS_BUILD_DIR}
-      pip3 install twine
-      twine upload dist/*.whl
+      ~/miniconda/bin/python -m pip install twine
+      ~/miniconda/bin/twine upload dist/*.whl
     fi
