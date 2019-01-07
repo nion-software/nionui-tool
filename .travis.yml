@@ -48,5 +48,5 @@ deploy:
   file_glob: true
   prerelease: true
   on:
-    repo: nion-software/nionui-launcher
+    repo: nion-software/nionui-tool
     tags: true
