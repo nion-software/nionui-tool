@@ -35,3 +35,13 @@ deploy_script:
       } else {
         Write-Output "Not deploying as this is not a tagged commit"
       }
+
+deploy:
+  provider: GitHub
+  auth_token:
+    secure: bOxLt6KZ0huu2ntyILyl7lnV9H2IZd+i+mUo0vpntq1QIn6JN7s5Qpldq33fB1m6
+  draft: false
+  prerelease: false
+  tag: $(appveyor_repo_tag_name)
+  on:
+    appveyor_repo_tag: true
