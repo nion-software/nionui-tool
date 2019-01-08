@@ -4,7 +4,7 @@ import setuptools
 import sys
 
 tool_id = "nionui"
-version = "0.3.20"
+version = "0.3.21a7"
 launcher = "NionUILauncher"
 
 
@@ -135,7 +135,7 @@ setuptools.setup(
     version=version,
     packages=[f"nion.{tool_id}_tool"],
     url='http://www.nion.com',
-    license='Apache 2.0',
+    license='Apache-2.0',
     author='Nion Software Team',
     author_email='software@nion.com',
     description='Python command line access to Nion UI Launcher',
@@ -148,5 +148,8 @@ setuptools.setup(
     data_files=data_files,
     distclass=BinaryDistribution,
     cmdclass={'bdist_wheel': bdist_wheel},
+    classifiers=[
+        'License :: OSI Approved :: Apache Software License',
+    ],
     verbose=True,
 )
