@@ -1,6 +1,13 @@
 Changelog (nionui-tool)
 =======================
 
+0.3.21 (2018-01-09)
+-------------------
+
+- Fix minor scrolling issue in tree widget by expanding area by 2 pixels.
+
+- Fix drawing context save/restore bug.
+
 0.3.20 (2018-12-05)
 -------------------
 

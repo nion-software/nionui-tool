@@ -4,7 +4,7 @@ import setuptools
 import sys
 
 tool_id = "nionui"
-version = "0.3.21a8"
+version = "0.3.21"
 launcher = "NionUILauncher"
 
 
