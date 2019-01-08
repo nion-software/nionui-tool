@@ -35,8 +35,13 @@ after_success:
   - |
     if [ -n "$TRAVIS_TAG" ]; then
       cd ${TRAVIS_BUILD_DIR}
-      ~/miniconda/bin/python -m pip install twine
-      ~/miniconda/bin/twine upload dist/*.whl
+      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+        python3 -m pip install twine
+        twine upload dist/*.whl
+      else
+        ~/miniconda/bin/python -m pip install twine
+        ~/miniconda/bin/twine upload dist/*.whl
+      fi
     fi
 
 deploy:
