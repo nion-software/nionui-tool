@@ -241,28 +241,30 @@ PythonSupport::PythonSupport(const QString &python_home)
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY);
 #elif defined(Q_OS_LINUX)
     QString file_path;
-
-    QString file_path_37s = "/usr/lib/x86_64-linux-gnu/libpython3.7m.so";
-    QString file_path_36s = "/usr/lib/x86_64-linux-gnu/libpython3.6m.so";
-    QString file_path_35s = "/usr/lib/x86_64-linux-gnu/libpython3.5m.so";
-    QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.so");
-    QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.so");
-    QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.so");
-
-    QStringList file_paths;
-    file_paths.append(file_path_37);
-    file_paths.append(file_path_36);
-    file_paths.append(file_path_35);
-    file_paths.append(file_path_37s);
-    file_paths.append(file_path_36s);
-    file_paths.append(file_path_35s);
-
-    Q_FOREACH(file_path, file_paths)
+    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
+    if (QFile(venv_conf_file_name).exists())
     {
-        if (QFile(file_path).exists())
-            break;
+        // probably Python w/ virtual environment
+        QSettings settings(venv_conf_file_name, QSettings::IniFormat);
+        QString home_bin_path = settings.value("home").toString();
+        if (!home_bin_path.isEmpty())
+        {
+            QDir home_dir(home_bin_path);
+            home_dir.cdUp();
+            QString file_path_37 = home_dir.absoluteFilePath("lib/libpython3.7m.so");
+            QString file_path_36 = home_dir.absoluteFilePath("lib/libpython3.6m.so");
+            QString file_path_35 = home_dir.absoluteFilePath("lib/libpython3.5m.so");
+            file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+        }
     }
-
+    else
+    {
+        // probably conda or standard Python
+        QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.so");
+        QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.so");
+        QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.so");
+        file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+    }
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY | RTLD_GLOBAL);
 #else
     QString python_home_new = python_home;

@@ -4,6 +4,8 @@ Changelog (nionui-tool)
 0.3.22 (UNRELEASED)
 -------------------
 
+- Improve handling of virtual environments on Linux.
+
 - Qt version 5.12 on Windows.
 
 0.3.21 (2018-01-09)
