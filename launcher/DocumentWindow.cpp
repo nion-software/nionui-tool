@@ -768,6 +768,8 @@ struct DrawingContextState
     int text_align;
     QMap<int, QGradient> gradients;
     QPainterPath path;
+    float context_scaling_x;
+    float context_scaling_y;
 };
 
 void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &commands, PaintImageCache *image_cache, float display_scaling)
@@ -797,6 +799,9 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
     QFont text_font;
     int text_baseline = 4; // alphabetic
     int text_align = 1; // start
+
+    float context_scaling_x = 1.0;
+    float context_scaling_y = 1.0;
 
     QMap<int, QGradient> gradients;
 
@@ -828,6 +833,8 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             values.text_align = text_align;
             values.gradients = gradients;
             values.path = path;
+            values.context_scaling_x = context_scaling_x;
+            values.context_scaling_y = context_scaling_y;
             stack.push_back(values);
             painter.save();
             break;
@@ -847,6 +854,8 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             text_align = values.text_align;
             gradients = values.gradients;
             path = values.path;
+            context_scaling_x = values.context_scaling_x;
+            context_scaling_y = values.context_scaling_y;
             painter.restore();
             break;
         }
@@ -869,6 +878,8 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         else if (cmd == "scale")
         {
             painter.scale(args[0].toFloat() * display_scaling, args[1].toFloat() * display_scaling);
+            context_scaling_x *= args[0].toFloat();
+            context_scaling_y *= args[1].toFloat();
         }
         else if (cmd == "rotate")
         {
@@ -1070,7 +1081,14 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
                 if (!image.isNull())
                 {
-                    painter.drawImage(QRectF(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling)), image);
+                    QRectF destination_rect(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling));
+                    float context_scaling = qMin(context_scaling_x, context_scaling_y);
+                    float scaling = qMax(destination_rect.height() / image.height(), destination_rect.width() / image.width()) * context_scaling;
+                    if (scaling < 0.5)
+                    {
+                        image = image.scaled((destination_rect.size() * context_scaling).toSize(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                    }
+                    painter.drawImage(destination_rect, image);
                     if (image_cache)
                     {
                         PaintImageCacheEntry cache_entry(image_id, true, image);
@@ -1114,7 +1132,14 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
                 if (!image.isNull())
                 {
-                    painter.drawImage(QRectF(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling)), image);
+                    QRectF destination_rect(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling));
+                    float context_scaling = qMin(context_scaling_x, context_scaling_y);
+                    float scaling = qMax(destination_rect.height() / image.height(), destination_rect.width() / image.width()) * context_scaling;
+                    if (scaling < 0.5)
+                    {
+                        image = image.scaled((destination_rect.size() * context_scaling).toSize(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                    }
+                    painter.drawImage(destination_rect, image);
                     if (image_cache)
                     {
                         PaintImageCacheEntry cache_entry(image_id, true, image);
@@ -1377,6 +1402,9 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
     int text_baseline = 4; // alphabetic
     int text_align = 1; // start
 
+    float context_scaling_x = 1.0;
+    float context_scaling_y = 1.0;
+
     QMap<int, QGradient> gradients;
 
     painter.fillRect(painter.viewport(), QBrush(fill_color));
@@ -1417,6 +1445,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 values.text_align = text_align;
                 values.gradients = gradients;
                 values.path = path;
+                values.context_scaling_x = context_scaling_x;
+                values.context_scaling_y = context_scaling_y;
                 stack.push_back(values);
                 painter.save();
                 break;
@@ -1436,6 +1466,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 text_align = values.text_align;
                 gradients = values.gradients;
                 path = values.path;
+                context_scaling_x = values.context_scaling_x;
+                context_scaling_y = values.context_scaling_y;
                 painter.restore();
                 break;
             }
@@ -1470,6 +1502,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 float a0 = read_float(commands, command_index) * display_scaling;
                 float a1 = read_float(commands, command_index) * display_scaling;
                 painter.scale(a0, a1);
+                context_scaling_x *= a0;
+                context_scaling_y *= a1;
                 break;
             }
             case 0x726f7461: // rota, rotate
@@ -1716,7 +1750,14 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
 
                     if (!image.isNull())
                     {
-                        painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
+                        QRectF destination_rect(QPointF(arg4, arg5), QSizeF(arg6, arg7));
+                        float context_scaling = qMin(context_scaling_x, context_scaling_y);
+                        float scaling = qMax(destination_rect.height() / image.height(), destination_rect.width() / image.width()) * context_scaling;
+                        if (scaling < 0.5)
+                        {
+                            image = image.scaled((destination_rect.size() * context_scaling).toSize(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                        }
+                        painter.drawImage(destination_rect, image);
                         if (image_cache)
                         {
                             PaintImageCacheEntry cache_entry(image_id, true, image);
@@ -1782,7 +1823,14 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
 
                     if (!image.isNull())
                     {
-                        painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
+                        QRectF destination_rect(QPointF(arg4, arg5), QSizeF(arg6, arg7));
+                        float context_scaling = qMin(context_scaling_x, context_scaling_y);
+                        float scaling = qMax(destination_rect.height() / image.height(), destination_rect.width() / image.width()) * context_scaling;
+                        if (scaling < 0.5)
+                        {
+                            image = image.scaled((destination_rect.size() * context_scaling).toSize(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                        }
+                        painter.drawImage(destination_rect, image);
                         if (image_cache)
                         {
                             PaintImageCacheEntry cache_entry(image_id, true, image);
