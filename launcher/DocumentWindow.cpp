@@ -2814,16 +2814,28 @@ void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const Q
     else if (property == "min-width")
     {
         widget->setMinimumWidth(int(variant.toInt() * GetDisplayScaling()));
-        QSizePolicy size_policy = widget->sizePolicy();
-        size_policy.setHorizontalPolicy(QSizePolicy::Expanding);
-        widget->setSizePolicy(size_policy);
     }
     else if (property == "min-height")
     {
         widget->setMinimumHeight(int(variant.toInt() * GetDisplayScaling()));
-        QSizePolicy size_policy = widget->sizePolicy();
-        size_policy.setVerticalPolicy(QSizePolicy::Expanding);
-        widget->setSizePolicy(size_policy);
+    }
+    else if (property == "size-policy-horizontal")
+    {
+        if (variant.toString() == "expanding")
+        {
+            QSizePolicy size_policy = widget->sizePolicy();
+            size_policy.setHorizontalPolicy(QSizePolicy::Expanding);
+            widget->setSizePolicy(size_policy);
+        }
+    }
+    else if (property == "size-policy-vertical")
+    {
+        if (variant.toString() == "expanding")
+        {
+            QSizePolicy size_policy = widget->sizePolicy();
+            size_policy.setVerticalPolicy(QSizePolicy::Expanding);
+            widget->setSizePolicy(size_policy);
+        }
     }
     else if (property == "width")
     {
