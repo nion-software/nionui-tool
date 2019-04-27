@@ -1043,6 +1043,160 @@ bool PythonSupport::setAttribute(const QVariant &object, const QString &attribut
     return result != -1;
 }
 
+QImage PythonSupport::scaledImageFromRGBA(PyObject *ndarray_py, const QSize &destination_size)
+{
+    PyArrayObject *array = (PyArrayObject *)PyArray_ContiguousFromObject(ndarray_py, NPY_UINT32, 2, 2);
+    if (array != NULL)
+    {
+        long width = PyArray_DIMS(array)[1];
+        long height = PyArray_DIMS(array)[0];
+        if (destination_size.width() < width * 0.75 || destination_size.height() < height * 0.75)
+        {
+            const long dest_width = destination_size.width();
+            const long dest_height = destination_size.height();
+
+            QImage image((int)dest_width, (int)dest_height, QImage::Format_ARGB32);
+
+            int *a_buffer = new int[dest_width];
+            int *r_buffer = new int[dest_width];
+            int *g_buffer = new int[dest_width];
+            int *b_buffer = new int[dest_width];
+            long *x_index_buffer = new long[width];
+            long *y_index_buffer = new long[height];
+
+            for (int row=0; row<height; ++row)
+                y_index_buffer[row] = floor(row / (float(height) / dest_height));
+
+            for (int col=0; col<width; ++col)
+                x_index_buffer[col] = floor(col / (float(width) / dest_width));
+
+            long *y_index_ptr = y_index_buffer;
+
+            long last_dst_row = -1;
+            long last_row_change = -1;
+            for (int row=0; row<height; ++row)
+            {
+                long dst_row = *y_index_ptr++;
+                if (dst_row != last_dst_row)
+                {
+                    if (dst_row > 0)
+                    {
+                        uint32_t *dst = (uint32_t *)image.scanLine(last_dst_row);
+                        int *a_ptr = a_buffer;
+                        int *r_ptr = r_buffer;
+                        int *g_ptr = g_buffer;
+                        int *b_ptr = b_buffer;
+                        int mm =  row - last_row_change;
+                        for (int dst_col=0; dst_col<dest_width; ++dst_col)
+                        {
+                            uint8_t a = *a_ptr++ / mm;
+                            uint8_t r = *r_ptr++ / mm;
+                            uint8_t g = *g_ptr++ / mm;
+                            uint8_t b = *b_ptr++ / mm;
+                            *dst++ = (a << 24) | (r << 16) | (g << 8) | b;
+                        }
+                    }
+
+                    last_dst_row = dst_row;
+                    last_row_change = row;
+
+                    memset(a_buffer, 0, dest_width * sizeof(int));
+                    memset(r_buffer, 0, dest_width * sizeof(int));
+                    memset(g_buffer, 0, dest_width * sizeof(int));
+                    memset(b_buffer, 0, dest_width * sizeof(int));
+                }
+
+                uint32_t *src = ((uint32_t *)PyArray_DATA(array)) + row*width;
+                int *a_ptr = a_buffer;
+                int *r_ptr = r_buffer;
+                int *g_ptr = g_buffer;
+                int *b_ptr = b_buffer;
+                long *x_index_ptr = x_index_buffer;
+
+                long last_dst_col = -1;
+                long last_col_change = -1;
+                int a_sum = 0;
+                int r_sum = 0;
+                int g_sum = 0;
+                int b_sum = 0;
+                for (int col=0; col<width; ++col)
+                {
+                    long dst_col = *x_index_ptr++;
+                    if (dst_col != last_dst_col)
+                    {
+                        if (dst_col > 0)
+                        {
+                            int mm = col - last_col_change;
+                            *a_ptr++ += a_sum / mm;
+                            *r_ptr++ += r_sum / mm;
+                            *g_ptr++ += g_sum / mm;
+                            *b_ptr++ += b_sum / mm;
+                        }
+                        last_dst_col = dst_col;
+                        last_col_change = col;
+                        uint32_t argb = *src++;
+                        a_sum = argb >> 24;
+                        r_sum = (argb & 0x00FF0000) >> 16;
+                        g_sum = (argb & 0x0000FF00) >> 8;
+                        b_sum = argb & 0x000000FF;
+                    }
+                    else
+                    {
+                        uint32_t argb = *src++;
+                        a_sum += argb >> 24;
+                        r_sum += (argb & 0x00FF0000) >> 16;
+                        g_sum += (argb & 0x0000FF00) >> 8;
+                        b_sum += argb & 0x000000FF;
+                    }
+                }
+
+                int mm = width - last_col_change;
+                *a_ptr += a_sum / mm;
+                *r_ptr += r_sum / mm;
+                *g_ptr += g_sum / mm;
+                *b_ptr += b_sum / mm;
+            }
+
+            uint32_t *dst = (uint32_t *)image.scanLine(last_dst_row);
+            int *a_ptr = a_buffer;
+            int *r_ptr = r_buffer;
+            int *g_ptr = g_buffer;
+            int *b_ptr = b_buffer;
+            int mm =  height - last_row_change;
+            for (int dst_col=0; dst_col<dest_width; ++dst_col)
+            {
+                uint8_t a = *a_ptr++ / mm;
+                uint8_t r = *r_ptr++ / mm;
+                uint8_t g = *g_ptr++ / mm;
+                uint8_t b = *b_ptr++ / mm;
+                *dst++ = (a << 24) | (r << 16) | (g << 8) | b;
+            }
+
+            delete [] a_buffer;
+            delete [] r_buffer;
+            delete [] g_buffer;
+            delete [] b_buffer;
+            delete [] x_index_buffer;
+            delete [] y_index_buffer;
+
+            Py_DECREF(array);
+
+            // qDebug() << width << "x" << height << " --> " << dest_width << "x" << dest_height;
+
+            return image;
+        }
+        else
+        {
+            QImage image((int)width, (int)height, QImage::Format_ARGB32);
+            for (int row=0; row<height; ++row)
+                memcpy(image.scanLine(row), ((uint32_t *)PyArray_DATA(array)) + row*width, width*sizeof(uint32_t));
+            Py_DECREF(array);
+            return image;
+        }
+    }
+    return QImage();
+}
+
 QImage PythonSupport::imageFromRGBA(PyObject *ndarray_py)
 {
     PyArrayObject *array = (PyArrayObject *)PyArray_ContiguousFromObject(ndarray_py, NPY_UINT32, 2, 2);

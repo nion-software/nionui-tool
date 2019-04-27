@@ -79,6 +79,7 @@ public:
 	void addPyObjectToModuleFromQVariant(PyObject* module, const QString &identifier, const QVariant& object);
 	void addPyObjectToModule(PyObject* module, const QString &identifier, PyObject *object);
     QImage imageFromRGBA(PyObject *ndarray_py);
+    QImage scaledImageFromRGBA(PyObject *ndarray_py, const QSize &destination_size);
     QImage imageFromArray(PyObject *ndarray_py, float display_limit_low, float display_limit_high, PyObject *lookup_table);
     QImage scaledImageFromArray(PyObject *ndarray_py, const QSizeF &destination_size, float context_scaling, float display_limit_low, float display_limit_high, PyObject *lookup_table);
     PyObject *arrayFromImage(const QImage &image);
