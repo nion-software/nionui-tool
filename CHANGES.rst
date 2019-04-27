@@ -1,7 +1,7 @@
 Changelog (nionui-tool)
 =======================
 
-0.3.22 (UNRELEASED)
+0.3.22 (2018-04-27)
 -------------------
 
 - Implement high quality image drawing in most cases.
