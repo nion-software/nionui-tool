@@ -1111,6 +1111,9 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             {
                 QImage image;
 
+                QRectF destination_rect(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling));
+                float context_scaling = qMin(context_scaling_x, context_scaling_y);
+
                 {
                     Python_ThreadBlock thread_block;
 
@@ -1124,7 +1127,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
                         if (args[10].toInt() != 0)
                             colormap_ndarray_py = QVariantToPyObject(args[10]);
 
-                        image = PythonSupport::instance()->imageFromArray(ndarray_py, args[8].toFloat(), args[9].toFloat(), colormap_ndarray_py);
+                        image = PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.size(), context_scaling, args[8].toFloat(), args[9].toFloat(), colormap_ndarray_py);
 
                         FreePyObject(ndarray_py);
                     }
@@ -1132,13 +1135,6 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
                 if (!image.isNull())
                 {
-                    QRectF destination_rect(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling));
-                    float context_scaling = qMin(context_scaling_x, context_scaling_y);
-                    float scaling = qMax(destination_rect.height() / image.height(), destination_rect.width() / image.width()) * context_scaling;
-                    if (scaling < 0.5)
-                    {
-                        image = image.scaled((destination_rect.size() * context_scaling).toSize(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-                    }
                     painter.drawImage(destination_rect, image);
                     if (image_cache)
                     {
@@ -1771,6 +1767,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
             {
                 read_uint32(commands, command_index); // width
                 read_uint32(commands, command_index); // height
+//                int width = read_uint32(commands, command_index); // width
+//                int height = read_uint32(commands, command_index); // height
 
                 int image_id = read_uint32(commands, command_index);
 
@@ -1792,7 +1790,13 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 }
                 else
                 {
+//                    QTime timer;
+//                    timer.start();
+
                     QImage image;
+
+                    QRectF destination_rect(QPointF(arg4, arg5), QSizeF(arg6, arg7));
+                    float context_scaling = qMin(context_scaling_x, context_scaling_y);
 
                     QString image_key = QString::number(image_id);
 
@@ -1813,7 +1817,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                                     colormap_ndarray_py = (PyObject *)QVariantToPyObject(imageMap[color_map_image_key]);
                             }
 
-                            image = PythonSupport::instance()->imageFromArray(ndarray_py, low, high, colormap_ndarray_py);
+//                            image = PythonSupport::instance()->imageFromArray(ndarray_py, low, high, colormap_ndarray_py);
+                            image = PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.size(), context_scaling, low, high, colormap_ndarray_py);
 
                             FreePyObject(ndarray_py);
                         }
@@ -1823,13 +1828,6 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
 
                     if (!image.isNull())
                     {
-                        QRectF destination_rect(QPointF(arg4, arg5), QSizeF(arg6, arg7));
-                        float context_scaling = qMin(context_scaling_x, context_scaling_y);
-                        float scaling = qMax(destination_rect.height() / image.height(), destination_rect.width() / image.width()) * context_scaling;
-                        if (scaling < 0.5)
-                        {
-                            image = image.scaled((destination_rect.size() * context_scaling).toSize(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-                        }
                         painter.drawImage(destination_rect, image);
                         if (image_cache)
                         {
@@ -1837,6 +1835,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                             (*image_cache)[image_id] = cache_entry;
                         }
                     }
+
+//                    qDebug() << "Elapsed: " << timer.elapsed() << "ms " << width << "x" << height << " ; " << image.width() << "x" << image.height() << " ; " << int(destination_rect.width() * context_scaling) << "x" << int(destination_rect.height() * context_scaling);
                 }
                 break;
             }
