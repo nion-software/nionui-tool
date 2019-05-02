@@ -1,7 +1,12 @@
 Changelog (nionui-tool)
 =======================
 
-0.3.22 (2018-04-27)
+0.3.23 (2019-05-02)
+-------------------
+
+- Fix drawing issue for high aspect ratios.
+
+0.3.22 (2019-04-27)
 -------------------
 
 - Implement high quality image drawing in most cases.
@@ -12,7 +17,7 @@ Changelog (nionui-tool)
 
 - Qt version 5.12 on Windows.
 
-0.3.21 (2018-01-09)
+0.3.21 (2019-01-09)
 -------------------
 
 - Fix minor scrolling issue in tree widget by expanding area by 2 pixels.

@@ -1237,11 +1237,11 @@ QImage PythonSupport::scaledImageFromArray(PyObject *ndarray_py, const QSizeF &d
             for (int i=0; i<256; ++i)
                 colorTable.push_back(0xFF << 24 | i << 16 | i << 8 | i);
 
-        if (destination_size.width() * context_scaling < width * 0.75 || destination_size.height() * context_scaling < height * 0.75)
-        {
-            const long dest_width = destination_size.width() * context_scaling;
-            const long dest_height = destination_size.height() * context_scaling;
+        const long dest_width = destination_size.width() * context_scaling;
+        const long dest_height = destination_size.height() * context_scaling;
 
+        if ((destination_size.width() * context_scaling < width * 0.75 || destination_size.height() * context_scaling < height * 0.75) && (dest_width > 0 && dest_height > 0))
+        {
             QImage image((int)dest_width, (int)dest_height, QImage::Format_Indexed8);
 
             float *line_buffer = new float[dest_width];
