@@ -2837,6 +2837,25 @@ QVariant Widget_getWidgetProperty_(QWidget *widget, const QString &property)
     return QVariant();
 }
 
+QSizePolicy::Policy ParseSizePolicy(const QString &policy_str, QSizePolicy::Policy policy)
+{
+    if (policy_str.compare("fixed", Qt::CaseInsensitive) == 0)
+        return QSizePolicy::Fixed;
+    if (policy_str.compare("maximum", Qt::CaseInsensitive) == 0)
+        return QSizePolicy::Maximum;
+    if (policy_str.compare("minimum", Qt::CaseInsensitive) == 0)
+        return QSizePolicy::Minimum;
+    if (policy_str.compare("preferred", Qt::CaseInsensitive) == 0)
+        return QSizePolicy::Preferred;
+    if (policy_str.compare("expanding", Qt::CaseInsensitive) == 0)
+        return QSizePolicy::Expanding;
+    if (policy_str.compare("min-expanding", Qt::CaseInsensitive) == 0)
+        return QSizePolicy::MinimumExpanding;
+    if (policy_str.compare("ignored", Qt::CaseInsensitive) == 0)
+        return QSizePolicy::Ignored;
+    return policy;
+}
+
 void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const QVariant &variant)
 {
     if (property == "margin")
@@ -2876,27 +2895,29 @@ void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const Q
     {
         widget->setMinimumWidth(int(variant.toInt() * GetDisplayScaling()));
     }
+    else if (property == "max-width")
+    {
+        widget->setMaximumWidth(int(variant.toInt() * GetDisplayScaling()));
+    }
     else if (property == "min-height")
     {
         widget->setMinimumHeight(int(variant.toInt() * GetDisplayScaling()));
     }
+    else if (property == "max-height")
+    {
+        widget->setMaximumHeight(int(variant.toInt() * GetDisplayScaling()));
+    }
     else if (property == "size-policy-horizontal")
     {
-        if (variant.toString() == "expanding")
-        {
-            QSizePolicy size_policy = widget->sizePolicy();
-            size_policy.setHorizontalPolicy(QSizePolicy::Expanding);
-            widget->setSizePolicy(size_policy);
-        }
+        QSizePolicy size_policy = widget->sizePolicy();
+        size_policy.setHorizontalPolicy(ParseSizePolicy(variant.toString(), size_policy.horizontalPolicy()));
+        widget->setSizePolicy(size_policy);
     }
     else if (property == "size-policy-vertical")
     {
-        if (variant.toString() == "expanding")
-        {
-            QSizePolicy size_policy = widget->sizePolicy();
-            size_policy.setVerticalPolicy(QSizePolicy::Expanding);
-            widget->setSizePolicy(size_policy);
-        }
+        QSizePolicy size_policy = widget->sizePolicy();
+        size_policy.setVerticalPolicy(ParseSizePolicy(variant.toString(), size_policy.verticalPolicy()));
+        widget->setSizePolicy(size_policy);
     }
     else if (property == "width")
     {
