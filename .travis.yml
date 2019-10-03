@@ -11,16 +11,17 @@ env:
     - secure: "XONrATvQccjx3suCW2vnG3my9p7e+ejy4Z6H8ofXzsnU8G+XknviHY5l1GKh9ygQcrc0SGgOYep1L0wIIymhJEP5tf1B+x6h1FAltdhUU9UmiQkCRyH4wFcCLojI8QWXJ4QhjukGlqfmC7jTYsXjX29PZxzyMamc4r5f2kueCu+vzPcz9Rd396LWfYXFy/lraF7/DplB9/GnUQEhZ+PNZM211Lt1FWozY/tj4JzwFKYopKkpX7XKRFwdbLvhFVEr89w4XXD8d94encvAcP2t6NE6KQxt5Z+AmCGYreQhu8HbAGcXJgkiJZBUdM1JM+1o/YoUbNx+jZzYeqPJdXd9DgCI0DZfmkIEN0/0gowIlSqqxvOQkVr5FxY8ygh6TpGLsRq5RWYCh3/IBFISh5SzQhGjwayLskkyQyWsA9tkzajCSOOZ3iNTTo7jUyrQ9S15EH0LMkTYO7hqbj1jRcOWnSXZhQt44xTVvtJdkGowFVfUWXDb818A0OiXwbNoK6p1GZpiQijrzwVpNKnq23gzeYxzezODFmweiLRAfwlsiVuHRjjk/U4tOPkhEVK0oV8/VtZpCkimIcwtvKBFeJFvlIWh7MBuOZfTQXB34GwZO1TFwseUF96QsUZpegXdCZgSwnPRv8I8exqo9VduyNIBoyOnHbTSacII3xrqyU4tJg4="
 
 before_install:
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-  brew update
-  if ! brew outdated python; then
-    brew upgrade python
-  fi
-  brew install qt5
-  pip3 install numpy==1.15
-  sed -i '' 's/QTDIR = $(HOME)\/Developer\/Qt\/5.13.0\/clang_64/QTDIR = \/usr\/local\/opt\/qt5/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig
-  sed -i '' 's/PYTHONHOME = $(HOME)\/Developer\/miniconda43/PYTHONHOME = \/usr\/local\/opt\/python3\/Frameworks\/Python.framework\/Versions\/3.7/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig
-fi
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew update
+      if ! brew outdated python; then
+        brew upgrade python
+      fi
+      brew install qt5
+      pip3 install numpy==1.15
+      sed -i '' 's/QTDIR = $(HOME)\/Developer\/Qt\/5.13.0\/clang_64/QTDIR = \/usr\/local\/opt\/qt5/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig
+      sed -i '' 's/PYTHONHOME = $(HOME)\/Developer\/miniconda43/PYTHONHOME = \/usr\/local\/opt\/python3\/Frameworks\/Python.framework\/Versions\/3.7/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig
+    fi
 
 addons:
   apt:
