@@ -14,9 +14,9 @@ before_install:
   - |
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew update
-      if ! brew outdated python; then
-        brew upgrade python
-      fi
+      # if ! brew outdated python; then
+      #   brew upgrade python
+      # fi
       brew install qt5
       pip3 install numpy==1.15
       sed -i '' 's/QTDIR = $(HOME)\/Developer\/Qt\/5.13.0\/clang_64/QTDIR = \/usr\/local\/opt\/qt5/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig
