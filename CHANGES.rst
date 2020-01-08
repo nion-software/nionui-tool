@@ -1,7 +1,7 @@
 Changelog (nionui-tool)
 =======================
 
-0.3.24 (UNRELEASED)
+0.3.24 (2020-01-08)
 -------------------
 
 - Add support for help event (dynamic tool tips).
