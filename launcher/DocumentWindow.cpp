@@ -2315,6 +2315,14 @@ bool PyCanvas::event(QEvent *event)
                 qDebug() << "pinch";
             }
         } break;
+        case QEvent::ToolTip:
+        {
+            Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+            QHelpEvent *helpEvent = static_cast<QHelpEvent *>(event);
+            float display_scaling = GetDisplayScaling();
+            if (app->dispatchPyMethod(m_py_object, "helpEvent", QVariantList() << int(helpEvent->pos().x() / display_scaling) << int(helpEvent->pos().y() / display_scaling) << int(helpEvent->globalPos().x() / display_scaling) << int(helpEvent->globalPos().y() / display_scaling)).toBool())
+                return true;
+        } break;
         default: break;
     }
     return QWidget::event(event);

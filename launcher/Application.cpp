@@ -38,6 +38,7 @@
 #include <QtWidgets/QSplitter>
 #include <QtWidgets/QStackedWidget>
 #include <QtWidgets/QTextEdit>
+#include <QtWidgets/QToolTip>
 
 #include "LauncherConfig.h"
 
@@ -4281,6 +4282,48 @@ static PyObject *TextEdit_setWordWrapMode(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *ToolTip_hide(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    QToolTip::hideText();
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *ToolTip_show(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    int gx, gy;
+    char *text_c = NULL;
+    int t, l, b, r;
+    if (!PythonSupport::instance()->parse()(args, "Oiisiiii", &obj0, &gx, &gy, &text_c, &t, &l, &b, &r))
+        return NULL;
+
+    // Grab the widget
+    QWidget *widget = Unwrap<QWidget>(obj0);
+    if (widget == NULL)
+        return NULL;
+
+    QString text = (text_c != NULL) ? text_c : QString();
+
+    QRect rect(l, t, r - l, b - t);
+
+    QToolTip::showText(QPoint(gx, gy), text, widget, rect);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *TreeWidget_connect(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5509,6 +5552,8 @@ static PyMethodDef Methods[] = {
     {"TextEdit_setText", TextEdit_setText, METH_VARARGS, "TextEdit_setText."},
     {"TextEdit_setTextColor", TextEdit_setTextColor, METH_VARARGS, "TextEdit_setTextColor."},
     {"TextEdit_setWordWrapMode", TextEdit_setWordWrapMode, METH_VARARGS, "TextEdit_setWordWrapMode."},
+    {"ToolTip_hide", ToolTip_hide, METH_VARARGS, "ToolTip_hide."},
+    {"ToolTip_show", ToolTip_show, METH_VARARGS, "ToolTip_show."},
     {"TreeWidget_connect", TreeWidget_connect, METH_VARARGS, "TreeWidget_connect."},
     {"TreeWidget_resizeToContent", TreeWidget_resizeToContent, METH_VARARGS, "TreeWidget_resizeToContent."},
     {"TreeWidget_setCurrentRow", TreeWidget_setCurrentRow, METH_VARARGS, "TreeWidget_setCurrentRow."},

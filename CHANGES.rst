@@ -4,6 +4,8 @@ Changelog (nionui-tool)
 0.3.24 (UNRELEASED)
 -------------------
 
+- Add support for help event (dynamic tool tips).
+
 - Qt version 5.13 on macOS and Windows.
 
 - Extend sizing policy support.
