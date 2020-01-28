@@ -1,6 +1,11 @@
 Changelog (nionui-tool)
 =======================
 
+0.3.25 (2020-01-27)
+-------------------
+
+- Add support for Python 3.8. Drop support for Python 3.5.
+
 0.3.24 (2020-01-08)
 -------------------
 
