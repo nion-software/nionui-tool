@@ -224,19 +224,19 @@ PythonSupport::PythonSupport(const QString &python_home)
         {
             QDir home_dir(home_bin_path);
             home_dir.cdUp();
+            QString file_path_38 = home_dir.absoluteFilePath("lib/libpython3.8.dylib");
             QString file_path_37 = home_dir.absoluteFilePath("lib/libpython3.7m.dylib");
             QString file_path_36 = home_dir.absoluteFilePath("lib/libpython3.6m.dylib");
-            QString file_path_35 = home_dir.absoluteFilePath("lib/libpython3.5m.dylib");
-            file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+            file_path = QFile(file_path_38).exists() ? file_path_38 : QFile(file_path_37).exists() ? file_path_37 : file_path_36;
         }
     }
     else
     {
         // probably conda or standard Python
+        QString file_path_38 = QDir(python_home).absoluteFilePath("lib/libpython3.8.dylib");
         QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.dylib");
         QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.dylib");
-        QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.dylib");
-        file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+        file_path = QFile(file_path_38).exists() ? file_path_38 : QFile(file_path_37).exists() ? file_path_37 : file_path_36;
     }
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY);
 #elif defined(Q_OS_LINUX)
@@ -251,19 +251,19 @@ PythonSupport::PythonSupport(const QString &python_home)
         {
             QDir home_dir(home_bin_path);
             home_dir.cdUp();
+            QString file_path_38 = home_dir.absoluteFilePath("lib/libpython3.8.so");
             QString file_path_37 = home_dir.absoluteFilePath("lib/libpython3.7m.so");
             QString file_path_36 = home_dir.absoluteFilePath("lib/libpython3.6m.so");
-            QString file_path_35 = home_dir.absoluteFilePath("lib/libpython3.5m.so");
-            file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+            file_path = QFile(file_path_38).exists() ? file_path_38 : QFile(file_path_37).exists() ? file_path_37 : file_path_36;
         }
     }
     else
     {
         // probably conda or standard Python
+        QString file_path_38 = QDir(python_home).absoluteFilePath("lib/libpython3.8.so");
         QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.so");
         QString file_path_36 = QDir(python_home).absoluteFilePath("lib/libpython3.6m.so");
-        QString file_path_35 = QDir(python_home).absoluteFilePath("lib/libpython3.5m.so");
-        file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+        file_path = QFile(file_path_38).exists() ? file_path_38 : QFile(file_path_37).exists() ? file_path_37 : file_path_36;
     }
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY | RTLD_GLOBAL);
 #else
@@ -289,10 +289,10 @@ PythonSupport::PythonSupport(const QString &python_home)
                     {
                         QDir home_dir(QDir::fromNativeSeparators(home_bin_path));
                         python_home_new = home_dir.absolutePath();
+                        QString file_path_38 = QDir(python_home).absoluteFilePath("Scripts/Python38.dll");
                         QString file_path_37 = QDir(python_home).absoluteFilePath("Scripts/Python37.dll");
                         QString file_path_36 = QDir(python_home).absoluteFilePath("Scripts/Python36.dll");
-                        QString file_path_35 = QDir(python_home).absoluteFilePath("Scripts/Python35.dll");
-                        file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+                        file_path = QFile(file_path_38).exists() ? file_path_38 : QFile(file_path_37).exists() ? file_path_37 : file_path_36;
                     }
                 }
             }
@@ -300,10 +300,10 @@ PythonSupport::PythonSupport(const QString &python_home)
     }
     else
     {
+        QString file_path_38 = QDir(python_home).absoluteFilePath("Python38.dll");
         QString file_path_37 = QDir(python_home).absoluteFilePath("Python37.dll");
         QString file_path_36 = QDir(python_home).absoluteFilePath("Python36.dll");
-        QString file_path_35 = QDir(python_home).absoluteFilePath("Python35.dll");
-        file_path = QFile(file_path_37).exists() ? file_path_37 : QFile(file_path_36).exists() ? file_path_36 : file_path_35;
+        file_path = QFile(file_path_38).exists() ? file_path_38 : QFile(file_path_37).exists() ? file_path_37 : file_path_36;
     }
 
     // Python may have side-by-side DLLs that it uses. This seems to be an issue with how
