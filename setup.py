@@ -108,21 +108,21 @@ dest_drop = None
 
 if sys.platform == "darwin":
     platform = "macosx_10_11_intel"
-    python_version = "cp36.cp37"
+    python_version = "cp36.cp37.cp38"
     abi = "abi3"
     dest = "bin"
     dir_path = "launcher/build/Release"
     dest_drop = 3
 if sys.platform == "win32":
     platform = "win_amd64"
-    python_version = "cp36.cp37"
+    python_version = "cp36.cp37.cp38"
     abi = "none"
     dest = f"Scripts/{launcher}"
     dir_path = "launcher/x64/Release"
     dest_drop = 3
 if sys.platform == "linux":
     platform = "manylinux1_x86_64"
-    python_version = "cp36.cp37"
+    python_version = "cp36.cp37.cp38"
     abi = "abi3"
     dest = f"bin/{launcher}"
     dir_path = "launcher/linux/x64"
