@@ -1348,6 +1348,11 @@ inline quint32 read_uint32(const quint32 *commands, unsigned int &command_index)
     return commands[command_index++];
 }
 
+inline qint32 read_int32(const quint32 *commands, unsigned int &command_index)
+{
+    return *(qint32 *)(&commands[command_index++]);
+}
+
 inline float read_float(const quint32 *commands, unsigned int &command_index)
 {
     return *(float *)(&commands[command_index++]);
@@ -1372,8 +1377,12 @@ inline QString read_string(const quint32 *commands, unsigned int &command_index)
     return str;
 }
 
-RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands_v, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, float display_scaling)
+struct NullDeleter {template<typename T> void operator()(T*) {} };
+
+RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<quint32> commands_v, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, LayerCache *layer_cache, float display_scaling)
 {
+    QSharedPointer<QPainter> painter(rawPainter, NullDeleter());
+
     RenderedTimeStamps rendered_timestamps;
 
     display_scaling = display_scaling ? display_scaling : GetDisplayScaling();
@@ -1407,9 +1416,15 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
 
     QMap<int, QGradient> gradients;
 
-    painter.fillRect(painter.viewport(), QBrush(fill_color));
+    painter->fillRect(painter->viewport(), QBrush(fill_color));
 
     QList<DrawingContextState> stack;
+
+    QSet<int> layers_used;
+    bool layer_skip = false;
+    QSharedPointer<QImage> layer_image;
+    QList<QSharedPointer<QPainter>> painter_stack;
+    QList<QSharedPointer<QImage>> layer_image_stack;
 
     unsigned int command_index = 0;
 
@@ -1427,6 +1442,9 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                       (cmd_hex & 0xFF000000) >> 24;
 
         // qint64 start = qint64(timer.nsecsElapsed() / 1.0E3);
+
+        if (layer_skip && cmd != 0x656e6c79)
+            continue;
 
         switch (cmd)
         {
@@ -1448,7 +1466,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 values.context_scaling_x = context_scaling_x;
                 values.context_scaling_y = context_scaling_y;
                 stack.push_back(values);
-                painter.save();
+                painter->save();
                 break;
             }
             case 0x72657374:  // rest, restore
@@ -1468,7 +1486,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 path = values.path;
                 context_scaling_x = values.context_scaling_x;
                 context_scaling_y = values.context_scaling_y;
-                painter.restore();
+                painter->restore();
                 break;
             }
             case 0x62707468: // bpth, begin path
@@ -1487,21 +1505,21 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 float a1 = read_float(commands, command_index) * display_scaling;
                 float a2 = read_float(commands, command_index) * display_scaling;
                 float a3 = read_float(commands, command_index) * display_scaling;
-                painter.setClipRect(a0, a1, a2, a3, Qt::IntersectClip);
+                painter->setClipRect(a0, a1, a2, a3, Qt::IntersectClip);
                 break;
             }
             case 0x7472616e: // tran, translate
             {
                 float a0 = read_float(commands, command_index) * display_scaling;
                 float a1 = read_float(commands, command_index) * display_scaling;
-                painter.translate(a0, a1);
+                painter->translate(a0, a1);
                 break;
             }
             case 0x7363616c: // scal, scale
             {
                 float a0 = read_float(commands, command_index) * display_scaling;
                 float a1 = read_float(commands, command_index) * display_scaling;
-                painter.scale(a0, a1);
+                painter->scale(a0, a1);
                 context_scaling_x *= a0;
                 context_scaling_y *= a1;
                 break;
@@ -1509,7 +1527,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
             case 0x726f7461: // rota, rotate
             {
                 float a0 = read_float(commands, command_index);
-                painter.rotate(a0);
+                painter->rotate(a0);
                 break;
             }
             case 0x6d6f7665: // move
@@ -1724,7 +1742,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 {
                     (*image_cache)[image_id].used = true;
                     QImage image = (*image_cache)[image_id].image;
-                    painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
+                    painter->drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
                 }
                 else
                 {
@@ -1763,7 +1781,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                         {
                             image = image.scaled(destination_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                         }
-                        painter.drawImage(destination_rect, image);
+                        painter->drawImage(destination_rect, image);
                         if (image_cache)
                         {
                             PaintImageCacheEntry cache_entry(image_id, true, image);
@@ -1799,7 +1817,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 {
                     (*image_cache)[image_id].used = true;
                     QImage image = (*image_cache)[image_id].image;
-                    painter.drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
+                    painter->drawImage(QRectF(QPointF(arg4, arg5), QSizeF(arg6, arg7)), image);
                 }
                 else
                 {
@@ -1841,7 +1859,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
 
                     if (!image.isNull())
                     {
-                        painter.drawImage(destination_rect, image);
+                        painter->drawImage(destination_rect, image);
                         if (image_cache)
                         {
                             PaintImageCacheEntry cache_entry(image_id, true, image);
@@ -1865,13 +1883,13 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                     dashes << line_dash * display_scaling << line_dash * display_scaling;
                     pen.setDashPattern(dashes);
                 }
-                painter.strokePath(path, pen);
+                painter->strokePath(path, pen);
                 break;
             }
             case 0x66696c6c: // fill
             {
                 QBrush brush = fill_gradient >= 0 ? QBrush(gradients[fill_gradient]) : QBrush(fill_color);
-                painter.fillPath(path, brush);
+                painter->fillPath(path, brush);
                 break;
             }
             case 0x666c7374: // flst, fill style
@@ -1922,11 +1940,11 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 if (cmd == 0x74657874) // text, fill text
                 {
                     QBrush brush = fill_gradient >= 0 ? QBrush(gradients[fill_gradient]) : QBrush(fill_color);
-                    painter.save();
-                    painter.setFont(text_font);
-                    painter.setPen(QPen(brush, 1.0 * display_scaling));
-                    painter.drawText(text_pos, text);
-                    painter.restore();
+                    painter->save();
+                    painter->setFont(text_font);
+                    painter->setPen(QPen(brush, 1.0 * display_scaling));
+                    painter->drawText(text_pos, text);
+                    painter->restore();
                 }
                 else // stroke text
                 {
@@ -1936,7 +1954,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                     pen.setWidth(line_width * display_scaling);
                     pen.setJoinStyle(line_join);
                     pen.setCapStyle(line_cap);
-                    painter.strokePath(path, pen);
+                    painter->strokePath(path, pen);
                 }
                 break;
             }
@@ -2049,7 +2067,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
             case 0x736c6570: // slep, sleep
             {
                 unsigned long duration = read_float(commands, command_index) * 1000000L;
-                QThread::usleep(duration);
+                (duration);
                 break;
             }
             case 0x6c61746e: // latn, latency
@@ -2071,7 +2089,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
 #else
                 QDateTime date_time = QDateTime::fromString(text, Qt::ISODate);
 #endif
-                painter.save();
+                painter->save();
                 date_time.setTimeSpec(Qt::UTC);
                 QPointF text_pos(12, 12);
                 QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
@@ -2081,12 +2099,64 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
                 int text_height = fm.height();
                 QPainterPath background;
                 background.addRect(text_pos.x() - 4, text_pos.y() - 4, text_width + 8, text_height + 8);
-                painter.fillPath(background, Qt::white);
+                painter->fillPath(background, Qt::white);
                 QPainterPath path;
                 path.addText(text_pos.x(), text_pos.y() + text_ascent, text_font, text);
-                painter.fillPath(path, Qt::black);
-                painter.restore();
-                rendered_timestamps.append(RenderedTimeStamp(painter.worldTransform(), date_time));
+                painter->fillPath(path, Qt::black);
+                painter->restore();
+                rendered_timestamps.append(RenderedTimeStamp(painter->worldTransform(), date_time));
+                break;
+            }
+            case 0x62676c79: // begin layer
+            {
+                quint32 layer_id = read_uint32(commands, command_index);
+                quint32 layer_seed = read_uint32(commands, command_index);
+                float layer_rect_top = read_float(commands, command_index) * display_scaling;
+                float layer_rect_left = read_float(commands, command_index) * display_scaling;
+                float layer_rect_height = read_float(commands, command_index) * display_scaling;
+                float layer_rect_width = read_float(commands, command_index) * display_scaling;
+                QRect layer_rect((int)layer_rect_left, (int)layer_rect_top, (int)layer_rect_width, (int)layer_rect_height);
+                if (layer_cache->contains(layer_id) && layer_seed == layer_cache->value(layer_id).layer_seed)
+                {
+                    layer_skip = true;
+                }
+                else
+                {
+                    painter_stack.push_back(painter);
+                    layer_image_stack.push_back(layer_image);
+                    layer_image = QSharedPointer<QImage>(new QImage(layer_rect.size(), QImage::Format_ARGB32_Premultiplied));
+                    layer_image->fill(QColor(0,0,0,0));
+                    painter = QSharedPointer<QPainter>(new QPainter(layer_image.get()));
+                    painter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
+                    painter->translate(layer_rect_left, layer_rect_top);
+                }
+                layers_used.insert(layer_id);
+                break;
+            }
+            case 0x656e6c79: // end layer
+            {
+                quint32 layer_id = read_uint32(commands, command_index);
+                quint32 layer_seed = read_uint32(commands, command_index);
+                float layer_rect_top = read_float(commands, command_index) * display_scaling;
+                float layer_rect_left = read_float(commands, command_index) * display_scaling;
+                float layer_rect_height = read_float(commands, command_index) * display_scaling;
+                float layer_rect_width = read_float(commands, command_index) * display_scaling;
+                QRect layer_rect((int)layer_rect_left, (int)layer_rect_top, (int)layer_rect_width, (int)layer_rect_height);
+                if (layer_cache->contains(layer_id) && layer_seed == layer_cache->value(layer_id).layer_seed)
+                {
+                    layer_skip = false;
+                    layer_image = layer_cache->value(layer_id).layer_image;
+                    layer_rect = layer_cache->value(layer_id).layer_rect;
+                    painter->drawImage(layer_rect, *layer_image);
+                }
+                else
+                {
+                    painter->end();
+                    layer_cache->insert(layer_id, LayerCacheEntry(layer_seed, layer_image, layer_rect));
+                    painter = painter_stack.takeLast();
+                    painter->drawImage(layer_rect, *layer_image);
+                    layer_image = layer_image_stack.takeLast();
+                }
                 break;
             }
         }
@@ -2100,9 +2170,20 @@ RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quin
     {
         Q_FOREACH(int image_id, image_cache->keys())
         {
-            if (!(*image_cache)[image_id].used)
+            if (!image_cache->value(image_id).used)
             {
                 image_cache->remove(image_id);
+            }
+        }
+    }
+
+    if (layer_cache)
+    {
+        Q_FOREACH(int layer_id, layer_cache->keys())
+        {
+            if (!layers_used.contains(layer_id))
+            {
+                layer_cache->take(layer_id);
             }
         }
     }
@@ -2212,7 +2293,7 @@ void PyCanvas::render()
 
     //QDateTime start = QDateTime::currentDateTime();
 
-    RenderedTimeStamps rendered_timestamps = PaintBinaryCommands(painter, commands_binary, imageMap, &m_image_cache);
+    RenderedTimeStamps rendered_timestamps = PaintBinaryCommands(&painter, commands_binary, imageMap, &m_image_cache, &m_layer_cache);
 
     PaintCommands(painter, commands, &m_image_cache);
 #if 0

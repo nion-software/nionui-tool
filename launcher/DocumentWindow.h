@@ -240,6 +240,18 @@ public:
 
 typedef QMap<int, PaintImageCacheEntry> PaintImageCache;
 
+class LayerCacheEntry
+{
+public:
+    LayerCacheEntry() { }
+    LayerCacheEntry(int layer_seed, QSharedPointer<QImage> layer_image, const QRect &layer_rect) : layer_seed(layer_seed), layer_image(layer_image), layer_rect(layer_rect) { }
+    int layer_seed;
+    QSharedPointer<QImage> layer_image;
+    QRect layer_rect;
+};
+
+typedef QMap<int, LayerCacheEntry> LayerCache;
+
 struct CanvasDrawingCommand
 {
     QString command;
@@ -263,7 +275,7 @@ typedef QPair<QTransform, QDateTime> RenderedTimeStamp;
 
 typedef QList<RenderedTimeStamp> RenderedTimeStamps;
 
-RenderedTimeStamps PaintBinaryCommands(QPainter &painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, float display_scaling = 0.0);
+RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, LayerCache *layer_cache, float display_scaling = 0.0);
 
 class PyStyledItemDelegate : public QStyledItemDelegate
 {
@@ -553,6 +565,7 @@ private:
     QPoint m_last_pos;
     bool m_pressed;
     PaintImageCache m_image_cache;
+    LayerCache m_layer_cache;
     unsigned m_grab_mouse_count;
     QPoint m_grab_reference_point;
 };

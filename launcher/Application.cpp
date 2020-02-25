@@ -2245,9 +2245,10 @@ static PyObject *DrawingContext_paintRGBA_binary(PyObject * /*self*/, PyObject *
     {
         QPainter painter(&image);
         PaintImageCache image_cache;
+        LayerCache layer_cache;
         std::vector<quint32> commands;
         commands.assign((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4);
-        PaintBinaryCommands(painter, commands, imageMap, &image_cache, 1.0);
+        PaintBinaryCommands(&painter, commands, imageMap, &image_cache, &layer_cache, 1.0);
     }
 
     if (image.format() != QImage::Format_ARGB32_Premultiplied)
