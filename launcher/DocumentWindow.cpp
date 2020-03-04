@@ -1425,6 +1425,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
     QSharedPointer<QImage> layer_image;
     QList<QSharedPointer<QPainter>> painter_stack;
     QList<QSharedPointer<QImage>> layer_image_stack;
+    QList<bool> layer_skip_stack;
 
     unsigned int command_index = 0;
 
@@ -1443,7 +1444,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
 
         // qint64 start = qint64(timer.nsecsElapsed() / 1.0E3);
 
-        if (layer_skip && cmd != 0x656e6c79)
+        if (layer_skip && cmd != 0x656e6c79 and cmd != 0x62676c79)
             continue;
 
         switch (cmd)
@@ -2116,19 +2117,23 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                 float layer_rect_height = read_float(commands, command_index) * display_scaling;
                 float layer_rect_width = read_float(commands, command_index) * display_scaling;
                 QRect layer_rect((int)layer_rect_left, (int)layer_rect_top, (int)layer_rect_width, (int)layer_rect_height);
-                if (layer_cache->contains(layer_id) && layer_seed == layer_cache->value(layer_id).layer_seed)
+                layer_skip_stack.push_back(layer_skip);
+                if (!layer_skip)
                 {
-                    layer_skip = true;
-                }
-                else
-                {
-                    painter_stack.push_back(painter);
-                    layer_image_stack.push_back(layer_image);
-                    layer_image = QSharedPointer<QImage>(new QImage(layer_rect.size(), QImage::Format_ARGB32_Premultiplied));
-                    layer_image->fill(QColor(0,0,0,0));
-                    painter = QSharedPointer<QPainter>(new QPainter(layer_image.get()));
-                    painter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
-                    painter->translate(layer_rect_left, layer_rect_top);
+                    if (layer_cache->contains(layer_id) && layer_seed == layer_cache->value(layer_id).layer_seed)
+                    {
+                        layer_skip = true;
+                    }
+                    else
+                    {
+                        painter_stack.push_back(painter);
+                        layer_image_stack.push_back(layer_image);
+                        layer_image = QSharedPointer<QImage>(new QImage(layer_rect.size(), QImage::Format_ARGB32_Premultiplied));
+                        layer_image->fill(QColor(0,0,0,0));
+                        painter = QSharedPointer<QPainter>(new QPainter(layer_image.get()));
+                        painter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
+                        painter->translate(layer_rect_left, layer_rect_top);
+                    }
                 }
                 layers_used.insert(layer_id);
                 break;
@@ -2142,20 +2147,24 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                 float layer_rect_height = read_float(commands, command_index) * display_scaling;
                 float layer_rect_width = read_float(commands, command_index) * display_scaling;
                 QRect layer_rect((int)layer_rect_left, (int)layer_rect_top, (int)layer_rect_width, (int)layer_rect_height);
-                if (layer_cache->contains(layer_id) && layer_seed == layer_cache->value(layer_id).layer_seed)
+                layer_skip = layer_skip_stack.takeLast();
+                if (!layer_skip)
                 {
-                    layer_skip = false;
-                    layer_image = layer_cache->value(layer_id).layer_image;
-                    layer_rect = layer_cache->value(layer_id).layer_rect;
-                    painter->drawImage(layer_rect, *layer_image);
-                }
-                else
-                {
-                    painter->end();
-                    layer_cache->insert(layer_id, LayerCacheEntry(layer_seed, layer_image, layer_rect));
-                    painter = painter_stack.takeLast();
-                    painter->drawImage(layer_rect, *layer_image);
-                    layer_image = layer_image_stack.takeLast();
+                    if (layer_cache->contains(layer_id) && layer_seed == layer_cache->value(layer_id).layer_seed)
+                    {
+                        layer_skip = false;
+                        QSharedPointer<QImage> layer_image = layer_cache->value(layer_id).layer_image;
+                        layer_rect = layer_cache->value(layer_id).layer_rect;
+                        painter->drawImage(layer_rect, *layer_image);
+                    }
+                    else
+                    {
+                        painter->end();
+                        layer_cache->insert(layer_id, LayerCacheEntry(layer_seed, layer_image, layer_rect));
+                        painter = painter_stack.takeLast();
+                        painter->drawImage(layer_rect, *layer_image);
+                        layer_image = layer_image_stack.takeLast();
+                    }
                 }
                 break;
             }
