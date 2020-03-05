@@ -2661,9 +2661,9 @@ void PyCanvas::setBinaryCommands(const std::vector<quint32> &commands, const QMa
 
 void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint32> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap)
 {
-    {
-        QSharedPointer<CanvasSection> section;
+    QSharedPointer<CanvasSection> section;
 
+    {
         QMutexLocker locker(&m_commands_mutex);
         if (m_sections.contains(section_id))
         {
@@ -2675,14 +2675,14 @@ void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint3
             m_sections[section_id] = new_section;
             section = new_section;
         }
+    }
 
-        {
-            QMutexLocker locker(&section->m_mutex);
-            section->m_section_id = section_id;
-            section->m_commands_binary = commands;
-            section->rect = rect;
-            section->m_imageMap = imageMap;
-        }
+    {
+        QMutexLocker locker(&section->m_mutex);
+        section->m_section_id = section_id;
+        section->m_commands_binary = commands;
+        section->rect = rect;
+        section->m_imageMap = imageMap;
     }
 
     m_render_request_mutex.lock();
