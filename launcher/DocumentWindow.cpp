@@ -1444,7 +1444,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
 
         // qint64 start = qint64(timer.nsecsElapsed() / 1.0E3);
 
-        if (layer_skip && cmd != 0x656e6c79 and cmd != 0x62676c79)
+        if (layer_skip && cmd != 0x656e6c79 && cmd != 0x62676c79)
             continue;
 
         switch (cmd)
