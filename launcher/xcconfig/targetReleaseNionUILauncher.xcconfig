@@ -1,5 +1,5 @@
-// set the base Qt version
-QTDIR = $(HOME)/Developer/Qt/5.13.0/clang_64
+// set the base Qt version. use an alias to point 5.14 to 5.14.x.
+QTDIR = $(HOME)/Developer/Qt/5.14/clang_64
 
 ARCHS = x86_64
 

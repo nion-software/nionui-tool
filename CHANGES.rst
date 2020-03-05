@@ -3,6 +3,7 @@ Changelog (nionui-tool)
 
 0.3.26 (UNRELEASED)
 -------------------
+- Qt version 5.14 on macOS (local) and Windows.
 - Add backend support for partial drawing.
 - Add support for layer cacheing.
 
