@@ -688,7 +688,9 @@ static PyObject *Canvas_drawSection_binary(PyObject * /*self*/, PyObject *args)
 
     QMap<QString, QVariant> imageMap = PyObjectToQVariant(obj1).toMap();
 
-    canvas->setBinarySectionCommands(section_id, std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4), QRect(QPoint(left, top), QSize(width, height)), imageMap);
+    float display_scaling = GetDisplayScaling();
+
+    canvas->setBinarySectionCommands(section_id, std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4), QRect(QPoint(left * display_scaling, top * display_scaling), QSize(width * display_scaling, height * display_scaling)), imageMap);
 
     PythonSupport::instance()->bufferRelease(&buffer);
 
