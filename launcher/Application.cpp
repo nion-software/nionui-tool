@@ -668,6 +668,33 @@ static PyObject *Canvas_draw_binary(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *Canvas_drawSection_binary(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    int section_id = 0;
+    Py_buffer buffer;
+    PyObject *obj1 = NULL;
+    int left = 0;
+    int top = 0;
+    int width = 0;
+    int height = 0;
+
+    if (!PythonSupport::instance()->parse()(args, "Oiw*Oiiii", &obj0, &section_id, &buffer, &obj1, &left, &top, &width, &height))
+        return NULL;
+
+    PyCanvas *canvas = Unwrap<PyCanvas>(obj0);
+    if (canvas == NULL)
+        return NULL;
+
+    QMap<QString, QVariant> imageMap = PyObjectToQVariant(obj1).toMap();
+
+    canvas->setBinarySectionCommands(section_id, std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4), QRect(QPoint(left, top), QSize(width, height)), imageMap);
+
+    PythonSupport::instance()->bufferRelease(&buffer);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *Canvas_grabMouse(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
@@ -698,6 +725,23 @@ static PyObject *Canvas_releaseMouse(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     canvas->releaseMouse0();
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *Canvas_removeSection(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    int section_id = 0;
+
+    if (!PythonSupport::instance()->parse()(args, "Oi", &obj0, &section_id))
+        return NULL;
+
+    PyCanvas *canvas = Unwrap<PyCanvas>(obj0);
+    if (canvas == NULL)
+        return NULL;
+
+    canvas->removeSection(section_id);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -5410,8 +5454,10 @@ static PyMethodDef Methods[] = {
     {"Canvas_connect", Canvas_connect, METH_VARARGS, "Canvas_connect."},
     {"Canvas_draw", Canvas_draw, METH_VARARGS, "Canvas_draw."},
     {"Canvas_draw_binary", Canvas_draw_binary, METH_VARARGS, "Canvas_draw."},
+    {"Canvas_drawSection_binary", Canvas_drawSection_binary, METH_VARARGS, "Canvas_draw_section."},
     {"Canvas_grabMouse", Canvas_grabMouse, METH_VARARGS, "Canvas_grabMouse."},
     {"Canvas_releaseMouse", Canvas_releaseMouse, METH_VARARGS, "Canvas_releaseMouse."},
+    {"Canvas_removeSection", Canvas_removeSection, METH_VARARGS, "Canvas_removeSection."},
     {"Canvas_setCursorShape", Canvas_setCursorShape, METH_VARARGS, "Canvas_setCursorShape."},
     {"CheckBox_connect", CheckBox_connect, METH_VARARGS, "CheckBox_connect."},
     {"CheckBox_getCheckState", CheckBox_getCheckState, METH_VARARGS, "CheckBox_getCheckState."},

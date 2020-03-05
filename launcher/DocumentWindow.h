@@ -479,6 +479,22 @@ private:
 
 class PyCanvas;
 
+class CanvasSection
+{
+public:
+    int m_section_id;
+    QMutex m_mutex;
+    QList<CanvasDrawingCommand> m_commands;
+    std::vector<quint32> m_commands_binary;
+    QRect rect;
+    QRect image_rect;
+    QSharedPointer<QImage> image;
+    PaintImageCache m_image_cache;
+    LayerCache m_layer_cache;
+    QMap<QString, QVariant> m_imageMap;
+    RenderedTimeStamps m_rendered_timestamps;
+};
+
 class PyCanvasRenderThread : public QThread
 {
     Q_OBJECT
@@ -490,7 +506,7 @@ public:
     void needsRender() { m_needs_render = true; }
 
 Q_SIGNALS:
-    void renderingReady();
+    void renderingReady(const QRect &repaint_rect);
 
 protected:
     virtual void run() override;
@@ -541,31 +557,30 @@ public:
     void setCommands(const QList<CanvasDrawingCommand> &commands);
     void setBinaryCommands(const std::vector<quint32> &commands, const QMap<QString, QVariant> &imageMap);
 
+    void setBinarySectionCommands(int section_id, const std::vector<quint32> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap);
+    void removeSection(int section_id);
+
     void grabMouse0(const QPoint &gp);
     void releaseMouse0();
 
-    void render();
+    QRect renderSections();
 
 private Q_SLOTS:
     void renderingFinished();
+    void repaintRect(const QRect &rect);
 
 private:
     QVariant m_py_object;
     PyCanvasRenderThread *m_thread;
-    QMutex m_rendered_image_mutex;
-    QImage m_rendered_image;
-    RenderedTimeStamps m_rendered_timestamps;
     QMap<QDateTime, QDateTime> m_known_dts;
     QWaitCondition m_render_request;
     QMutex m_render_request_mutex;
     QMutex m_commands_mutex;
     QList<CanvasDrawingCommand> m_commands;
-    QMap<QString, QVariant> m_imageMap;
+    QMap<int, QSharedPointer<CanvasSection>> m_sections;
     std::vector<quint32> m_commands_binary;
     QPoint m_last_pos;
     bool m_pressed;
-    PaintImageCache m_image_cache;
-    LayerCache m_layer_cache;
     unsigned m_grab_mouse_count;
     QPoint m_grab_reference_point;
 };

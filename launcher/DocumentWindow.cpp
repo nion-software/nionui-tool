@@ -2219,8 +2219,8 @@ void PyCanvasRenderThread::run()
         while (m_needs_render && !m_cancel)
         {
             m_needs_render = false;
-            m_canvas->render();
-            Q_EMIT renderingReady();
+            QRect repaint_rect = m_canvas->renderSections();
+            Q_EMIT renderingReady(repaint_rect);
         }
     }
 }
@@ -2235,7 +2235,7 @@ PyCanvas::PyCanvas()
 
     m_thread = new PyCanvasRenderThread(this, m_render_request, m_render_request_mutex);
 
-    connect(m_thread, SIGNAL(renderingReady()), this, SLOT(repaint()));
+    connect(m_thread, SIGNAL(renderingReady(const QRect &)), this, SLOT(repaintRect(const QRect &)));
 
     m_thread->start();
 }
@@ -2251,6 +2251,12 @@ PyCanvas::~PyCanvas()
     m_thread->wait();
     delete m_thread;
     m_thread = NULL;
+}
+
+void PyCanvas::repaintRect(const QRect &repaintRect)
+{
+    // qDebug() << "repaint " << repaintRect;
+    repaint(repaintRect);
 }
 
 void PyCanvas::focusInEvent(QFocusEvent *event)
@@ -2279,60 +2285,57 @@ void PyCanvas::focusOutEvent(QFocusEvent *event)
     QWidget::focusOutEvent(event);
 }
 
-void PyCanvas::render()
+QRect PyCanvas::renderSections()
 {
-    QImage image((int)size().width(), (int)size().height(), QImage::Format_ARGB32_Premultiplied);
-    image.fill(QColor(0,0,0,0));
+    bool repaint_rect_valid = false;
+    QRect repaint_rect;
 
-    QPainter painter(&image);
-
-    painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
-
-    QList<CanvasDrawingCommand> commands;
-
-    std::vector<quint32> commands_binary;
-    QMap<QString, QVariant> imageMap;
+    QList<QSharedPointer<CanvasSection>> sections;
 
     {
         QMutexLocker locker(&m_commands_mutex);
-        commands = m_commands;
-        imageMap = m_imageMap;
-        commands_binary = m_commands_binary;
+        sections = m_sections.values();
     }
 
-    //QDateTime start = QDateTime::currentDateTime();
-
-    RenderedTimeStamps rendered_timestamps = PaintBinaryCommands(&painter, commands_binary, imageMap, &m_image_cache, &m_layer_cache);
-
-    PaintCommands(painter, commands, &m_image_cache);
-#if 0
-    static int frameCount = 0;
-    static float dt = 0.0;
-    static float fps = 0.0;
-    static float updateRate = 1.0;  // 4 updates per sec.
-    static QTime time;
-
-    frameCount++;
-    dt += time.elapsed() / 1000.0;
-    if (dt > 1.0/updateRate)
+    Q_FOREACH(QSharedPointer<CanvasSection> section, sections)
     {
-        fps = frameCount / dt ;
-        qDebug() << "pp fps " << fps;
-        frameCount = 0;
-        dt -= 1.0/updateRate;
+        std::vector<quint32> commands_binary;
+        QRect rect;
+        QMap<QString, QVariant> imageMap;
+        {
+            QMutexLocker locker(&section->m_mutex);
+            commands_binary = section->m_commands_binary;
+            rect = section->rect;
+            imageMap = section->m_imageMap;
+            section->m_commands_binary.clear();
+        }
+        if (!commands_binary.empty())
+        {
+            QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(rect.size(), QImage::Format_ARGB32_Premultiplied));
+            image->fill(QColor(0,0,0,0));
+            QPainter painter(image.get());
+            painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
+            RenderedTimeStamps rendered_timestamps = PaintBinaryCommands(&painter, commands_binary, imageMap, &section->m_image_cache, &section->m_layer_cache);
+            painter.end();  // ending painter here speeds up QImage assignment below (Windows)
+
+            {
+                QMutexLocker locker(&section->m_mutex);
+                section->image = image;
+                section->image_rect = rect;
+                section->m_rendered_timestamps.clear();
+                Q_FOREACH(RenderedTimeStamp r, rendered_timestamps)
+                {
+                    QTransform transform = r.first;
+                    transform.translate(rect.left(), rect.top());
+                    section->m_rendered_timestamps.append(RenderedTimeStamp(transform, r.second));
+                }
+                repaint_rect = repaint_rect_valid ? repaint_rect.united(rect) : rect;
+                repaint_rect_valid = true;
+            }
+        }
     }
-    time.start();
-#endif
 
-    painter.end();  // ending painter here speeds up QImage assignment below (Windows)
-
-    //qDebug() << "Paint " << QDateTime::currentDateTime() << " elapsed " << start.msecsTo(QDateTime::currentDateTime())/1000.0;
-
-    {
-        QMutexLocker locker(&m_rendered_image_mutex);
-        m_rendered_image = image;
-        m_rendered_timestamps = rendered_timestamps;
-    }
+    return repaint_rect;
 }
 
 void PyCanvas::paintEvent(QPaintEvent *event)
@@ -2343,16 +2346,32 @@ void PyCanvas::paintEvent(QPaintEvent *event)
 
     painter.begin(this);
 
-    QImage image;
-    RenderedTimeStamps rendered_timestamps;
+    QList<QSharedPointer<CanvasSection>> sections;
 
     {
-        QMutexLocker locker(&m_rendered_image_mutex);
-        image = m_rendered_image;
-        rendered_timestamps = m_rendered_timestamps;
+        QMutexLocker locker(&m_commands_mutex);
+        sections = m_sections.values();
     }
 
-    painter.drawImage(QPointF(0, 0), image);
+    RenderedTimeStamps rendered_timestamps;
+
+    Q_FOREACH(QSharedPointer<CanvasSection> section, sections)
+    {
+        QSharedPointer<QImage> image;
+        QRect image_rect;
+        {
+            QMutexLocker locker(&section->m_mutex);
+            image = section->image;
+            image_rect = section->image_rect;
+            rendered_timestamps.append(section->m_rendered_timestamps);
+        }
+        // qDebug() << "paintEvent " << image->isNull() << " " << image_rect << " " << event->rect();
+        if (image && !image->isNull() && image_rect.intersects(event->rect()))
+        {
+            // qDebug() << "draw " << image_rect.topLeft();
+            painter.drawImage(image_rect.topLeft(), *image);
+        }
+    }
 
     QMap<QDateTime, QDateTime> known_dts = m_known_dts;
     m_known_dts.clear();
@@ -2632,16 +2651,45 @@ void PyCanvas::setCommands(const QList<CanvasDrawingCommand> &commands)
 
 void PyCanvas::setBinaryCommands(const std::vector<quint32> &commands, const QMap<QString, QVariant> &imageMap)
 {
+    setBinarySectionCommands(0, commands, rect(), imageMap);
+}
+
+void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint32> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap)
+{
     {
+        QSharedPointer<CanvasSection> section;
+
         QMutexLocker locker(&m_commands_mutex);
-        m_imageMap = imageMap;
-        m_commands_binary = commands;
+        if (m_sections.contains(section_id))
+        {
+            section = m_sections[section_id];
+        }
+        else
+        {
+            QSharedPointer<CanvasSection> new_section(new CanvasSection());
+            m_sections[section_id] = new_section;
+            section = new_section;
+        }
+
+        {
+            QMutexLocker locker(&section->m_mutex);
+            section->m_section_id = section_id;
+            section->m_commands_binary = commands;
+            section->rect = rect;
+            section->m_imageMap = imageMap;
+        }
     }
 
     m_render_request_mutex.lock();
     m_thread->needsRender();
     m_render_request.wakeAll();
     m_render_request_mutex.unlock();
+}
+
+void PyCanvas::removeSection(int section_id)
+{
+    QMutexLocker locker(&m_commands_mutex);
+    m_sections.remove(section_id);
 }
 
 void PyCanvas::dragEnterEvent(QDragEnterEvent *event)
