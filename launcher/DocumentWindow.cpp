@@ -2105,7 +2105,12 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                 path.addText(text_pos.x(), text_pos.y() + text_ascent, text_font, text);
                 painter->fillPath(path, Qt::black);
                 painter->restore();
-                rendered_timestamps.append(RenderedTimeStamp(painter->worldTransform(), date_time));
+                QTransform transform = painter->transform();
+                QList<QSharedPointer<QPainter>> painter_stack_reversed = painter_stack;
+                std::reverse(painter_stack.begin(), painter_stack.end());
+                Q_FOREACH(QSharedPointer<QPainter> p, painter_stack_reversed)
+                    transform = p->transform() * transform;
+                rendered_timestamps.append(RenderedTimeStamp(transform, date_time));
                 break;
             }
             case 0x62676c79: // begin layer
