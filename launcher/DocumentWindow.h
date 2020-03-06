@@ -7,6 +7,7 @@
 
 #include <QtCore/QAbstractListModel>
 #include <QtCore/QDateTime>
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
 #include <QtCore/QThread>
 #include <QtCore/QWaitCondition>
@@ -493,6 +494,17 @@ public:
     LayerCache m_layer_cache;
     QMap<QString, QVariant> m_imageMap;
     RenderedTimeStamps m_rendered_timestamps;
+    bool rendering;
+    quint64 time;
+};
+
+struct QRectOptional
+{
+    QRectOptional(const QRect &rect) : value(rect), has_value(true) { }
+    QRectOptional() : has_value(false) { }
+
+    QRect value;
+    bool has_value;
 };
 
 class PyCanvasRenderThread : public QThread
@@ -500,10 +512,9 @@ class PyCanvasRenderThread : public QThread
     Q_OBJECT
 
 public:
-    PyCanvasRenderThread(PyCanvas *canvas, QWaitCondition &render_request, QMutex &render_request_mutex);
+    PyCanvasRenderThread(PyCanvas *canvas);
 
     void cancel() { m_cancel = true; }
-    void needsRender() { m_needs_render = true; }
 
 Q_SIGNALS:
     void renderingReady(const QRect &repaint_rect);
@@ -513,10 +524,7 @@ protected:
 
 private:
     PyCanvas *m_canvas;
-    QWaitCondition &m_render_request;
-    QMutex &m_render_request_mutex;
     bool m_cancel;
-    bool m_needs_render;
 };
 
 class PyCanvas : public QWidget
@@ -563,7 +571,10 @@ public:
     void grabMouse0(const QPoint &gp);
     void releaseMouse0();
 
-    QRect renderSections();
+    void waitRenderRequest();
+    QRectOptional renderOne();
+    QRectOptional renderSection(QSharedPointer<CanvasSection> section);
+    void wakeRenderer();
 
 private Q_SLOTS:
     void renderingFinished();
@@ -571,7 +582,7 @@ private Q_SLOTS:
 
 private:
     QVariant m_py_object;
-    PyCanvasRenderThread *m_thread;
+    QList<PyCanvasRenderThread *> m_threads;
     QMap<QDateTime, QDateTime> m_known_dts;
     QWaitCondition m_render_request;
     QMutex m_render_request_mutex;
@@ -583,6 +594,7 @@ private:
     bool m_pressed;
     unsigned m_grab_mouse_count;
     QPoint m_grab_reference_point;
+    QElapsedTimer m_timer;
 };
 
 QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id);

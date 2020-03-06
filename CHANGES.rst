@@ -4,7 +4,8 @@ Changelog (nionui-tool)
 0.3.26 (UNRELEASED)
 -------------------
 - Qt version 5.14 on macOS (local) and Windows.
-- Add backend support for partial drawing.
+- Add backend support for multi-threaded section-serialized rendering.
+- Add backend support for section by section drawing for improved performance.
 - Add support for layer cacheing.
 
 0.3.25 (2020-01-27)
