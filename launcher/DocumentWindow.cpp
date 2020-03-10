@@ -2281,16 +2281,14 @@ QRectOptional PyCanvas::renderOne()
     QSharedPointer<CanvasSection> nextSection;
     Q_FOREACH(QSharedPointer<CanvasSection> section, sections)
     {
+        QMutexLocker locker(&section->m_mutex);
+        // first check whether the section can be rendered (not rendering already and has commands to render)
+        if (!section->rendering && !section->m_commands_binary.empty())
         {
-            QMutexLocker locker(&section->m_mutex);
-            // first check whether the section can be rendered (not rendering already and has commands to render)
-            if (!section->rendering && !section->m_commands_binary.empty())
-            {
-                // next check whether it is earlier than the current next_section
-                // if so, make this the new next section
-                if (!nextSection || section->time < nextSection->time)
-                    nextSection = section;
-            }
+            // next check whether it is earlier than the current next_section
+            // if so, make this the new next section
+            if (!nextSection || section->time < nextSection->time)
+                nextSection = section;
         }
     }
 
@@ -2689,9 +2687,12 @@ void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint3
         }
     }
 
+    QMap<QString, QVariant> imageMapCopy;
+
     {
         QMutexLocker locker(&section->m_mutex);
         section->m_commands_binary = commands;
+        imageMapCopy = section->m_imageMap;  // ensure the original gets released outside of the lock
         section->rect = rect;
         section->m_imageMap = imageMap;
     }
