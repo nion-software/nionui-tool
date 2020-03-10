@@ -16,6 +16,7 @@
 #include <QtCore/QSettings>
 #include <QtCore/QTextCodec>
 #include <QtCore/QThread>
+#include <QtCore/QThreadPool>
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
 
@@ -2205,21 +2206,22 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
     return rendered_timestamps;
 }
 
-PyCanvasRenderThread::PyCanvasRenderThread(PyCanvas *canvas)
+PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas)
     : m_canvas(canvas)
-    , m_cancel(false)
+    , m_signals(new PyCanvasRenderTaskSignals())
 {
 }
 
-void PyCanvasRenderThread::run()
+PyCanvasRenderTask::~PyCanvasRenderTask()
 {
-    while (!m_cancel)
-    {
-        m_canvas->waitRenderRequest();
-        QRectOptional repaint_rect = m_canvas->renderOne();
-        if (repaint_rect.has_value)
-            Q_EMIT renderingReady(repaint_rect.value);
-    }
+    delete m_signals;
+}
+
+void PyCanvasRenderTask::run()
+{
+    QRectOptional repaint_rect = m_canvas->renderOne();
+    if (repaint_rect.has_value)
+        Q_EMIT m_signals->renderingReady(repaint_rect.value);
 }
 
 PyCanvas::PyCanvas()
@@ -2230,59 +2232,10 @@ PyCanvas::PyCanvas()
     setAcceptDrops(true);
 
     m_timer.start();
-
-    for (int i=0; i<QThread::idealThreadCount(); ++i)
-    {
-        auto thread = new PyCanvasRenderThread(this);
-        connect(thread, SIGNAL(renderingReady(const QRect &)), this, SLOT(repaintRect(const QRect &)));
-        thread->start();
-        m_threads.push_back(thread);
-    }
 }
 
 PyCanvas::~PyCanvas()
 {
-    Q_FOREACH(auto thread, m_threads)
-    {
-        thread->cancel();
-    }
-
-    {
-        QMutexLocker locker(&m_render_request_mutex);
-        m_render_request.wakeAll();
-    }
-
-    Q_FOREACH(auto thread, m_threads)
-    {
-        thread->wait();
-    }
-
-    m_threads.clear();
-}
-
-void PyCanvas::waitRenderRequest()
-{
-    bool needs_render = false;
-    QList<QSharedPointer<CanvasSection>> sections;
-
-    {
-        QMutexLocker locker(&m_commands_mutex);
-        sections = m_sections.values();
-    }
-
-    Q_FOREACH(QSharedPointer<CanvasSection> section, sections)
-    {
-        QMutexLocker locker(&section->m_mutex);
-        if (!section->rendering && !section->m_commands_binary.empty())
-        {
-            needs_render = true;
-            break;
-        }
-    }
-
-    QMutexLocker locker(&m_render_request_mutex);
-    if (!needs_render)
-        m_render_request.wait(&m_render_request_mutex);
 }
 
 void PyCanvas::repaintRect(const QRect &repaintRect)
@@ -2748,8 +2701,9 @@ void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint3
 
 void PyCanvas::wakeRenderer()
 {
-    QMutexLocker locker(&m_render_request_mutex);
-    m_render_request.wakeOne();
+    PyCanvasRenderTask *task = new PyCanvasRenderTask(this);
+    connect(task->signals(), SIGNAL(renderingReady(const QRect &)), this, SLOT(repaintRect(const QRect &)));
+    QThreadPool::globalInstance()->start(task);
 }
 
 void PyCanvas::removeSection(int section_id)

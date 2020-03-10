@@ -9,6 +9,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
+#include <QtCore/QRunnable>
 #include <QtCore/QThread>
 #include <QtCore/QWaitCondition>
 #include <QtGui/QDrag>
@@ -507,24 +508,27 @@ struct QRectOptional
     bool has_value;
 };
 
-class PyCanvasRenderThread : public QThread
+class PyCanvasRenderTaskSignals : public QObject
 {
     Q_OBJECT
 
-public:
-    PyCanvasRenderThread(PyCanvas *canvas);
-
-    void cancel() { m_cancel = true; }
-
 Q_SIGNALS:
     void renderingReady(const QRect &repaint_rect);
+};
 
-protected:
+class PyCanvasRenderTask : public QRunnable
+{
+public:
+    PyCanvasRenderTask(PyCanvas *canvas);
+    ~PyCanvasRenderTask();
+
+    PyCanvasRenderTaskSignals *signals() const { return m_signals; }
+
     virtual void run() override;
 
 private:
     PyCanvas *m_canvas;
-    bool m_cancel;
+    PyCanvasRenderTaskSignals *m_signals;
 };
 
 class PyCanvas : public QWidget
@@ -571,7 +575,6 @@ public:
     void grabMouse0(const QPoint &gp);
     void releaseMouse0();
 
-    void waitRenderRequest();
     QRectOptional renderOne();
     QRectOptional renderSection(QSharedPointer<CanvasSection> section);
     void wakeRenderer();
@@ -582,10 +585,7 @@ private Q_SLOTS:
 
 private:
     QVariant m_py_object;
-    QList<PyCanvasRenderThread *> m_threads;
     QMap<QDateTime, QDateTime> m_known_dts;
-    QWaitCondition m_render_request;
-    QMutex m_render_request_mutex;
     QMutex m_commands_mutex;
     QList<CanvasDrawingCommand> m_commands;
     QMap<int, QSharedPointer<CanvasSection>> m_sections;
