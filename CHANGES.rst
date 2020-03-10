@@ -4,9 +4,10 @@ Changelog (nionui-tool)
 0.3.26 (UNRELEASED)
 -------------------
 - Qt version 5.14 on macOS (local) and Windows.
+- Add latency average display (100 rolling samples) when latency display enabled.
 - Add backend support for multi-threaded section-serialized rendering.
 - Add backend support for section by section drawing for improved performance.
-- Add support for layer cacheing.
+- Add support for layer caching.
 
 0.3.25 (2020-01-27)
 -------------------

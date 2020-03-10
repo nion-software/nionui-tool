@@ -9,6 +9,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
+#include <QtCore/QQueue>
 #include <QtCore/QRunnable>
 #include <QtCore/QThread>
 #include <QtCore/QWaitCondition>
@@ -273,11 +274,18 @@ private:
 
 void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &commands, PaintImageCache *image_cache = NULL, float display_scaling = 0.0);
 
-typedef QPair<QTransform, QDateTime> RenderedTimeStamp;
+struct RenderedTimeStamp
+{
+    RenderedTimeStamp(const QTransform &transform, const QDateTime &dateTime, int section_id) : transform(transform), dateTime(dateTime), section_id(section_id) { }
+
+    QTransform transform;
+    QDateTime dateTime;
+    int section_id;
+};
 
 typedef QList<RenderedTimeStamp> RenderedTimeStamps;
 
-RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, LayerCache *layer_cache, float display_scaling = 0.0);
+RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, LayerCache *layer_cache, float display_scaling = 0.0, int section_id = 0);
 
 class PyStyledItemDelegate : public QStyledItemDelegate
 {
@@ -497,6 +505,8 @@ public:
     RenderedTimeStamps m_rendered_timestamps;
     bool rendering;
     quint64 time;
+    QMutex latenciesMutex;
+    QQueue<qint64> latencies;
 };
 
 struct QRectOptional
