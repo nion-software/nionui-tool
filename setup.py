@@ -129,6 +129,7 @@ if sys.platform == "linux":
     dest_drop = 3
 
 data_files = package_files(dir_path, dest, dest_drop)
+data_files.append(('', ["LICENSE", "NOTICES"]))
 
 setuptools.setup(
     name=f"{tool_id}-tool",
