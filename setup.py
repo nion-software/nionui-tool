@@ -129,18 +129,16 @@ if sys.platform == "linux":
     dest_drop = 3
 
 data_files = package_files(dir_path, dest, dest_drop)
-data_files.append(('', ["LICENSE", "NOTICES"]))
 
 setuptools.setup(
     name=f"{tool_id}-tool",
     version=version,
     packages=[f"nion.{tool_id}_tool"],
-    url='http://www.nion.com',
+    url=f"https://github.com/nion-software/{tool_id}-tool",
     license='Apache-2.0',
     author='Nion Software Team',
     author_email='software@nion.com',
     description='Python command line access to Nion UI Launcher',
-    include_package_data=True,
     entry_points={
         'console_scripts': [
             f"{tool_id}-tool=nion.{tool_id}_tool.command:main",
