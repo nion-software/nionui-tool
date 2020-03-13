@@ -96,7 +96,7 @@ class bdist_wheel(bdist_wheel_):
                 abi_tag = str(get_abi_tag()).lower()
             abi_tag = self.abi_tag
             tag = (impl, abi_tag, plat_name)
-            supported_tags = pep425tags.get_supported(
+            supported_tags = get_supported(
                 self.bdist_dir,
                 supplied_platform=plat_name if self.plat_name_supplied else None)
             # XXX switch to this alternate implementation for non-pure:
