@@ -54,7 +54,10 @@ deploy:
   skip_cleanup: true
   api_key:
     secure: "Z4e+r+DUFSZ/bmgIgmSG3hVhsvZrHGT65FSE7Qe0NDO0EpyOImfjabdZIIN3e/P0vl6Uaf7SbrHaID7DsX7gTLq3jG5VHhoJNXsIWBbqIEocnypE7WSgg0kLrJnW6HDTCoO9GnQNXFLnLnHHiMwt0rOEi86eMCxzS8h3+pcGQKSu95i/W3Z6McwpO+F+ylUIPOiCiQtN9gWQrgiCHfTYzTqMUZK/G1wlNi6M7nbOJx4F26WiP3yu9bCtS3HUU1p4MQKsqzVj8Usk7n8m2udbXkDpVMmGYrJyYMUlE4US7c4NKVCwKiyURb9jnJnj18GAQoeIzDmpH1HhwDlgTC/6oTTipfFSBPxJdBz8xfUKkEoYi8CGlXRS+7o3cFqX8vi/lHwWJBb2XqcFkEtbJzeqZtkeksBZdL2SvtBcc6NMI03wgrJC4no85TNtyuSzwvP/FoG8DtDwsp2M3k8vAtXkXK+JYawpbZl1RxaQ2Ju3fnn4tdbxbBGR2GMgHYJocVyxGJJBr7eSh/UwEOsntdQWwq3oB6SDCdqmsoybyMPTDiqQ5bVA7nd2spZsxGz95QQP0CiX1G6ulXpVtb8XuN9Vx5RfRrbFzCIUbUeNoxgVRZtkNXWbusVNizOUiaoYr/bn9r40bgyk4jQVIIQAhGBjNFGIvKFNs9RMIfNMQbVmJBM="
-  file: dist/*.whl
+  file:
+    - dist/*.whl
+    - launcher/build/Release/LauncherApp.tar.gz  # [osx]
+    - launcher/launcher_app.tar.gz  # [linux]
   file_glob: true
   prerelease: true
   on:

@@ -3,8 +3,15 @@ set -e # fail script if any command fails
 if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
   rm -rf dist
   rm -rf launcher/build/Release
+  echo "Building..."
   xcodebuild -project launcher/NionUILauncher.xcodeproj -target "Nion UI Launcher" -configuration Release
   rm -rf launcher/build/Release/*.dSYM
+  pushd launcher/build/Release
+  echo "Zipping..."
+  tar zcf LauncherApp.tar.gz Nion\ UI\ Launcher.app
+  pwd
+  ls -l
+  popd
   python3 --version
   python3 setup.py bdist_wheel
 fi
@@ -23,8 +30,13 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
   conda install --yes numpy=1.14
   conda info -a
   pushd launcher
-  rm -rf linux/c64
+  rm -rf linux/x64
+  echo "Building..."
   bash linux_build.sh ~/miniconda
+  echo "Zipping..."
+  tar zcf launcher_app.tar.gz linux/x64
+  pwd
+  ls -l linux/x64
   popd
   $HOME/miniconda/bin/python --version
   $HOME/miniconda/bin/python setup.py bdist_wheel
