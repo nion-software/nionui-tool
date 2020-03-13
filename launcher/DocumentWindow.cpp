@@ -2136,7 +2136,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                         layer_image_stack.push_back(layer_image);
                         layer_image = QSharedPointer<QImage>(new QImage(layer_rect.size(), QImage::Format_ARGB32_Premultiplied));
                         layer_image->fill(QColor(0,0,0,0));
-                        painter = QSharedPointer<QPainter>(new QPainter(layer_image.get()));
+                        painter = QSharedPointer<QPainter>(new QPainter(layer_image.data()));
                         painter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
                         painter->translate(layer_rect_left, layer_rect_top);
                     }
@@ -2335,7 +2335,7 @@ QRectOptional PyCanvas::renderSection(QSharedPointer<CanvasSection> section)
     {
         QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(rect.size(), QImage::Format_ARGB32_Premultiplied));
         image->fill(QColor(0,0,0,0));
-        QPainter painter(image.get());
+        QPainter painter(image.data());
         painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
         RenderedTimeStamps rendered_timestamps = PaintBinaryCommands(&painter, commands_binary, imageMap, &section->m_image_cache, &section->m_layer_cache, 0.0, section_id);
         painter.end();  // ending painter here speeds up QImage assignment below (Windows)
