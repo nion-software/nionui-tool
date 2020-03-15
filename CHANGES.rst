@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.1 (2020-03-15)
+------------------
+- Build maintenance release.
+
 0.4.0 (2020-03-10)
 ------------------
 - Qt version 5.14 on macOS (local) and Windows.
