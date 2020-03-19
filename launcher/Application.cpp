@@ -1176,7 +1176,7 @@ QFont ParseFontString(const QString &font_string, float display_scaling = 1.0)
                 font.setCapitalization(QFont::SmallCaps);
             else if (font_part == "bold")
                 font.setWeight(QFont::Bold);
-#if QT_VERSION >= 0x050500
+#if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
             else if (font_part == "medium")
                 font.setWeight(QFont::Medium);
 #endif
@@ -1270,7 +1270,11 @@ static PyObject *Core_getFontMetrics(PyObject * /*self*/, PyObject *args)
 
     QVariantList result;
 
+#if QT_VERSION >= QT_VERSION_CHECK(5,11,0)
+    result << font_metrics.horizontalAdvance(text) / display_scaling;
+#else
     result << font_metrics.width(text) / display_scaling;
+#endif
     result << font_metrics.height() / display_scaling;
     result << font_metrics.ascent() / display_scaling;
     result << font_metrics.descent() / display_scaling;
@@ -1289,7 +1293,7 @@ static PyObject *Core_getLocation(PyObject * /*self*/, PyObject *args)
 
     QStandardPaths::StandardLocation location = QStandardPaths::DocumentsLocation;
     if (location_str == "data")
-#if QT_VERSION >= 0x050500
+#if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
         location = QStandardPaths::AppDataLocation;
 #else
         location = QStandardPaths::DataLocation;
@@ -1299,7 +1303,7 @@ static PyObject *Core_getLocation(PyObject * /*self*/, PyObject *args)
     else if (location_str == "temporary")
         location = QStandardPaths::TempLocation;
     else if (location_str == "configuration")
-#if QT_VERSION >= 0x050500
+#if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
         location = QStandardPaths::AppConfigLocation;
 #else
         location = QStandardPaths::ConfigLocation;

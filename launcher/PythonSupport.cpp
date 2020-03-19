@@ -837,7 +837,7 @@ QVariant PyObjectToQVariant(PyObject *py_object)
     }
 	else if (CALL_PY(PyCapsule_IsValid)(py_object, PythonSupport::qobject_capsule_name))
     {
-        return qVariantFromValue(PythonSupport::instance()->UnwrapQObject(py_object));
+        return QVariant::fromValue(PythonSupport::instance()->UnwrapQObject(py_object));
     }
     else if (PyDict_Check(py_object))
     {
@@ -881,7 +881,7 @@ QVariant PyObjectToQVariant(PyObject *py_object)
     {
         PyObjectPtr py_object_ptr;
         py_object_ptr.setPyObject(py_object);
-        return qVariantFromValue(py_object_ptr);
+        return QVariant::fromValue(py_object_ptr);
     }
     return QVariant();
 }
