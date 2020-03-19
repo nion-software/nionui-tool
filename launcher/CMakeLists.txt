@@ -61,6 +61,41 @@ set(RESOURCE_FILES
     stylesheet.qss
     bootstrap.py)
 
+# Linux Specific
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    target_link_libraries(${APP_NAME} ${CMAKE_DL_LIBS})
+
+    add_custom_command(
+      TARGET ${PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap.py
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+
+    add_custom_command(
+      TARGET ${PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/stylesheet.qss
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+
+    add_custom_command(
+      TARGET ${PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/Graphics)
+
+    # add the graphics
+    file(GLOB_RECURSE graphics "Graphics/*.png")
+    foreach(graphic ${graphics})
+        file(RELATIVE_PATH graphic_path "${PROJECT_SOURCE_DIR}" ${graphic})
+        target_sources(${APP_NAME} PRIVATE ${graphic_path})
+        add_custom_command(
+          TARGET ${PROJECT_NAME} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/${graphic_path}
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/Graphics)
+    endforeach(graphic)
+
+endif ()
+
 # Windows Specific
 if (WIN32 AND MSVC)
     target_sources(${APP_NAME} PRIVATE Graphics/WinIcon.ico)
