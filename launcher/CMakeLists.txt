@@ -8,6 +8,9 @@
 # https://cmake.org/cmake/help/latest/module/FindPython3.html
 # https://pastebin.com/FHnd1SRR
 
+# Windows: cmake -B. -S../launcher
+# Windows: msbuild NionUILauncher.vcxproj -p:Configuration=Release
+
 cmake_minimum_required(VERSION 3.12)
 
 set(APP_NAME "NionUILauncher")
@@ -29,6 +32,7 @@ find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
 set(Python3_ROOT $ENV{CONDA_PREFIX})
 find_package (Python3 COMPONENTS Development NumPy)
 add_compile_definitions(DYNAMIC_PYTHON=1)
+add_compile_definitions(MS_NO_COREDLL)  # do not allow brain dead library inclusion
 
 # add the executable
 add_executable(${APP_NAME}
@@ -48,12 +52,66 @@ target_include_directories(${APP_NAME} PRIVATE ${Python3_NumPy_INCLUDE_DIRS})
 
 # Qt libraries
 target_link_libraries(${APP_NAME} Qt5::Core Qt5::Gui Qt5::Widgets)
-target_link_libraries(${APP_NAME} ${PYTHON_LIBRARIES})
+
+# Python libraries (intentional not linked since they are loaded dynamically)
+# target_link_libraries(${APP_NAME} ${PYTHON_LIBRARIES})
 
 # Resources
 set(RESOURCE_FILES
     stylesheet.qss
     bootstrap.py)
+
+# Windows Specific
+if (WIN32 AND MSVC)
+    target_sources(${APP_NAME} PRIVATE Graphics/WinIcon.ico)
+
+    add_custom_command(
+      TARGET ${PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/bootstrap.py
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+
+    add_custom_command(
+      TARGET ${PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/stylesheet.qss
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+
+    add_custom_command(
+      TARGET ${PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/Graphics)
+
+    add_custom_command(
+      TARGET ${PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/Graphics/WinIcon.ico
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/Graphics)
+
+    # add the graphics
+    file(GLOB_RECURSE graphics "Graphics/*.png")
+    foreach(graphic ${graphics})
+        file(RELATIVE_PATH graphic_path "${PROJECT_SOURCE_DIR}" ${graphic})
+        target_sources(${APP_NAME} PRIVATE ${graphic_path})
+        add_custom_command(
+          TARGET ${PROJECT_NAME} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/${graphic_path}
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/Graphics)
+    endforeach(graphic)
+
+    # Get reference to deployqt
+    get_target_property(uic_location Qt5::uic IMPORTED_LOCATION)
+    get_filename_component( _dir ${uic_location} DIRECTORY)
+    set(deployqt "${_dir}/windeployqt.exe")
+    if(NOT EXISTS ${deployqt})
+      message(FATAL_ERROR "Failed to locate deployqt executable: [${deployqt}]")
+    endif()
+
+    add_custom_command(TARGET ${APP_NAME}
+        POST_BUILD COMMAND
+        ${deployqt} --no-translations --no-compiler-runtime --no-opengl-sw --release "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release/${APP_NAME}.exe")
+endif ()
 
 # Mac Specific
 if (APPLE)
