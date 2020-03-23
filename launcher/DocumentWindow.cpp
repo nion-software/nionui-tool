@@ -2239,6 +2239,7 @@ void PyCanvasRenderTask::run()
 PyCanvas::PyCanvas()
     : m_pressed(false)
     , m_grab_mouse_count(0)
+    , m_rendering_count(0)
 {
     setMouseTracking(true);
     setAcceptDrops(true);
@@ -2248,6 +2249,13 @@ PyCanvas::PyCanvas()
 
 PyCanvas::~PyCanvas()
 {
+    QMutexLocker locker(&m_rendering_count_mutex);
+    while (m_rendering_count > 0)
+    {
+        m_rendering_count_mutex.unlock();
+        QThread::msleep(1);
+        m_rendering_count_mutex.lock();
+    }
 }
 
 void PyCanvas::repaintRect(const QRect &repaintRect)
@@ -2281,8 +2289,27 @@ void PyCanvas::focusOutEvent(QFocusEvent *event)
     QWidget::focusOutEvent(event);
 }
 
+class RenderCounter
+{
+    QMutex *m;
+    int &rendering_count;
+public:
+    RenderCounter(QMutex *m, int &rendering_count) : m(m), rendering_count(rendering_count)
+    {
+        QMutexLocker locker(m);
+        rendering_count += 1;
+    }
+    ~RenderCounter()
+    {
+        QMutexLocker locker(m);
+        rendering_count -= 1;
+    }
+};
+
 QRectOptional PyCanvas::renderOne()
 {
+    RenderCounter render_counter(&m_rendering_count_mutex, m_rendering_count);
+
     QList<QSharedPointer<CanvasSection>> sections;
 
     {

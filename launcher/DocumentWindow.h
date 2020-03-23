@@ -605,6 +605,8 @@ private:
     unsigned m_grab_mouse_count;
     QPoint m_grab_reference_point;
     QElapsedTimer m_timer;
+    QMutex m_rendering_count_mutex;
+    int m_rendering_count;
 };
 
 QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id);
