@@ -65,6 +65,10 @@ set(RESOURCE_FILES
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(${APP_NAME} ${CMAKE_DL_LIBS})
 
+    # X11 libraries
+    find_package(X11 REQUIRED)
+    target_link_libraries(${APP_NAME} ${X11_LIBRARIES})
+
     add_custom_command(
       TARGET ${PROJECT_NAME} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy
@@ -94,10 +98,10 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
             $<TARGET_FILE_DIR:${PROJECT_NAME}>/Graphics)
     endforeach(graphic)
 
-endif ()
+endif()
 
 # Windows Specific
-if (WIN32 AND MSVC)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     target_sources(${APP_NAME} PRIVATE Graphics/WinIcon.ico)
 
     add_custom_command(
@@ -146,10 +150,10 @@ if (WIN32 AND MSVC)
     add_custom_command(TARGET ${APP_NAME}
         POST_BUILD COMMAND
         ${deployqt} --no-translations --no-compiler-runtime --no-opengl-sw --release "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release/${APP_NAME}.exe")
-endif ()
+endif()
 
 # Mac Specific
-if (APPLE)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
     set(APP_EXECUTABLE "Nion UI Launcher")
     set(CMAKE_OSX_DEPLOYMENT_TARGET 10.11)
@@ -192,7 +196,7 @@ if (APPLE)
         POST_BUILD COMMAND
         ${CMAKE_INSTALL_NAME_TOOL} -add_rpath "@loader_path/../../Contents/Frameworks" "$<TARGET_FILE:${APP_NAME}>")
 
-endif (APPLE)
+endif()
 
 # Debugging
 
