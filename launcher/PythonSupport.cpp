@@ -1538,3 +1538,14 @@ PyObject *PythonSupport::import(const char *name)
 {
     return CALL_PY(PyImport_ImportModule)(name);
 }
+
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 8
+// work around mis-defined macros in cpython/objects.h in Python 3.8 headers.
+// the macro isn't defined at first use (in cpython/objects.h) so it is
+// declared as a function. since we aren't linking to the python lib,
+// the function is missing. define it here.
+// see https://bugs.python.org/issue39543
+// see https://github.com/python/cpython/pull/18361/files
+#undef _Py_Dealloc
+PyAPI_FUNC(void) _Py_Dealloc(PyObject *o) { _Py_Dealloc_inline(o); }
+#endif
