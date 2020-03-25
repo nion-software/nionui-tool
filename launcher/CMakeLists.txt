@@ -65,10 +65,6 @@ set(RESOURCE_FILES
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(${APP_NAME} ${CMAKE_DL_LIBS})
 
-    # X11 libraries
-    find_package(X11 REQUIRED)
-    target_link_libraries(${APP_NAME} ${X11_LIBRARIES})
-
     add_custom_command(
       TARGET ${PROJECT_NAME} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy
@@ -102,6 +98,8 @@ endif()
 
 # Windows Specific
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "/LTCG")
+
     target_sources(${APP_NAME} PRIVATE Graphics/WinIcon.ico)
 
     add_custom_command(
@@ -149,7 +147,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
     add_custom_command(TARGET ${APP_NAME}
         POST_BUILD COMMAND
-        ${deployqt} --no-translations --no-compiler-runtime --no-opengl-sw --release "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release/${APP_NAME}.exe")
+        ${deployqt} --no-translations --no-compiler-runtime --no-opengl-sw --release "$<TARGET_FILE_DIR:${PROJECT_NAME}>/${APP_NAME}.exe")
 endif()
 
 # Mac Specific
