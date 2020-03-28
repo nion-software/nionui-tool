@@ -22,14 +22,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build)
 project(${APP_NAME} VERSION ${APP_VERSION})
 
 # set up Qt
-set(CMAKE_PREFIX_PATH, "$ENV{CONDA_PREFIX}/lib/cmake/Qt5")
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 add_compile_definitions(QT_NO_KEYWORDS)
 find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
 
 # set up Python
-set(Python3_ROOT $ENV{CONDA_PREFIX})
 find_package (Python3 COMPONENTS Development NumPy)
 add_compile_definitions(DYNAMIC_PYTHON=1)
 add_compile_definitions(MS_NO_COREDLL)  # do not allow brain dead library inclusion
@@ -64,6 +62,11 @@ set(RESOURCE_FILES
 # Linux Specific
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(${APP_NAME} ${CMAKE_DL_LIBS})
+
+    add_custom_command(
+      TARGET ${PROJECT_NAME} POST_BUILD
+      COMMAND chrpath -r $ORIGIN:$ORIGIN/../../lib
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/NionUILauncher VERBATIM)
 
     add_custom_command(
       TARGET ${PROJECT_NAME} POST_BUILD
