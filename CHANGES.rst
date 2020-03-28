@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.2 (2020-03-28)
+------------------
+- Fix possible canvas shutdown crash when exiting.
+
 0.4.1 (2020-03-15)
 ------------------
 - Build maintenance release.
