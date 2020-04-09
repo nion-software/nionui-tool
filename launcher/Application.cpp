@@ -2013,6 +2013,57 @@ static PyObject *DocumentWindow_setTitle(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *DocumentWindow_setWindowStyle(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    PyObject *obj1 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
+        return NULL;
+
+    DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
+    if (document_window == NULL)
+        return NULL;
+
+    // Grab the allowed positions
+    QVariant py_styles = PyObjectToQVariant(obj1);
+    QStringList styles = py_styles.toStringList();
+
+    QMap<QString, Qt::WindowType> mapping;
+    mapping["dialog"] = Qt::Dialog;
+    mapping["popup"] = Qt::Popup;
+    mapping["tool"] = Qt::Tool;
+    mapping["floating-hint"] = Qt::WindowStaysOnTopHint;
+    mapping["frameless-hint"] = Qt::FramelessWindowHint;
+    mapping["title-hint"] = Qt::WindowTitleHint;
+    mapping["customize-hint"] = Qt::CustomizeWindowHint;
+    mapping["close-button-hint"] = Qt::WindowCloseButtonHint;
+    mapping["min-button-hint"] = Qt::WindowMinimizeButtonHint;
+    mapping["max-button-hint"] = Qt::WindowMaximizeButtonHint;
+    mapping["system-menu-hint"] = Qt::WindowSystemMenuHint;
+    mapping["help-hint"] = Qt::WindowContextHelpButtonHint;
+    mapping["fullscreen-hint"] = Qt::WindowFullscreenButtonHint;
+    mapping["input-transparent"] = Qt::WindowTransparentForInput;
+    mapping["no-focus"] = Qt::WindowDoesNotAcceptFocus;
+
+    Qt::WindowFlags windowFlags = 0;
+    Q_FOREACH(const QString &style, styles)
+    {
+        if (mapping.contains(style))
+            windowFlags |= mapping[style];
+    }
+
+    document_window->setWindowFlags(windowFlags);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *DocumentWindow_show(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -2023,32 +2074,35 @@ static PyObject *DocumentWindow_show(PyObject * /*self*/, PyObject *args)
 
     PyObject *obj0 = NULL;
     char *window_style_c = NULL;
-    if (!PythonSupport::instance()->parse()(args, "Os", &obj0, &window_style_c))
+    if (!PythonSupport::instance()->parse()(args, "Oz", &obj0, &window_style_c))
         return NULL;
 
     DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
     if (document_window == NULL)
         return NULL;
 
-    QStringList window_styles;
-    window_styles << "window" << "dialog" << "popup" << "mousegrab" << "tool";
-
-    if (!window_styles.contains(window_style_c))
-        return NULL;
-
-    QString window_style = QString::fromUtf8(window_style_c);
-
-    if (window_style == "dialog")
-        document_window->setWindowFlags(Qt::Dialog);
-    else if (window_style == "popup")
-        document_window->setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
-    else if (window_style == "mousegrab")
+    if (window_style_c)
     {
-        document_window->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
-        document_window->setAttribute(Qt::WA_TranslucentBackground);
+        QStringList window_styles;
+        window_styles << "window" << "dialog" << "popup" << "mousegrab" << "tool";
+
+        if (!window_styles.contains(window_style_c))
+            return NULL;
+
+        QString window_style = QString::fromUtf8(window_style_c);
+
+        if (window_style == "dialog")
+            document_window->setWindowFlags(Qt::Dialog);
+        else if (window_style == "popup")
+            document_window->setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
+        else if (window_style == "mousegrab")
+        {
+            document_window->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
+            document_window->setAttribute(Qt::WA_TranslucentBackground);
+        }
+        else if (window_style == "tool")
+            document_window->setWindowFlags(Qt::Tool | Qt::WindowStaysOnTopHint);
     }
-    else if (window_style == "tool")
-        document_window->setWindowFlags(Qt::Tool | Qt::WindowStaysOnTopHint);
 
     document_window->show();
 
@@ -5147,6 +5201,44 @@ static PyObject *Widget_removeWidget(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *Widget_setAttributes(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    PyObject *obj1 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
+        return NULL;
+
+    QWidget *widget = Unwrap<QWidget>(obj0);
+    if (widget == NULL)
+        return NULL;
+
+    // Grab the allowed positions
+    QVariant py_attributes = PyObjectToQVariant(obj1);
+    QStringList attributes = py_attributes.toStringList();
+
+    QMap<QString, Qt::WidgetAttribute> mapping;
+    mapping["translucent-background"] = Qt::WA_TranslucentBackground;
+    mapping["mouse-transparent"] = Qt::WA_TransparentForMouseEvents;
+    mapping["accept-drops"] = Qt::WA_AcceptDrops;
+
+    Q_FOREACH(const QString &attribute, attributes)
+    {
+        if (attribute.startsWith("!") && mapping.contains(attribute.mid(1)))
+            widget->setAttribute(mapping[attribute.mid(1)], false);
+        else if (mapping.contains(attribute))
+            widget->setAttribute(mapping[attribute], true);
+    }
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *Widget_setEnabled(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5220,6 +5312,35 @@ static PyObject *Widget_setFocusPolicy(PyObject * /*self*/, PyObject *args)
         focusPolicy = Qt::NoFocus;
 
     widget->setFocusPolicy(focusPolicy);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *Widget_setPaletteColor(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    char *role_c = NULL;
+    int r, g, b, a;
+
+    if (!PythonSupport::instance()->parse()(args, "Osiiii", &obj0, &role_c, &r, &g, &b, &a))
+        return NULL;
+
+    QWidget *widget = Unwrap<QWidget>(obj0);
+    if (widget == NULL)
+        return NULL;
+
+    QString role_str(role_c);
+
+    auto palette = widget->palette();
+    if (role_str == "background")
+        palette.setColor(widget->backgroundRole(), QColor(r, g, b, a));
+    widget->setPalette(palette);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -5509,6 +5630,7 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_setPosition", DocumentWindow_setPosition, METH_VARARGS, "DocumentWindow_setPosition."},
     {"DocumentWindow_setSize", DocumentWindow_setSize, METH_VARARGS, "DocumentWindow_setSize."},
     {"DocumentWindow_setTitle", DocumentWindow_setTitle, METH_VARARGS, "DocumentWindow_setTitle."},
+    {"DocumentWindow_setWindowStyle", DocumentWindow_setWindowStyle, METH_VARARGS, "DocumentWindow_setWindowStyle."},
     {"DocumentWindow_show", DocumentWindow_show, METH_VARARGS, "DocumentWindow_show."},
     {"DocumentWindow_tabifyDockWidgets", DocumentWindow_tabifyDockWidgets, METH_VARARGS, "DocumentWindow_tabifyDockWidgets."},
     {"Drag_connect", Drag_connect, METH_VARARGS, "Drag_connect."},
@@ -5633,9 +5755,11 @@ static PyMethodDef Methods[] = {
     {"Widget_mapToGlobal", Widget_mapToGlobal, METH_VARARGS, "Widget_mapToGlobal."},
     {"Widget_removeAll", Widget_removeAll, METH_VARARGS, "Widget_removeAll."},
     {"Widget_removeWidget", Widget_removeWidget, METH_VARARGS, "Widget_removeWidget."},
+    {"Widget_setAttributes", Widget_setAttributes, METH_VARARGS, "Widget_setAttributes."},
     {"Widget_setEnabled", Widget_setEnabled, METH_VARARGS, "Widget_setEnabled."},
     {"Widget_setFocus", Widget_setFocus, METH_VARARGS, "Widget_setFocus."},
     {"Widget_setFocusPolicy", Widget_setFocusPolicy, METH_VARARGS, "Widget_setFocusPolicy."},
+    {"Widget_setPaletteColor", Widget_setPaletteColor, METH_VARARGS, "Widget_setPaletteColor."},
     {"Widget_setToolTip", Widget_setToolTip, METH_VARARGS, "Widget_setToolTip."},
     {"Widget_setVisible", Widget_setVisible, METH_VARARGS, "Widget_setVisible."},
     {"Widget_setWidgetProperty", Widget_setWidgetProperty, METH_VARARGS, "Widget_setWidgetProperty."},
