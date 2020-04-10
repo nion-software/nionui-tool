@@ -14,7 +14,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 set(APP_NAME "NionUILauncher")
-set(APP_VERSION "0.4.1")
+set(APP_VERSION "0.4.3")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build)
 

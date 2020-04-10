@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.3 (2020-04-10)
+------------------
+- Add window style and widget attribute methods.
+
 0.4.2 (2020-03-28)
 ------------------
 - Fix possible canvas shutdown crash when exiting.
