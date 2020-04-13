@@ -952,7 +952,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
                 return;
             }
 
-            float tangent = radius / tan(acos(cos_phi) / 2);
+            float tangent = radius / tanf(acosf(cos_phi) / 2);
             float factor_p1p0 = tangent / p1p0_length;
             QPointF t_p1p0 = p1 + factor_p1p0 * p1p0;
 
@@ -969,7 +969,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
             // calculate angles for addArc
             orth_p1p0 = QPointF(-orth_p1p0.x(), -orth_p1p0.y());
-            float sa = acos(orth_p1p0.x() / orth_p1p0_length);
+            float sa = acosf(orth_p1p0.x() / orth_p1p0_length);
             if (orth_p1p0.y() < 0.f)
                 sa = 2 * M_PI - sa;
 
@@ -1618,7 +1618,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                     // return;
                 }
 
-                float tangent = radius / tan(acos(cos_phi) / 2);
+                float tangent = radius / tanf(acosf(cos_phi) / 2);
                 float factor_p1p0 = tangent / p1p0_length;
                 QPointF t_p1p0 = p1 + factor_p1p0 * p1p0;
 
@@ -1635,7 +1635,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
 
                 // calculate angles for addArc
                 orth_p1p0 = QPointF(-orth_p1p0.x(), -orth_p1p0.y());
-                float sa = acos(orth_p1p0.x() / orth_p1p0_length);
+                float sa = acosf(orth_p1p0.x() / orth_p1p0_length);
                 if (orth_p1p0.y() < 0.f)
                     sa = 2 * M_PI - sa;
 

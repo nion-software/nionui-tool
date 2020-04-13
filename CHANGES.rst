@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.4 (UNRELESAED)
+------------------
+- Fix issues with arcTo drawing.
+
 0.4.3 (2020-04-10)
 ------------------
 - Add window style and widget attribute methods.
