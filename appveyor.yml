@@ -4,7 +4,7 @@ platform: x64
 configuration: Release
 
 environment:
-  QT_BASE_X64: C:\Qt\5.14\msvc2017_64
+  QT_BASE_X64: C:\Qt\5.13\msvc2017_64
   PYTHON3_BASE_X64: C:\Miniconda36-x64
   global:
     TWINE_USERNAME: cmeyer
