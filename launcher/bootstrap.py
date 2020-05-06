@@ -34,6 +34,9 @@ class HostLibProxy:
             return getattr(self.__nion_lib, name)(*args, **kwargs)
         return _missing
 
+    def has_method(self, name: str) -> bool:
+        return hasattr(self.__nion_lib, name)
+
     def encode_variant(self, value):
         return value
 

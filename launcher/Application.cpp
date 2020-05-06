@@ -1283,6 +1283,13 @@ static PyObject *Core_getFontMetrics(PyObject * /*self*/, PyObject *args)
     return QVariantToPyObject(result);
 }
 
+static PyObject *Core_getQtVersion(PyObject * /*self*/, PyObject *args)
+{
+    Q_UNUSED(args)
+
+    return PythonSupport::instance()->build()("s", qVersion());
+}
+
 static PyObject *Core_getLocation(PyObject * /*self*/, PyObject *args)
 {
     char *location_c = NULL;
@@ -5604,6 +5611,7 @@ static PyMethodDef Methods[] = {
     {"ComboBox_setCurrentText", ComboBox_setCurrentText, METH_VARARGS, "ComboBox_setCurrentText."},
     {"Core_getFontMetrics", Core_getFontMetrics, METH_VARARGS, "Core_getFontMetrics."},
     {"Core_getLocation", Core_getLocation, METH_VARARGS, "Core_getLocation."},
+    {"Core_getQtVersion", Core_getQtVersion, METH_VARARGS, "Core_getQtVersion."},
     {"Core_out", Core_out, METH_VARARGS, "Core_out."},
     {"Core_pathToURL", Core_pathToURL, METH_VARARGS, "Core_pathToURL."},
     {"Core_readImageToBinary", Core_readImageToBinary, METH_VARARGS, "Core_readImageToBinary."},
