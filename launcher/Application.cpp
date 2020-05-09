@@ -1238,11 +1238,15 @@ QFont ParseFontString(const QString &font_string, float display_scaling = 1.0)
             font.setFamily(family);
             break;
         }
-        else if (family.compare("serif", Qt::CaseInsensitive))
+        else if (family.compare("monospace", Qt::CaseInsensitive) == 0)
+        {
+            font.setFamily(QFontDatabase::systemFont(QFontDatabase::FixedFont).family());
+        }
+        else if (family.compare("serif", Qt::CaseInsensitive) == 0)
         {
             font.setStyleHint(QFont::Serif);
         }
-        else if (family.compare("sans-serif", Qt::CaseInsensitive))
+        else if (family.compare("sans-serif", Qt::CaseInsensitive) == 0)
         {
             font.setStyleHint(QFont::SansSerif);
         }
@@ -2597,6 +2601,58 @@ static PyObject *Label_setText(PyObject * /*self*/, PyObject *args)
         label->setText(text);
     else
         label->clear();
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *Label_setTextColor(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    int r, g, b;
+
+    if (!PythonSupport::instance()->parse()(args, "Oiii", &obj0, &r, &g, &b))
+        return NULL;
+
+    QLabel *label = Unwrap<QLabel>(obj0);
+    if (label == NULL)
+        return NULL;
+
+    auto palette = label->palette();
+    palette.setColor(QPalette::Text, QColor(r, g, b));
+    label->setPalette(palette);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *Label_setTextFont(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    char *font_c = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Oz", &obj0, &font_c))
+        return NULL;
+
+    QLabel *label = Unwrap<QLabel>(obj0);
+    if (label == NULL)
+        return NULL;
+
+    float display_scaling = GetDisplayScaling();
+
+    QFont font = ParseFontString(font_c, display_scaling);
+
+    label->setFont(font);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4319,6 +4375,31 @@ static PyObject *TextEdit_setPlaceholderText(PyObject * /*self*/, PyObject *args
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *TextEdit_setProportionalLineHeight(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    float proportional_line_height = 1.0;
+
+    if (!PythonSupport::instance()->parse()(args, "Of", &obj0, &proportional_line_height))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    auto bf = text_edit->textCursor().blockFormat();
+    bf.setLineHeight(int(proportional_line_height * 100), QTextBlockFormat::ProportionalHeight);
+    text_edit->textCursor().setBlockFormat(bf);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *TextEdit_setText(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -4342,6 +4423,31 @@ static PyObject *TextEdit_setText(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *TextEdit_setTextBackgroundColor(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    int r, g, b;
+
+    if (!PythonSupport::instance()->parse()(args, "Oiii", &obj0, &r, &g, &b))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    auto palette = text_edit->palette();
+    palette.setColor(QPalette::Base, QColor(r, g, b));
+    text_edit->setPalette(palette);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *TextEdit_setTextColor(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -4361,6 +4467,33 @@ static PyObject *TextEdit_setTextColor(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     text_edit->setTextColor(QColor(r, g, b));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextEdit_setTextFont(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    char *font_c = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Oz", &obj0, &font_c))
+        return NULL;
+
+    PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
+    if (text_edit == NULL)
+        return NULL;
+
+    float display_scaling = GetDisplayScaling();
+
+    QFont font = ParseFontString(font_c, display_scaling);
+
+    text_edit->setFont(font);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -5658,6 +5791,8 @@ static PyMethodDef Methods[] = {
     {"ItemModel_endInsertRow", ItemModel_endInsertRow, METH_VARARGS, "ItemModel endInsertRows."},
     {"ItemModel_endRemoveRow", ItemModel_endRemoveRow, METH_VARARGS, "ItemModel endRemoveRows."},
     {"Label_setText", Label_setText, METH_VARARGS, "Label_setText."},
+    {"Label_setTextColor", Label_setTextColor, METH_VARARGS, "Label_setTextColor."},
+    {"Label_setTextFont", Label_setTextFont, METH_VARARGS, "Label_setTextFont."},
     {"Label_setWordWrap", Label_setWordWrap, METH_VARARGS, "Label_setWordWrap."},
     {"LineEdit_connect", LineEdit_connect, METH_VARARGS, "LineEdit_connect."},
     {"LineEdit_getEditable", LineEdit_getEditable, METH_VARARGS, "LineEdit_getEditable."},
@@ -5732,8 +5867,11 @@ static PyMethodDef Methods[] = {
     {"TextEdit_selectAll", TextEdit_selectAll, METH_VARARGS, "TextEdit_selectAll."},
     {"TextEdit_setEditable", TextEdit_setEditable, METH_VARARGS, "TextEdit_setEditable."},
     {"TextEdit_setPlaceholderText", TextEdit_setPlaceholderText, METH_VARARGS, "TextEdit_setPlaceholderText."},
+    {"TextEdit_setProportionalLineHeight", TextEdit_setProportionalLineHeight, METH_VARARGS, "TextEdit_setProportionalLineHeight."},
     {"TextEdit_setText", TextEdit_setText, METH_VARARGS, "TextEdit_setText."},
+    {"TextEdit_setTextBackgroundColor", TextEdit_setTextBackgroundColor, METH_VARARGS, "TextEdit_setTextBackgroundColor."},
     {"TextEdit_setTextColor", TextEdit_setTextColor, METH_VARARGS, "TextEdit_setTextColor."},
+    {"TextEdit_setTextFont", TextEdit_setTextFont, METH_VARARGS, "TextEdit_setTextFont."},
     {"TextEdit_setWordWrapMode", TextEdit_setWordWrapMode, METH_VARARGS, "TextEdit_setWordWrapMode."},
     {"ToolTip_hide", ToolTip_hide, METH_VARARGS, "ToolTip_hide."},
     {"ToolTip_show", ToolTip_show, METH_VARARGS, "ToolTip_show."},

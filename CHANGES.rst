@@ -3,6 +3,7 @@ Changelog (nionui-tool)
 
 0.4.4 (UNRELESAED)
 ------------------
+- Add color/font methods to eliminate need for stylesheet properties.
 - Fix issues with arcTo drawing.
 
 0.4.3 (2020-04-10)
