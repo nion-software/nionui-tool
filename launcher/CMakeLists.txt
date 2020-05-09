@@ -14,7 +14,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 set(APP_NAME "NionUILauncher")
-set(APP_VERSION "0.4.3")
+set(APP_VERSION "0.4.4")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build)
 
@@ -66,7 +66,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_custom_command(
       TARGET ${PROJECT_NAME} POST_BUILD
       COMMAND chrpath -r $ORIGIN:$ORIGIN/../../lib
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>/NionUILauncher VERBATIM)
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/${APP_NAME} VERBATIM)
 
     add_custom_command(
       TARGET ${PROJECT_NAME} POST_BUILD
@@ -158,7 +158,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
     set(APP_EXECUTABLE "Nion UI Launcher")
     set(CMAKE_OSX_DEPLOYMENT_TARGET 10.11)
-    set(MACOSX_BUNDLE_BUNDLE_NAME "Nion UI Launcher")
+    set(MACOSX_BUNDLE_BUNDLE_NAME ${APP_EXECUTABLE})
     set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.nion.ui.launcher")
     set(MACOSX_BUNDLE_ICON_FILE "MacIcons.icns")
     #set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION})
