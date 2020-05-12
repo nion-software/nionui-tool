@@ -1415,6 +1415,28 @@ static PyObject *Core_syncLatencyTimer(PyObject * /*self*/, PyObject *args)
     return QVariantToPyObject(timer.nsecsElapsed());
 }
 
+static PyObject *Core_truncateToWidth(PyObject * /*self*/, PyObject *args)
+{
+    char *font_c = NULL;
+    char *text_c = NULL;
+    int pixel_width = 0;
+    int mode = 0;
+    if (!PythonSupport::instance()->parse()(args, "szii", &font_c, &text_c, &pixel_width, &mode))
+        return NULL;
+
+    float display_scaling = GetDisplayScaling();
+
+    QString text = (text_c != NULL) ? text_c : QString();
+
+    QFont font = ParseFontString(font_c, display_scaling);
+
+    QFontMetrics font_metrics(font);
+
+    QString truncated_str = font_metrics.elidedText(text, Qt::TextElideMode(mode), pixel_width);
+
+    return PythonSupport::instance()->build()("s", truncated_str.toUtf8().data());
+}
+
 static PyObject *Core_URLToPath(PyObject * /*self*/, PyObject *args)
 {
     char *url_c = NULL;
@@ -5750,6 +5772,7 @@ static PyMethodDef Methods[] = {
     {"Core_readImageToBinary", Core_readImageToBinary, METH_VARARGS, "Core_readImageToBinary."},
     {"Core_setApplicationInfo", Core_setApplicationInfo, METH_VARARGS, "Core_setApplicationInfo."},
     {"Core_syncLatencyTimer", Core_syncLatencyTimer, METH_VARARGS, "Core_syncLatencyTimer"},
+    {"Core_truncateToWidth", Core_truncateToWidth, METH_VARARGS, "Core_truncateToWidth."},
     {"Core_URLToPath", Core_URLToPath, METH_VARARGS, "Core_URLToPath."},
     {"Core_writeBinaryToImage", Core_writeBinaryToImage, METH_VARARGS, "Core_writeBinaryToImage."},
     {"DockWidget_connect", DockWidget_connect, METH_VARARGS, "DockWidget_connect."},

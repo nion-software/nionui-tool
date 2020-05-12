@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.5 (UNRELEASED)
+------------------
+- Add function to truncate string to pixel width.
+
 0.4.4 (2020-05-08)
 ------------------
 - Add color/font methods to eliminate need for stylesheet properties.
