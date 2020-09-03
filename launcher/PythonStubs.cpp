@@ -74,6 +74,7 @@ typedef PyObject* (*PyModule_GetDictFn)(PyObject *module);
 typedef PyObject* (*PyObject_CallObjectFn)(PyObject *callable_object, PyObject *args);
 typedef PyObject* (*PyObject_GetAttrFn)(PyObject *o, PyObject *attr_name);
 typedef PyObject* (*PyObject_GetAttrStringFn)(PyObject *o, const char *attr_name);
+typedef int (*PyObject_HasAttrStringFn)(PyObject *o, const char *attr_name);
 typedef int (*PyObject_IsTrueFn)(PyObject *o);
 typedef int (*PyObject_SetAttrFn)(PyObject *o, PyObject *attr_name, PyObject *v);
 typedef PyObject* (*PyRun_SimpleStringFn)(const char *str);
@@ -142,6 +143,7 @@ static PyModule_GetDictFn fModule_GetDict = 0;
 static PyObject_CallObjectFn fObject_CallObject = 0;
 static PyObject_GetAttrFn fObject_GetAttr = 0;
 static PyObject_GetAttrStringFn fObject_GetAttrString = 0;
+static PyObject_HasAttrStringFn fObject_HasAttrString = 0;
 static PyObject_IsTrueFn fObject_IsTrue = 0;
 static PyObject_SetAttrFn fObject_SetAttr = 0;
 static PyRun_SimpleStringFn fRun_SimpleString = 0;
@@ -219,6 +221,7 @@ void deinitialize_pylib()
     fObject_CallObject = 0;
     fObject_GetAttr = 0;
     fObject_GetAttrString = 0;
+    fObject_HasAttrString = 0;
     fObject_IsTrue = 0;
     fObject_SetAttr = 0;
     fRun_SimpleString = 0;
@@ -613,6 +616,13 @@ PyObject* DPyObject_GetAttrString(PyObject *o, const char *attr_name)
     if (fObject_GetAttrString == 0)
         fObject_GetAttrString = (PyObject_GetAttrStringFn)LOOKUP_SYMBOL(pylib, "PyObject_GetAttrString");
     return fObject_GetAttrString(o, attr_name);
+}
+
+int DPyObject_HasAttrString(PyObject *o, const char *attr_name)
+{
+    if (fObject_HasAttrString == 0)
+        fObject_HasAttrString = (PyObject_HasAttrStringFn)LOOKUP_SYMBOL(pylib, "PyObject_HasAttrString");
+    return fObject_HasAttrString(o, attr_name);
 }
 
 int DPyObject_IsTrue(PyObject *o)

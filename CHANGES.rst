@@ -3,6 +3,7 @@ Changelog (nionui-tool)
 
 0.4.5 (UNRELEASED)
 ------------------
+- Add function to allow handling of window closing and quit.
 - Add function to truncate string to pixel width.
 
 0.4.4 (2020-05-08)

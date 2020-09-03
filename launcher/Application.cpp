@@ -446,6 +446,26 @@ static PyObject *Application_close(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *Application_setQuitOnLastWindowClosed(PyObject * /*self*/, PyObject *args)
+{
+    Q_UNUSED(args)
+
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    bool value = false;
+
+    if (!PythonSupport::instance()->parse()(args, "b", &value))
+        return NULL;
+
+    qApp->setQuitOnLastWindowClosed(value);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *ButtonGroup_addButton(PyObject * /*self*/, PyObject *args)
 {
     Q_UNUSED(args)
@@ -5701,13 +5721,18 @@ void Application::output(const QString &str)
 
 Application::Application(int & argv, char **args)
     : QApplication(argv, args)
-    , m_quit_on_last_window(false)
 {
     timer.start();
 
+    // this default is wrong and should be removed once all applications
+    // are calling setQuitOnLastWindowClosed explicitly with false.
+    // the problem with having this true is that there is no way to have
+    // the application determine quit behavior on last window unless the
+    // lastWindowClosed event is connected to should_quit on the application.
+    // and that cannot prevent a quit; only confirm it. so setQuitOnLastWindowClosed
+    // should be false so that it can be controlled by the lastWindowClosed
+    // event instead.
     setQuitOnLastWindowClosed(true);
-
-    connect(this, SIGNAL(lastWindowClosed()), this, SLOT(continueQuit()));
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
@@ -5734,6 +5759,7 @@ static PyMethodDef Methods[] = {
     {"Action_setEnabled", Action_setEnabled, METH_VARARGS, "Action_setEnabled."},
     {"Action_setTitle", Action_setTitle, METH_VARARGS, "Action_setTitle."},
     {"Application_close", Application_close, METH_VARARGS, "Application_close."},
+    {"Application_setQuitOnLastWindowClosed", Application_setQuitOnLastWindowClosed, METH_VARARGS, "Application_setQuitOnLastWindowClosed."},
     {"ButtonGroup_addButton", ButtonGroup_addButton, METH_VARARGS, "ButtonGroup_addButton."},
     {"ButtonGroup_connect", ButtonGroup_connect, METH_VARARGS, "ButtonGroup_connect."},
     {"ButtonGroup_checkedButton", ButtonGroup_checkedButton, METH_VARARGS, "ButtonGroup_checkedButton."},
@@ -6017,12 +6043,6 @@ void Application::deinitialize()
     PythonSupport::deinitInstance();
 }
 
-void Application::continueQuit()
-{
-    if (m_quit_on_last_window)
-        quit();
-}
-
 void Application::aboutToQuit()
 {
     invokePyMethod(m_py_application, "stop", QVariantList());
@@ -6036,6 +6056,11 @@ QString Application::resourcesPath() const
 #if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
     return qApp->applicationDirPath()+"/";
 #endif
+}
+
+bool Application::hasPyMethod(const QVariant &object, const QString &method)
+{
+    return PythonSupport::instance()->hasPyMethod(object, method);
 }
 
 QVariant Application::invokePyMethod(const QVariant &object, const QString &method, const QVariantList &args)

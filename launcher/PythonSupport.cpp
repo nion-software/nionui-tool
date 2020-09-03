@@ -50,6 +50,7 @@
 #pragma push_macro("PyExc_ImportError")
 #pragma push_macro("PyExc_RuntimeError")
 #pragma push_macro("PyImport_ImportModule")
+#pragma push_macro("PyObject_HasAttrString")
 #pragma push_macro("PyObject_GetAttrString")
 #undef PyCapsule_CheckExact
 #define PyCapsule_CheckExact DPyCapsule_CheckExact
@@ -62,6 +63,7 @@
 #define PyExc_RuntimeError DPyExc_GetRuntimeError()
 #define PyImport_ImportModule DPyImport_ImportModule
 #define PyObject_GetAttrString DPyObject_GetAttrString
+#define PyObject_HasAttrString DPyObject_HasAttrString
 #endif
 
 #include "numpy/arrayobject.h"
@@ -907,18 +909,22 @@ void PythonSupport::addPyObjectToModule(PyObject* module, const QString &identif
     CALL_PY(PyModule_AddObject)(module, identifier.toLatin1().data(), object);   // steals reference
 }
 
-// Example:
-// Python:
-//    class Dispatch:
-//    def __init__(self, zip):
-//    self.zip = zip
-//    def doSomething(self, zz, yy):
-//    print self.zip
-//    print zz
-//    print yy
-//    return [self.zip, zz]
-// Qml:
-//    var result_list = app.invokePyMethod(app.lookupPyObjectByName("Dispatch(6)"), "doSomething", ["hockey stick", 40])
+bool PythonSupport::hasPyMethod(const QVariant &object, const QString &method)
+{
+    bool result = false;
+
+    Python_ThreadBlock thread_block;
+
+    PyObject *py_object = QVariantToPyObject(object);
+    if (py_object)
+    {
+        result = CALL_PY(PyObject_HasAttrString)(py_object, method.toLatin1().data()) == 1;
+
+        Py_DECREF(py_object);
+    }
+
+    return result;
+}
 
 QVariant PythonSupport::invokePyMethod(const QVariant &object, const QString &method, const QVariantList &args)
 {

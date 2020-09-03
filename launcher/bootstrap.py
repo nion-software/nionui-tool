@@ -116,5 +116,20 @@ def bootstrap_main(args):
     if len(args) >= 1:
         main_fn = main_fn or load_module_local()
     if main_fn:
-        return main_fn(args, {"proxy": proxy}), None
+
+        # proxy the app so Application_setQuitOnLastWindowClosed can be called.
+        class AppProxy:
+            def __init__(self, app):
+                self.__app = app
+
+            def start(self) -> bool:
+                if not getattr(self.__app, "_should_close_on_last_window", True):
+                    self.__app.ui.proxy.Application_setQuitOnLastWindowClosed(False)
+                return self.__app.start()
+
+            def stop(self) -> None:
+                self.__app.stop()
+
+        app = main_fn(args, {"proxy": proxy})
+        return AppProxy(app), None
     return None, "main"

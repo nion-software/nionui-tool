@@ -84,6 +84,7 @@ public:
     QImage scaledImageFromArray(PyObject *ndarray_py, const QSizeF &destination_size, float context_scaling, float display_limit_low, float display_limit_high, PyObject *lookup_table);
     PyObject *arrayFromImage(const QImage &image);
     void bufferRelease(Py_buffer *buffer);
+    bool hasPyMethod(const QVariant &object, const QString &method);
     QVariant invokePyMethod(const QVariant &object, const QString &method, const QVariantList &args);
     bool setAttribute(const QVariant &object, const QString &attribute, const QVariant &value);
     QVariant getAttribute(const QVariant &object, const QString &attribute);
