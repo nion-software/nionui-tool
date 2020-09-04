@@ -12,7 +12,7 @@ environment:
       secure: BnbMQ1PclnE3n23nHXG8jTTf2du2o4vQoT81BpCJnYw=
 
 install:
-- cmd: C:\Miniconda36-x64\Scripts\conda install numpy=1.14 -y
+- cmd: C:\Miniconda36-x64\Scripts\conda install numpy=1.14 packaging -y
 
 build:
   project: launcher\NionUILauncher.vcxproj
