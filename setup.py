@@ -30,7 +30,8 @@ class BinaryDistribution(setuptools.Distribution):
 
 from distutils.util import get_platform
 from wheel.bdist_wheel import bdist_wheel as bdist_wheel_
-from wheel.pep425tags import get_abbr_impl, get_impl_ver, get_abi_tag, get_platform, get_supported
+from packaging import tags
+from wheel.bdist_wheel import get_abi_tag, get_platform
 
 
 # the bdist_wheel tools are awful and undocumented
@@ -46,6 +47,7 @@ from wheel.pep425tags import get_abbr_impl, get_impl_ver, get_abi_tag, get_platf
 # see http://code.qt.io/cgit/pyside/pyside-setup.git/tree/build_scripts/wheel_override.py?id=824b7733c0bd8b162b198c67014d7f008fb71b8c
 
 
+# this class overrides some methods of bdist_wheel to avoid its stricter tag checks.
 class bdist_wheel(bdist_wheel_):
     def run(self):
         bdist_wheel_.run(self)
@@ -85,8 +87,8 @@ class bdist_wheel(bdist_wheel_):
                 impl = self.python_tag
             tag = (impl, 'none', plat_name)
         else:
-            impl_name = get_abbr_impl()
-            impl_ver = get_impl_ver()
+            impl_name = tags.interpreter_name()
+            impl_ver = tags.interpreter_version()
             impl = impl_name + impl_ver
             # We don't work on CPython 3.1, 3.0.
             if self.py_limited_api and (impl_name + impl_ver).startswith('cp3'):
@@ -96,9 +98,7 @@ class bdist_wheel(bdist_wheel_):
                 abi_tag = str(get_abi_tag()).lower()
             abi_tag = self.abi_tag
             tag = (impl, abi_tag, plat_name)
-            supported_tags = get_supported(
-                self.bdist_dir,
-                supplied_platform=plat_name if self.plat_name_supplied else None)
+            supported_tags = [(t.interpreter, t.abi, t.platform) for t in tags.sys_tags()]
             # XXX switch to this alternate implementation for non-pure:
             if not self.py_limited_api:
                 assert tag == supported_tags[0], "%s != %s" % (tag, supported_tags[0])
@@ -115,21 +115,21 @@ dest_drop = None
 
 if sys.platform == "darwin":
     platform = "macosx_10_11_intel"
-    python_version = "cp36.cp37.cp38"
+    python_version = "cp37.cp38"
     abi = "abi3"
     dest = "bin"
     dir_path = "launcher/build/Release"
     dest_drop = 3
 if sys.platform == "win32":
     platform = "win_amd64"
-    python_version = "cp36.cp37.cp38"
+    python_version = "cp37.cp38"
     abi = "none"
     dest = f"Scripts/{launcher}"
     dir_path = "launcher/x64/Release"
     dest_drop = 3
 if sys.platform == "linux":
     platform = "manylinux1_x86_64"
-    python_version = "cp36.cp37.cp38"
+    python_version = "cp37.cp38"
     abi = "abi3"
     dest = f"bin/{launcher}"
     dir_path = "launcher/linux/x64"
