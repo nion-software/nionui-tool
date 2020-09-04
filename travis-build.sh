@@ -27,7 +27,7 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
   bash miniconda.sh -b -p $HOME/miniconda
   export PATH="$HOME/miniconda/bin:$PATH"
   hash -r
-  conda install --yes numpy=1.14
+  conda install --yes numpy=1.14 packaging
   conda info -a
   pushd launcher
   rm -rf linux/x64
