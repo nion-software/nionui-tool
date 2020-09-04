@@ -24,7 +24,7 @@ before_install:
       sed -i '' 's/QTDIR = $(HOME)\/Developer\/Qt\/5.14\/clang_64/QTDIR = \/usr\/local\/opt\/qt5/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig
       sed -i '' 's/PYTHONHOME = $(HOME)\/Developer\/miniconda43/PYTHONHOME = \/usr\/local\/opt\/python3\/Frameworks\/Python.framework\/Versions\/3.7/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig
     else
-      ~/miniconda/bin/python -m pip install packaging
+      pip3 install packaging
     fi
 
 addons:
@@ -35,6 +35,7 @@ addons:
     - gcc-5
     - g++-5
     - python3-dev
+    - python3-pip
 
 script:
   bash travis-build.sh
