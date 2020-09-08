@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.6 (UNRELEASED)
+------------------
+- Add additional configuration options (toolconfig.toml).
+
 0.4.5 (2020-09-03)
 ------------------
 - Add function to allow handling of window closing and quit.

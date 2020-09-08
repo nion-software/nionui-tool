@@ -44,6 +44,9 @@ private Q_SLOTS:
 
 private:
     QString m_python_home;
+    QList<QString> m_python_paths;
+    QString m_python_library;
+    QString m_python_app;
 
     QVariant m_bootstrap_module;
 

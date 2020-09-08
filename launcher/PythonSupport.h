@@ -66,14 +66,14 @@ public:
     static PythonSupport *instance();
 
     // only called once
-    static void initInstance(const QString &python_home);
+    static void initInstance(const QString &python_home, const QString &python_library);
     static void deinitInstance();
 
     static QString ensurePython(const QString &python_home);
 
     static void checkTarget(const QString &python_path);
 
-    void initialize(const QString &python_home);
+    void initialize(const QString &python_home, const QList<QString> &python_paths, const QString &python_library);
     void deinitialize();
     void addResourcePath(const QString &resources_path);
 	void addPyObjectToModuleFromQVariant(PyObject* module, const QString &identifier, const QVariant& object);
@@ -102,7 +102,7 @@ public:
     QObject *UnwrapQObject(PyObject *py_object);
 	static const char* qobject_capsule_name;
 private:
-    PythonSupport(const QString &python_home); // ctor hidden
+    PythonSupport(const QString &python_home, const QString &python_library); // ctor hidden
     PythonSupport(PythonSupport const&); // copy ctor hidden
     PythonSupport& operator=(PythonSupport const&); // assign op. hidden
     ~PythonSupport(); // dtor hidden
