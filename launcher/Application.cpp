@@ -6015,7 +6015,7 @@ bool Application::initialize()
                     if (QDir(line).isAbsolute())
                         m_python_home = QDir(line).absolutePath();
                     else
-                        m_python_home = line == "." ? m_python_home : QDir(m_python_home).absoluteFilePath(line);
+                        m_python_home = line == "." ? QCoreApplication::applicationDirPath() : QDir(QCoreApplication::applicationDirPath()).absoluteFilePath(line);
                 }
 
                 if (section == "python" && line.startsWith("library_name = "))
