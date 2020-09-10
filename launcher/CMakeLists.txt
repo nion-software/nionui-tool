@@ -103,6 +103,7 @@ endif()
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "/LTCG")
 
+    target_sources(${APP_NAME} PRIVATE Application.rc)
     target_sources(${APP_NAME} PRIVATE Graphics/WinIcon.ico)
 
     add_custom_command(
