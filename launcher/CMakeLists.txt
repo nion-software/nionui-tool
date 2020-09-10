@@ -13,6 +13,8 @@
 
 cmake_minimum_required(VERSION 3.12)
 
+option(USE_CONSOLE "Enable console" ON)
+
 set(APP_NAME "NionUILauncher")
 set(APP_VERSION "0.4.5")
 
@@ -101,7 +103,11 @@ endif()
 
 # Windows Specific
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "/LTCG")
+    if (${USE_CONSOLE})
+        set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "/LTCG")
+    else()
+        set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "/LTCG /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+    endif()
 
     target_sources(${APP_NAME} PRIVATE Application.rc)
     target_sources(${APP_NAME} PRIVATE Graphics/WinIcon.ico)
