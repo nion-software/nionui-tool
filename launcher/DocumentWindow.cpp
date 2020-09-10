@@ -22,6 +22,7 @@
 
 #include <QtGui/QFontDatabase>
 #include <QtGui/QPainter>
+#include <QtGui/QPainterPath>
 
 #include <QtSvg/QSvgWidget>
 
