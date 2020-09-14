@@ -167,7 +167,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(CMAKE_OSX_DEPLOYMENT_TARGET 10.11)
     set(MACOSX_BUNDLE_BUNDLE_NAME ${APP_EXECUTABLE})
     set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.nion.ui.launcher")
-    set(MACOSX_BUNDLE_ICON_FILE "MacIcons.icns")
+    set(MACOSX_BUNDLE_ICON_FILE "MacIcon.icns")
     #set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION})
     set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2012-2020 Nion Company. All rights reserved.")
     # mark the icons file as part of the sources
