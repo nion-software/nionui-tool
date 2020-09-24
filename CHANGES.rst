@@ -3,6 +3,7 @@ Changelog (nionui-tool)
 
 0.4.6 (UNRELEASED)
 ------------------
+- Qt version 5.15 on macOS (local) and Windows.
 - Add additional configuration options (toolconfig.toml).
 
 0.4.5 (2020-09-03)
