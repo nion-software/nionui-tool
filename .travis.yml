@@ -20,7 +20,7 @@ before_install:
       brew install qt5
       pip3 install numpy==1.15
       pip3 install packaging
-      sed -i '' 's/QTDIR = $(HOME)\/Developer\/Qt\/5.14\/clang_64/QTDIR = \/usr\/local\/opt\/qt5/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig
+      sed -i '' 's/QTDIR = $(HOME)\/Developer\/Qt\/5.15\/clang_64/QTDIR = \/usr\/local\/opt\/qt5/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig
       sed -i '' 's/PYTHONHOME = $(HOME)\/Developer\/miniconda43/PYTHONHOME = \/usr\/local\/opt\/python3\/Frameworks\/Python.framework\/Versions\/3.7/g' launcher/xcconfig/targetReleaseNionUILauncher.xcconfig
     fi
 
