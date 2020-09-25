@@ -32,7 +32,9 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
   pushd launcher
   rm -rf linux/x64
   echo "Building..."
-  bash linux_build.sh ~/miniconda
+  find $HOME/miniconda -name "Python.h"
+  find $HOME/miniconda -name "arrayobject.h"
+  bash linux_build.sh $HOME/miniconda
   echo "Zipping..."
   tar zcf launcher_app.tar.gz linux/x64
   pwd
