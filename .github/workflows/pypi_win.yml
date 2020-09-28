@@ -1,0 +1,49 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-2019]
+        python-version: [3.7]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: '5.15.1'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+    - name: Build
+      run: |
+        python -m pip install --upgrade pip
+        pip install packaging
+        pip install numpy
+        pushd nionui-tool/launcher
+        $PYTHON_EXEC = python -c "import sys; print(sys.executable, end='')"
+        cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON_EXEC" -DUSE_CONSOLE=OFF
+        cmake --build . --config Release
+        Get-ChildItem -Include *.pdb -Recurse | foreach { $_.Delete() }
+        Get-ChildItem build\Release\imageformats -Include *d.dll -Recurse | foreach { $_.Delete() }
+        popd
+        python setup.py bdist_wheel
+    - name: Upload Wheel
+      uses: actions/upload-artifact@v2
+      with:
+        path: dist\*.whl
