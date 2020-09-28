@@ -14,6 +14,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 option(USE_CONSOLE "Enable console" ON)
+option(USE_PYTHON_QT "Enable Python Qt" ON)
 
 set(APP_NAME "NionUILauncher")
 set(APP_VERSION "0.4.5")
@@ -65,10 +66,12 @@ set(RESOURCE_FILES
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(${APP_NAME} ${CMAKE_DL_LIBS})
 
-    add_custom_command(
-      TARGET ${PROJECT_NAME} POST_BUILD
-      COMMAND chrpath -r $ORIGIN:$ORIGIN/../../lib
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>/${APP_NAME} VERBATIM)
+    if (${USE_PYTHON_QT})
+        add_custom_command(
+          TARGET ${PROJECT_NAME} POST_BUILD
+          COMMAND chrpath -r $ORIGIN:$ORIGIN/../../lib
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/${APP_NAME} VERBATIM)
+    endif()
 
     add_custom_command(
       TARGET ${PROJECT_NAME} POST_BUILD
