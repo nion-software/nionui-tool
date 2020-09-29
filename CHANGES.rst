@@ -3,6 +3,7 @@ Changelog (nionui-tool)
 
 0.4.6 (UNRELEASED)
 ------------------
+- Improve search paths for find Windows virtual Python environments.
 - Qt version 5.15 on macOS (local) and Windows.
 - Add additional configuration options (toolconfig.toml).
 

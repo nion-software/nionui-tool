@@ -245,12 +245,13 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
     }
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY | RTLD_GLOBAL);
 #else
+    QStringList file_paths;
     QString python_home_new = python_home;
     QString file_path;
     QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
     if (!python_library.isEmpty())
     {
-        file_path = python_library;
+        file_paths.append(python_library);
     }
     else if (QFile(venv_conf_file_name).exists())
     {
@@ -271,9 +272,14 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
                     {
                         QDir home_dir(QDir::fromNativeSeparators(home_bin_path));
                         python_home_new = home_dir.absolutePath();
-                        QString file_path_38 = QDir(python_home).absoluteFilePath("Scripts/Python38.dll");
-                        QString file_path_37 = QDir(python_home).absoluteFilePath("Scripts/Python37.dll");
-                        file_path = QFile(file_path_38).exists() ? file_path_38 : file_path_37;
+                        file_paths.append(QDir(python_home).absoluteFilePath("Scripts/Python38.dll"));
+                        file_paths.append(QDir(python_home).absoluteFilePath("Python38.dll"));
+                        file_paths.append(QDir(python_home_new).absoluteFilePath("Scripts/Python38.dll"));
+                        file_paths.append(QDir(python_home_new).absoluteFilePath("Python38.dll"));
+                        file_paths.append(QDir(python_home).absoluteFilePath("Scripts/Python37.dll"));
+                        file_paths.append(QDir(python_home).absoluteFilePath("Python37.dll"));
+                        file_paths.append(QDir(python_home_new).absoluteFilePath("Scripts/Python37.dll"));
+                        file_paths.append(QDir(python_home_new).absoluteFilePath("Python37.dll"));
                     }
                 }
             }
@@ -281,9 +287,14 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
     }
     else
     {
-        QString file_path_38 = QDir(python_home).absoluteFilePath("Python38.dll");
-        QString file_path_37 = QDir(python_home).absoluteFilePath("Python37.dll");
-        file_path = QFile(file_path_38).exists() ? file_path_38 : file_path_37;
+        file_paths.append(QDir(python_home).absoluteFilePath("Python38.dll"));
+        file_paths.append(QDir(python_home).absoluteFilePath("Python37.dll"));
+    }
+
+    Q_FOREACH(file_path, file_paths)
+    {
+        if (QFile(file_path).exists())
+            break;
     }
 
     // Python may have side-by-side DLLs that it uses. This seems to be an issue with how
