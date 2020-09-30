@@ -25,6 +25,7 @@
 #include <QtGui/QImageReader>
 #include <QtGui/QImageWriter>
 #include <QtGui/QPainter>
+#include <QtGui/QPixMap>
 #include <QtGui/QScreen>
 #include <QtGui/QWindow>
 
@@ -5722,6 +5723,7 @@ void Application::output(const QString &str)
 
 Application::Application(int & argv, char **args)
     : QApplication(argv, args)
+    , m_splash_screen(nullptr)
 {
     timer.start();
 
@@ -5741,6 +5743,13 @@ Application::Application(int & argv, char **args)
     setApplicationName(APP_NAME);
     setOrganizationName(ORGANIZATION_NAME);
     setOrganizationDomain(ORGANIZATION_DOMAIN);
+
+    QPixmap pixmap(resourcesPath() + "/splash.png");
+    if (!pixmap.isNull())
+    {
+        m_splash_screen = new QSplashScreen(pixmap);
+        m_splash_screen->show();
+    }
 
     // TODO: Handle case where python home contains no dylib/dll.
     // TODO: Handle case where python home contains wrong version of python.
@@ -6146,4 +6155,13 @@ QVariant Application::getPyObjectAttribute(const QVariant &object, const QString
 QVariant Application::dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args)
 {
     return invokePyMethod(m_bootstrap_module, "bootstrap_dispatch", QVariantList() << object << method << QVariant(args));
+}
+
+void Application::closeSplashScreen()
+{
+    if (m_splash_screen)
+    {
+        m_splash_screen->close();
+        m_splash_screen = nullptr;
+    }
 }
