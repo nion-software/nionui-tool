@@ -25,7 +25,7 @@
 #include <QtGui/QImageReader>
 #include <QtGui/QImageWriter>
 #include <QtGui/QPainter>
-#include <QtGui/QPixMap>
+#include <QtGui/QPixmap>
 #include <QtGui/QScreen>
 #include <QtGui/QWindow>
 
