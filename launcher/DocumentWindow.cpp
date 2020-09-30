@@ -24,8 +24,6 @@
 #include <QtGui/QPainter>
 #include <QtGui/QPainterPath>
 
-#include <QtSvg/QSvgWidget>
-
 #include <QtWidgets/QAction>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
