@@ -216,11 +216,12 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
     }
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY);
 #elif defined(Q_OS_LINUX)
+    QStringList file_paths;
     QString file_path;
     QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
     if (!python_library.isEmpty())
     {
-        file_path = python_library;
+        file_paths.append(python_library);
     }
     else if (QFile(venv_conf_file_name).exists())
     {
@@ -231,18 +232,25 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
         {
             QDir home_dir(home_bin_path);
             home_dir.cdUp();
-            QString file_path_38 = home_dir.absoluteFilePath("lib/libpython3.8.so");
-            QString file_path_37 = home_dir.absoluteFilePath("lib/libpython3.7m.so");
-            file_path = QFile(file_path_38).exists() ? file_path_38 : file_path_37;
+            file_paths.append(home_dir.absoluteFilePath("lib/python3.8/config-3.8-x86_64-linux-gnu/libpython3.8.so"));
+            file_paths.append(home_dir.absoluteFilePath("lib/python3.7/config-3.7-x86_64-linux-gnu/libpython3.7.so"));
+            file_paths.append(home_dir.absoluteFilePath("lib/libpython3.8.so"));
+            file_paths.append(home_dir.absoluteFilePath("lib/libpython3.7.so"));
         }
     }
     else
     {
         // probably conda or standard Python
-        QString file_path_38 = QDir(python_home).absoluteFilePath("lib/libpython3.8.so");
-        QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.so");
-        file_path = QFile(file_path_38).exists() ? file_path_38 : file_path_37;
+        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.8.so"));
+        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.7m.so"));
     }
+
+    Q_FOREACH(file_path, file_paths)
+    {
+        if (QFile(file_path).exists())
+            break;
+    }
+
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY | RTLD_GLOBAL);
 #else
     QStringList file_paths;
