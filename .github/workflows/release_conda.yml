@@ -1,0 +1,16 @@
+name: Release (conda-nion)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download all workflow run artifacts
+      uses: actions/download-artifact@v2
+    - name: Upload releases
+      shell: bash
+      run: |
+        pwd
+        ls -Rl
