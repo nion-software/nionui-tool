@@ -6,7 +6,7 @@ import subprocess
 import typing
 import zipfile
 
-owner = "cmeyer"
+owner = "nion-software"
 repo = "nionui-tool"
 directory = "upload"
 channel = "nion"

@@ -17,7 +17,7 @@ option(USE_CONSOLE "Enable console" ON)
 option(USE_PYTHON_QT "Enable Python Qt" ON)
 
 set(APP_NAME "NionUILauncher")
-set(APP_VERSION "0.4.5")
+set(APP_VERSION "0.4.6")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build)
 

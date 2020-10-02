@@ -1,7 +1,7 @@
 Changelog (nionui-tool)
 =======================
 
-0.4.6 (UNRELEASED)
+0.4.6 (2020-10-01)
 ------------------
 - Fix missing Linux binaries.
 - Improve search paths for find Windows, Linux virtual Python environments.
