@@ -61,7 +61,7 @@ for platform in ("linux", "macos", "win"):
 print()
 
 for upload_path in upload_paths["conda"]:
-    print(f"anaconda upload -c {channel} {upload_path}")
+    print(f"anaconda upload --user {channel} {upload_path}")
 
 print()
 
