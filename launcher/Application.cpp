@@ -6067,41 +6067,48 @@ bool Application::initialize()
 
     PythonSupport::initInstance(m_python_home, m_python_library);
 
-    PythonSupport::instance()->initializeModule("HostLib", &InitializeHostLibModule);
-
-    PythonSupport::instance()->initialize(m_python_home, m_python_paths, m_python_library);  // initialize Python support
-
-    QString bootstrap_error;
-
+    if (PythonSupport::instance()->isValid())
     {
-        Python_ThreadBlock thread_block;
+        PythonSupport::instance()->initializeModule("HostLib", &InitializeHostLibModule);
 
-        // Add the resources path so that the Python imports work. This is necessary to find bootstrap.py,
-        // which may not be in the same directory as the executable (specifically for Mac OS where things
-        // are arranged into a bundle).
-        PythonSupport::instance()->addResourcePath(resourcesPath());
+        PythonSupport::instance()->initialize(m_python_home, m_python_paths, m_python_library);  // initialize Python support
 
-        // Bootstrap the python stuff.
-        PyObject *module = PythonSupport::instance()->import("bootstrap");
-        PythonSupport::instance()->printAndClearErrors();
-        m_bootstrap_module = PyObjectToQVariant(module); // new reference
-        PythonSupport::instance()->printAndClearErrors();
-        QVariantList args;
-        if (m_python_app.isEmpty())
-            args << arguments();
-        else
-            args << (QStringList() << arguments()[0] << m_python_home << m_python_app);
-        QVariant bootstrap_result = invokePyMethod(m_bootstrap_module, "bootstrap_main", args);
-        m_py_application = bootstrap_result.toList()[0];
-        bootstrap_error = bootstrap_result.toList()[1].toString();
+        QString bootstrap_error;
 
-        if (!m_py_application.isNull())
-            return invokePyMethod(m_py_application, "start", QVariantList()).toBool();
+        {
+            Python_ThreadBlock thread_block;
+
+            // Add the resources path so that the Python imports work. This is necessary to find bootstrap.py,
+            // which may not be in the same directory as the executable (specifically for Mac OS where things
+            // are arranged into a bundle).
+            PythonSupport::instance()->addResourcePath(resourcesPath());
+
+            // Bootstrap the python stuff.
+            PyObject *module = PythonSupport::instance()->import("bootstrap");
+            PythonSupport::instance()->printAndClearErrors();
+            m_bootstrap_module = PyObjectToQVariant(module); // new reference
+            PythonSupport::instance()->printAndClearErrors();
+            QVariantList args;
+            if (m_python_app.isEmpty())
+                args << arguments();
+            else
+                args << (QStringList() << arguments()[0] << m_python_home << m_python_app);
+            QVariant bootstrap_result = invokePyMethod(m_bootstrap_module, "bootstrap_main", args);
+            m_py_application = bootstrap_result.toList()[0];
+            bootstrap_error = bootstrap_result.toList()[1].toString();
+
+            if (!m_py_application.isNull())
+                return invokePyMethod(m_py_application, "start", QVariantList()).toBool();
+        }
+
+        if (bootstrap_error == "python36" || bootstrap_error == "python37")
+        {
+            QMessageBox::critical(nullptr, "Unable to Launch", "Unable to launch Python application (requires Python 3.7 or later).\n\n" + m_python_home + "\n\nCheck the Python path passed on the command line or shortcut.");
+        }
     }
-
-    if (bootstrap_error == "python36" || bootstrap_error == "python37")
+    else
     {
-        QMessageBox::critical(nullptr, "Unable to Launch", "Unable to launch Python application (requires Python 3.7 or later).\n\n" + m_python_home + "\n\nCheck the Python path passed on the command line or shortcut.");
+        qCritical() << "Unable to find Python.";
     }
 
 //    deinitialize();  // not functional yet (numpy and importlib both cause failures).

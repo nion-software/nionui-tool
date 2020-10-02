@@ -203,18 +203,22 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
         QString home_bin_path = settings.value("home").toString();
         if (!home_bin_path.isEmpty())
         {
+            QString version_str = settings.value("version").toString();
+            QRegExp re("(\\d+)\\.(\\d+)(\\.\\d+)?");
+            if (re.indexIn(version_str) != -1)
+                version_str = QString::number(re.cap(1).toInt()) + "." + QString::number(re.cap(2).toInt());
+
             QDir home_dir(home_bin_path);
-            home_dir.cdUp();
 
             QStringList directories;
-            directories << "lib" << "Cellar/python@3.8" << "Cellar/python@3.7";
+            directories << home_dir.absoluteFilePath("../lib") << "/usr/local/Cellar/python@" + version_str;
 
             QStringList variants;
             variants << "libpython3.8.dylib" << "libpython3.7m.dylib";
 
             Q_FOREACH(const QString &directory, directories)
             {
-                QDirIterator it(home_dir.absoluteFilePath(directory), variants, QDir::NoFilter, QDirIterator::Subdirectories);
+                QDirIterator it(directory, variants, QDir::NoFilter, QDirIterator::Subdirectories);
                 while (it.hasNext())
                 {
                     QString file_path = it.next();
