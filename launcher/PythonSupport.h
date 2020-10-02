@@ -101,11 +101,19 @@ public:
     PyObject *import(const char *name);
     QObject *UnwrapQObject(PyObject *py_object);
 	static const char* qobject_capsule_name;
+
+    bool isValid() const { return m_valid; }
 private:
     PythonSupport(const QString &python_home, const QString &python_library); // ctor hidden
     PythonSupport(PythonSupport const&); // copy ctor hidden
     PythonSupport& operator=(PythonSupport const&); // assign op. hidden
     ~PythonSupport(); // dtor hidden
+
+    // actual python home after following venv
+    QString m_actual_python_home;
+
+    // whether dl loaded
+    bool m_valid;
 
     // dynamics
     PyArg_ParseTupleFn dynamic_PyArg_ParseTuple;

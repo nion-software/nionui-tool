@@ -4,8 +4,8 @@ Changelog (nionui-tool)
 0.4.6 (2020-10-01)
 ------------------
 - Fix missing Linux binaries.
-- Improve search paths for find Windows, Linux virtual Python environments.
-- Qt version 5.15 on macOS (local) and Windows.
+- Improve library search in virtual environments.
+- Update to Qt version 5.15 on macOS and Windows.
 - Add support for optional splash screen.
 - Add additional configuration options (toolconfig.toml).
 

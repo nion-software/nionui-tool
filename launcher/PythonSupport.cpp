@@ -6,7 +6,9 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
+#include <QtCore/QDirIterator>
 #include <QtCore/QFile>
+#include <QtCore/QFileInfo>
 #include <QtCore/QMetaType>
 #include <QtCore/QObject>
 #include <QtCore/QProcessEnvironment>
@@ -187,11 +189,12 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
 {
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 #if defined(Q_OS_MAC)
+    QStringList file_paths;
     QString file_path;
     QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
     if (!python_library.isEmpty())
     {
-        file_path = python_library;
+        file_paths.append(python_library);
     }
     else if (QFile(venv_conf_file_name).exists())
     {
@@ -202,18 +205,42 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
         {
             QDir home_dir(home_bin_path);
             home_dir.cdUp();
-            QString file_path_38 = home_dir.absoluteFilePath("lib/libpython3.8.dylib");
-            QString file_path_37 = home_dir.absoluteFilePath("lib/libpython3.7m.dylib");
-            file_path = QFile(file_path_38).exists() ? file_path_38 : file_path_37;
+
+            QStringList directories;
+            directories << "lib" << "Cellar/python@3.8" << "Cellar/python@3.7";
+
+            QStringList variants;
+            variants << "libpython3.8.dylib" << "libpython3.7m.dylib";
+
+            Q_FOREACH(const QString &directory, directories)
+            {
+                QDirIterator it(home_dir.absoluteFilePath(directory), variants, QDir::NoFilter, QDirIterator::Subdirectories);
+                while (it.hasNext())
+                {
+                    QString file_path = it.next();
+                    if (QFileInfo(file_path).absoluteDir().dirName() == "lib")
+                        file_paths.append(file_path);
+                }
+            }
         }
     }
     else
     {
         // probably conda or standard Python
-        QString file_path_38 = QDir(python_home).absoluteFilePath("lib/libpython3.8.dylib");
-        QString file_path_37 = QDir(python_home).absoluteFilePath("lib/libpython3.7m.dylib");
-        file_path = QFile(file_path_38).exists() ? file_path_38 : file_path_37;
+        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.8.dylib"));
+        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.7m.dylib"));
     }
+
+    Q_FOREACH(file_path, file_paths)
+    {
+        if (QFile(file_path).exists())
+            break;
+    }
+
+    QDir d = QFileInfo(file_path).absoluteDir();
+    d.cdUp();
+    m_actual_python_home = d.absolutePath();
+
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY);
 #elif defined(Q_OS_LINUX)
     QStringList file_paths;
@@ -250,6 +277,10 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
         if (QFile(file_path).exists())
             break;
     }
+
+    QDir d = QFileInfo(file_path).absoluteDir();
+    d.cdUp();
+    m_actual_python_home = d.absolutePath();
 
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY | RTLD_GLOBAL);
 #else
@@ -305,6 +336,10 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
             break;
     }
 
+    QDir d = QFileInfo(file_path).absoluteDir();
+    d.cdUp();
+    m_actual_python_home = d.absolutePath();
+
     // Python may have side-by-side DLLs that it uses. This seems to be an issue with how
     // Anaconda handles installation of the VS redist -- they include it in the directory
     // rather than installing it system wide. That approach works great when running the
@@ -331,6 +366,7 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
 #endif
     extern void initialize_pylib(void *);
     initialize_pylib(dl);
+    m_valid = dl != nullptr;
 #endif
 
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
@@ -505,14 +541,7 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
     QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
     if (QFile(venv_conf_file_name).exists())
     {
-        QSettings settings(venv_conf_file_name, QSettings::IniFormat);
-        QString home_bin_path = settings.value("home").toString();
-        if (!home_bin_path.isEmpty())
-        {
-            QDir home_dir(home_bin_path);
-            home_dir.cdUp();
-            python_home_new = home_dir.absolutePath();
-        }
+        python_home_new = m_actual_python_home;
     }
 
     if (!python_paths.isEmpty())
