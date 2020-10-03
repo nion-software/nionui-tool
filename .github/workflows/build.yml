@@ -8,7 +8,6 @@ on:
 
 jobs:
   build_linux:
-    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -185,6 +184,65 @@ jobs:
       with:
         name: nionui-tool-win-conda-${{ matrix.python-version }}
         path: C:\Miniconda\envs\test\conda-bld\win-64\*.tar.bz2
+  test_linux:
+    needs: build_linux
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04]
+        python-version: [3.7, 3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download Wheel
+      uses: actions/download-artifact@v2
+      id: download_wheel
+      with:
+        name: nionui-tool-linux-whl-${{ matrix.python-version }}
+        path: downloads
+    - name: Download Conda
+      uses: actions/download-artifact@v2
+      id: download_conda
+      with:
+        name: nionui-tool-linux-conda-${{ matrix.python-version }}
+        path: conda_downloads
+    - name: Set up Python ${{ matrix.python-version }} with official build
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Virtual screen
+      shell: bash
+      run: |
+        sudo apt-get install xvfb -y
+    - name: Test system Python installed with official build with virtual environment
+      shell: bash
+      run: |
+        sudo apt-get install qt5-default -y
+        python -m pip install --upgrade pip
+        SYSTEM_PYTHON_EXE=python
+        $SYSTEM_PYTHON_EXE -m venv test_venv
+        source test_venv/bin/activate
+        python -m pip install wheel
+        python -m pip install packaging
+        python -m pip install nionui
+        python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
+        pushd nionui_app_test
+        python setup.py develop
+        popd
+        xvfb-run nionui nionui_app.test_ack | grep ACK
+    - name: Set up Miniconda ${{ matrix.python-version }}
+      uses: conda-incubator/setup-miniconda@v1
+      with:
+        auto-update-conda: true
+        python-version: ${{ matrix.python-version }}
+    - name: Test Conda
+      shell: bash -l {0}
+      run: |
+        conda install -y -c nion nionui wheel packaging
+        conda install -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        pushd nionui_app_test
+        python setup.py develop
+        popd
+        xvfb-run nionui nionui_app.test_ack | grep ACK
   test_macos:
     needs: build_macos
     runs-on: ${{ matrix.os }}
