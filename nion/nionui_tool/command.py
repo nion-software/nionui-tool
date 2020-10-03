@@ -7,7 +7,7 @@ def launch(argv):
     if sys.platform == "darwin":
         exe_path = os.path.join(sysconfig.get_paths()['scripts'], "Nion UI Launcher.app", "Contents", "MacOS", "Nion UI Launcher")
     elif sys.platform == "linux":
-        exe_path = os.path.join(sys.exec_prefix, "bin", "NionUILauncher", "NionUILauncher")
+        exe_path = os.path.join(sysconfig.get_paths()['scripts'], "NionUILauncher", "NionUILauncher")
     elif sys.platform == "win32":
         exe_path = os.path.join(sys.exec_prefix, "Scripts", "NionUILauncher", "NionUILauncher.exe")
     else:

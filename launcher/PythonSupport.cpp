@@ -264,9 +264,9 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
             QDir home_dir(home_bin_path);
             home_dir.cdUp();
             file_paths.append(home_dir.absoluteFilePath("lib/python3.8/config-3.8-x86_64-linux-gnu/libpython3.8.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/python3.7/config-3.7-x86_64-linux-gnu/libpython3.7.so"));
+            file_paths.append(home_dir.absoluteFilePath("lib/python3.7/config-3.7-x86_64-linux-gnu/libpython3.7m.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/libpython3.8.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/libpython3.7.so"));
+            file_paths.append(home_dir.absoluteFilePath("lib/libpython3.7m.so"));
         }
     }
     else
@@ -637,14 +637,7 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
     QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
     if (QFile(venv_conf_file_name).exists())
     {
-        QSettings settings(venv_conf_file_name, QSettings::IniFormat);
-        QString home_bin_path = settings.value("home").toString();
-        if (!home_bin_path.isEmpty())
-        {
-            QDir home_dir(home_bin_path);
-            home_dir.cdUp();
-            python_home_new = home_dir.absolutePath();
-        }
+        python_home_new = m_actual_python_home;
     }
 
     if (!python_paths.isEmpty())
