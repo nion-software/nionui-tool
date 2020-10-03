@@ -8,6 +8,7 @@ on:
 
 jobs:
   build_linux:
+    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -122,6 +123,7 @@ jobs:
         name: nionui-tool-macos-conda-${{ matrix.python-version }}
         path: /usr/local/miniconda/envs/test/conda-bld/osx-64/*.tar.bz2
   build_win:
+    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -183,3 +185,70 @@ jobs:
       with:
         name: nionui-tool-win-conda-${{ matrix.python-version }}
         path: C:\Miniconda\envs\test\conda-bld\win-64\*.tar.bz2
+  test_macos:
+    needs: build_macos
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-10.15]
+        python-version: [3.7, 3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download Wheel
+      uses: actions/download-artifact@v2
+      id: download_wheel
+      with:
+        name: nionui-tool-macos-whl-${{ matrix.python-version }}
+        path: downloads
+    - name: Download Conda
+      uses: actions/download-artifact@v2
+      id: download_conda
+      with:
+        name: nionui-tool-macos-conda-${{ matrix.python-version }}
+        path: conda_downloads
+    - name: Test system Python installed with brew with virtual environment
+      shell: bash
+      run: |
+        SYSTEM_PYTHON_EXE=/usr/local/opt/python@${{ matrix.python-version }}/bin/python3
+        $SYSTEM_PYTHON_EXE -m venv test_venv
+        source test_venv/bin/activate
+        python -m pip install wheel
+        python -m pip install packaging
+        python -m pip install nionui
+        python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
+        pushd nionui_app_test
+        python setup.py develop
+        popd
+        nionui nionui_app.test_ack | grep ACK
+    - name: Set up Python ${{ matrix.python-version }} with official build
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Test system Python installed with official build with virtual environment
+      shell: bash
+      run: |
+        SYSTEM_PYTHON_EXE=python3
+        $SYSTEM_PYTHON_EXE -m venv test_venv
+        source test_venv/bin/activate
+        python -m pip install wheel
+        python -m pip install packaging
+        python -m pip install nionui
+        python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
+        pushd nionui_app_test
+        python setup.py develop
+        popd
+        nionui nionui_app.test_ack | grep ACK
+    - name: Set up Miniconda ${{ matrix.python-version }}
+      uses: conda-incubator/setup-miniconda@v1
+      with:
+        auto-update-conda: true
+        python-version: ${{ matrix.python-version }}
+    - name: Test Conda
+      shell: bash -l {0}
+      run: |
+        conda install -y -c nion nionui wheel packaging
+        conda install -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        pushd nionui_app_test
+        python setup.py develop
+        popd
+        nionui nionui_app.test_ack | grep ACK
