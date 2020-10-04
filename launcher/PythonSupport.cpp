@@ -341,7 +341,6 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
     }
 
     QDir d = QFileInfo(file_path).absoluteDir();
-    d.cdUp();
     m_actual_python_home = d.absolutePath();
 
     // Python may have side-by-side DLLs that it uses. This seems to be an issue with how
@@ -589,9 +588,9 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
                     QString home_bin_path = re.cap(1).trimmed();
                     if (!home_bin_path.isEmpty())
                     {
-                        QDir home_dir(QDir::fromNativeSeparators(home_bin_path));
-                        python_home_new = home_dir.absolutePath();
-                        python_program_name = QDir(python_home).absoluteFilePath("Scripts/Python.exe");
+                        python_home_new = m_actual_python_home;
+
+                        python_program_name = QDir(python_home).absoluteFilePath("Python.exe");
 
                         // required to configure the path; see https://bugs.python.org/issue34725
                         QStringList python_paths;
