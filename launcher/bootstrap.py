@@ -1,6 +1,7 @@
 import importlib
 import importlib.util
 import os
+import site
 import sys
 import HostLib  # host supplies this module
 
@@ -103,6 +104,14 @@ def bootstrap_main(args):
     Main function explicitly called from the C++ code.
     Return the main application object.
     """
+
+    # for virtual environments, the site is not initialized properly.
+    # see https://bugs.python.org/issue22213
+    # see https://bugs.python.org/issue35706
+    # this is the workaround.
+    for path in list(sys.path):
+        site.addsitedir(path)
+
     version_info = sys.version_info
     if version_info.major != 3 or version_info.minor < 6:
         return None, "python36"
