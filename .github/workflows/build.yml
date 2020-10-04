@@ -8,6 +8,8 @@ on:
 
 env:
   tool-id: nionui-tool
+  tool-package: nionui
+  tool-exe: nionui
 
 jobs:
   build_linux:
@@ -225,12 +227,12 @@ jobs:
         source test_venv/bin/activate
         python -m pip install wheel
         python -m pip install packaging
-        python -m pip install nionui
+        python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
         pushd nionui_app_test
         python setup.py develop
         popd
-        xvfb-run nionui nionui_app.test_ack | grep ACK
+        xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v1
       with:
@@ -239,12 +241,12 @@ jobs:
     - name: Test Conda
       shell: bash -l {0}
       run: |
-        conda install -y -c nion nionui wheel packaging
+        conda install -y -c nion ${{ env.tool-package }} wheel packaging
         conda install -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
         pushd nionui_app_test
         python setup.py develop
         popd
-        xvfb-run nionui nionui_app.test_ack | grep ACK
+        xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
   test_macos:
     needs: build_macos
     runs-on: ${{ matrix.os }}
@@ -274,12 +276,12 @@ jobs:
         source test_venv/bin/activate
         python -m pip install wheel
         python -m pip install packaging
-        python -m pip install nionui
+        python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
         pushd nionui_app_test
         python setup.py develop
         popd
-        nionui nionui_app.test_ack | grep ACK
+        ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v1
       with:
@@ -292,12 +294,12 @@ jobs:
         source test_venv/bin/activate
         python -m pip install wheel
         python -m pip install packaging
-        python -m pip install nionui
+        python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
         pushd nionui_app_test
         python setup.py develop
         popd
-        nionui nionui_app.test_ack | grep ACK
+        ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v1
       with:
@@ -306,12 +308,12 @@ jobs:
     - name: Test Conda
       shell: bash -l {0}
       run: |
-        conda install -y -c nion nionui wheel packaging
+        conda install -y -c nion ${{ env.tool-package }} wheel packaging
         conda install -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
         pushd nionui_app_test
         python setup.py develop
         popd
-        nionui nionui_app.test_ack | grep ACK
+        ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
   test_win:
     needs: build_win
     runs-on: ${{ matrix.os }}
@@ -345,13 +347,13 @@ jobs:
         test_venv\Scripts\activate
         python -m pip install wheel
         python -m pip install packaging
-        python -m pip install nionui
+        python -m pip install ${{ env.tool-package }}
         $filename = Get-ChildItem -name ${{steps.download_wheel.outputs.download-path}}\*.whl
         python -m pip install ${{steps.download_wheel.outputs.download-path}}\$filename
         pushd nionui_app_test
         python setup.py develop
         popd
-        nionui nionui_app.test_ack | grep ACK
+        ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v1
@@ -361,11 +363,10 @@ jobs:
     - name: Test Conda
       shell: pwsh
       run: |
-        conda install -y -c nion nionui wheel packaging
+        conda install -y -c nion ${{ env.tool-package }} wheel packaging
         $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
         conda install -y ${{steps.download_conda.outputs.download-path}}\$filename
         pushd nionui_app_test
         python setup.py develop
         popd
-        nionui nionui_app.test_ack
-        nionui nionui_app.test_ack | grep ACK
+        ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
