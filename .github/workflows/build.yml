@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  tool-id: nionui-tool
+
 jobs:
   build_linux:
     runs-on: ${{ matrix.os }}
@@ -55,12 +58,12 @@ jobs:
     - name: Upload Wheel
       uses: actions/upload-artifact@v2
       with:
-        name: nionui-tool-linux-whl-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
         path: dist/*.whl
     - name: Upload Conda Package
       uses: actions/upload-artifact@v2
       with:
-        name: nionui-tool-linux-conda-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: /usr/share/miniconda/envs/test/conda-bld/linux-64/*.tar.bz2
   build_macos:
     runs-on: ${{ matrix.os }}
@@ -114,12 +117,12 @@ jobs:
     - name: Upload Wheel
       uses: actions/upload-artifact@v2
       with:
-        name: nionui-tool-macos-whl-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-macos-whl-${{ matrix.python-version }}
         path: dist/*.whl
     - name: Upload Conda Package
       uses: actions/upload-artifact@v2
       with:
-        name: nionui-tool-macos-conda-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
         path: /usr/local/miniconda/envs/test/conda-bld/osx-64/*.tar.bz2
   build_win:
     runs-on: ${{ matrix.os }}
@@ -176,12 +179,12 @@ jobs:
     - name: Upload Wheel
       uses: actions/upload-artifact@v2
       with:
-        name: nionui-tool-win-whl-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: dist\*.whl
     - name: Upload Conda Package
       uses: actions/upload-artifact@v2
       with:
-        name: nionui-tool-win-conda-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: C:\Miniconda\envs\test\conda-bld\win-64\*.tar.bz2
   test_linux:
     needs: build_linux
@@ -196,13 +199,13 @@ jobs:
       uses: actions/download-artifact@v2
       id: download_wheel
       with:
-        name: nionui-tool-linux-whl-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
       uses: actions/download-artifact@v2
       id: download_conda
       with:
-        name: nionui-tool-linux-conda-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: conda_downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v1
@@ -255,13 +258,13 @@ jobs:
       uses: actions/download-artifact@v2
       id: download_wheel
       with:
-        name: nionui-tool-macos-whl-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-macos-whl-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
       uses: actions/download-artifact@v2
       id: download_conda
       with:
-        name: nionui-tool-macos-conda-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
         path: conda_downloads
     - name: Test system Python installed with brew with virtual environment
       shell: bash
@@ -322,13 +325,13 @@ jobs:
       uses: actions/download-artifact@v2
       id: download_wheel
       with:
-        name: nionui-tool-win-whl-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
       uses: actions/download-artifact@v2
       id: download_conda
       with:
-        name: nionui-tool-win-conda-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: conda_downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v1
