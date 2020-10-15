@@ -45,7 +45,7 @@ private Q_SLOTS:
     void aboutToQuit();
 
 private:
-    QSplashScreen *m_splash_screen;
+    QScopedPointer<QSplashScreen> m_splash_screen;
 
     QString m_python_home;
     QList<QString> m_python_paths;

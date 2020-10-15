@@ -2667,7 +2667,7 @@ static PyObject *Label_setTextColor(PyObject * /*self*/, PyObject *args)
     if (label == NULL)
         return NULL;
 
-    auto palette = label->palette();
+    QPalette palette = label->palette();
     palette.setColor(QPalette::Text, QColor(r, g, b));
     label->setPalette(palette);
 
@@ -4437,7 +4437,7 @@ static PyObject *TextEdit_setProportionalLineHeight(PyObject * /*self*/, PyObjec
     if (text_edit == NULL)
         return NULL;
 
-    auto bf = text_edit->textCursor().blockFormat();
+    QTextBlockFormat bf = text_edit->textCursor().blockFormat();
     bf.setLineHeight(int(proportional_line_height * 100), QTextBlockFormat::ProportionalHeight);
     text_edit->textCursor().setBlockFormat(bf);
 
@@ -4485,7 +4485,7 @@ static PyObject *TextEdit_setTextBackgroundColor(PyObject * /*self*/, PyObject *
     if (text_edit == NULL)
         return NULL;
 
-    auto palette = text_edit->palette();
+    QPalette palette = text_edit->palette();
     palette.setColor(QPalette::Base, QColor(r, g, b));
     text_edit->setPalette(palette);
 
@@ -5521,7 +5521,7 @@ static PyObject *Widget_setPaletteColor(PyObject * /*self*/, PyObject *args)
 
     QString role_str(role_c);
 
-    auto palette = widget->palette();
+    QPalette palette = widget->palette();
     if (role_str == "background")
         palette.setColor(widget->backgroundRole(), QColor(r, g, b, a));
     widget->setPalette(palette);
@@ -5723,7 +5723,6 @@ void Application::output(const QString &str)
 
 Application::Application(int & argv, char **args)
     : QApplication(argv, args)
-    , m_splash_screen(nullptr)
 {
     timer.start();
 
@@ -5747,7 +5746,7 @@ Application::Application(int & argv, char **args)
     QPixmap pixmap(resourcesPath() + "/splash.png");
     if (!pixmap.isNull())
     {
-        m_splash_screen = new QSplashScreen(pixmap);
+        m_splash_screen.reset(new QSplashScreen(pixmap));
         m_splash_screen->show();
     }
 
@@ -6103,7 +6102,7 @@ bool Application::initialize()
 
         if (bootstrap_error == "python36" || bootstrap_error == "python37")
         {
-            QMessageBox::critical(nullptr, "Unable to Launch", "Unable to launch Python application (requires Python 3.7 or later).\n\n" + m_python_home + "\n\nCheck the Python path passed on the command line or shortcut.");
+            QMessageBox::critical(NULL, "Unable to Launch", "Unable to launch Python application (requires Python 3.7 or later).\n\n" + m_python_home + "\n\nCheck the Python path passed on the command line or shortcut.");
         }
     }
     else
@@ -6169,6 +6168,6 @@ void Application::closeSplashScreen()
     if (m_splash_screen)
     {
         m_splash_screen->close();
-        m_splash_screen = nullptr;
+        m_splash_screen.reset();
     }
 }

@@ -598,7 +598,7 @@ private:
     QMap<QDateTime, QDateTime> m_known_dts;
     QMutex m_commands_mutex;
     QList<CanvasDrawingCommand> m_commands;
-    QMap<int, QSharedPointer<CanvasSection>> m_sections;
+    QMap<int, QSharedPointer<CanvasSection> > m_sections;
     std::vector<quint32> m_commands_binary;
     QPoint m_last_pos;
     bool m_pressed;
