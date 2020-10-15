@@ -1429,8 +1429,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
     QSet<int> layers_used;
     bool layer_skip = false;
     QSharedPointer<QImage> layer_image;
-    QList<QSharedPointer<QPainter>> painter_stack;
-    QList<QSharedPointer<QImage>> layer_image_stack;
+    QList<QSharedPointer<QPainter> > painter_stack;
+    QList<QSharedPointer<QImage> > layer_image_stack;
     QList<bool> layer_skip_stack;
 
     unsigned int command_index = 0;
@@ -2120,7 +2120,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                 painter->fillPath(path, Qt::black);
                 painter->restore();
                 QTransform transform = painter->transform();
-                QList<QSharedPointer<QPainter>> painter_stack_reversed = painter_stack;
+                QList<QSharedPointer<QPainter> > painter_stack_reversed = painter_stack;
                 std::reverse(painter_stack.begin(), painter_stack.end());
                 Q_FOREACH(QSharedPointer<QPainter> p, painter_stack_reversed)
                     transform = p->transform() * transform;
@@ -2311,7 +2311,7 @@ QRectOptional PyCanvas::renderOne()
 {
     RenderCounter render_counter(&m_rendering_count_mutex, m_rendering_count);
 
-    QList<QSharedPointer<CanvasSection>> sections;
+    QList<QSharedPointer<CanvasSection> > sections;
 
     {
         QMutexLocker locker(&m_commands_mutex);
@@ -2403,7 +2403,7 @@ void PyCanvas::paintEvent(QPaintEvent *event)
 
     painter.begin(this);
 
-    QList<QSharedPointer<CanvasSection>> sections;
+    QList<QSharedPointer<CanvasSection> > sections;
 
     {
         QMutexLocker locker(&m_commands_mutex);

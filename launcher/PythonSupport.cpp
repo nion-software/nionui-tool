@@ -176,7 +176,7 @@ void PythonSupport::initInstance(const QString &python_home, const QString &pyth
 void PythonSupport::deinitInstance()
 {
     delete thePythonSupport;
-    thePythonSupport = nullptr;
+    thePythonSupport = NULL;
 }
 
 PythonSupport *PythonSupport::instance()
@@ -185,7 +185,7 @@ PythonSupport *PythonSupport::instance()
 }
 
 PythonSupport::PythonSupport(const QString &python_home, const QString &python_library)
-    : module_exception(nullptr)
+    : module_exception(NULL)
 {
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 #if defined(Q_OS_MAC)
@@ -369,7 +369,7 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
 #endif
     extern void initialize_pylib(void *);
     initialize_pylib(dl);
-    m_valid = dl != nullptr;
+    m_valid = dl != NULL;
 #endif
 
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON

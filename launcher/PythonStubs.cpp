@@ -174,7 +174,7 @@ void initialize_pylib(void *dl)
 
 void deinitialize_pylib()
 {
-    pylib = nullptr;
+    pylib = NULL;
 
     fBuffer_Release = 0;
     fCallable_Check = 0;
