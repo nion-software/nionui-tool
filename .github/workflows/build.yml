@@ -229,6 +229,7 @@ jobs:
         python -m pip install packaging
         python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
+        python -m pip install scipy numpy h5py
         pushd nionui_app_test
         python setup.py develop
         popd
@@ -278,6 +279,7 @@ jobs:
         python -m pip install packaging
         python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
+        python -m pip install scipy numpy h5py
         pushd nionui_app_test
         python setup.py develop
         popd
@@ -296,6 +298,7 @@ jobs:
         python -m pip install packaging
         python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
+        python -m pip install scipy numpy h5py
         pushd nionui_app_test
         python setup.py develop
         popd

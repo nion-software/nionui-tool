@@ -1,4 +1,7 @@
 # print ACK and exit
+import numpy
+import scipy
+import h5py
 
 class Application:
     def start(self):
