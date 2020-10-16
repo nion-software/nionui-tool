@@ -60,10 +60,15 @@ for platform in ("linux", "macos", "win"):
 
 print()
 
-for upload_path in upload_paths["conda"]:
+for upload_path in sorted(set(upload_paths["conda"])):
     print(f"anaconda upload --user {channel} {upload_path}")
 
 print()
 
-for upload_path in upload_paths["whl"]:
+for upload_path in sorted(set(upload_paths["whl"])):
     print(f"twine upload {upload_path}")
+
+print()
+
+for upload_path in sorted(set(upload_paths["conda"] + upload_paths["whl"])):
+    print(f"lftp -u xnion-swiftsite -e \"cd files/latest; put {upload_path}; quit\" sftp://nion.com")

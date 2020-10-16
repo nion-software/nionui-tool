@@ -1,5 +1,5 @@
 {% set name = "nionui-tool" %}
-{% set version = "0.4.6" %}
+{% set version = "0.4.7" %}
 {% set macos_app = "Nion UI Launcher" %}
 {% set app_dir = "NionUILauncher" %}
 {% set macos_exe = "Nion UI Launcher" %}
@@ -14,7 +14,7 @@ package:
   version: {{ version }}
 
 build:
-  number: 6
+  number: 0
   skip: true  # [py2k or python_impl == 'pypy']
   entry_points:
     - {{ name }} = nion.{{ name_u }}.command:main

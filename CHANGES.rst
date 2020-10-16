@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.7 (2020-10-16)
+------------------
+- Continue improving Linux + other compatibility.
+
 0.4.6 (2020-10-01)
 ------------------
 - Fix missing Linux binaries.
