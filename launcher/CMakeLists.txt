@@ -70,15 +70,15 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     # the user installs Qt in the environment, it will be used over the
     # system Qt. this would be the recommended installation option if/when
     # conda releases a version of Qt newer than 5.9.
-    #set_target_properties(${APP_NAME} PROPERTIES
-    #    # this cmake file only a build phase, so do not skip
-    #    SKIP_BUILD_RPATH FALSE
-    #    # and ensure the rpath is set during build
-    #    BUILD_WITH_INSTALL_RPATH TRUE
-    #    # but it uses the one defined here
-    #    INSTALL_RPATH "$ORIGIN:$ORIGIN/../../lib"
-    #    # do not add the automatically determined parts
-    #    INSTALL_RPATH_USE_LINK_PATH FALSE)
+    set_target_properties(${APP_NAME} PROPERTIES
+        # this cmake file only a build phase, so do not skip
+        SKIP_BUILD_RPATH FALSE
+        # and ensure the rpath is set during build
+        BUILD_WITH_INSTALL_RPATH TRUE
+        # but it uses the one defined here
+        INSTALL_RPATH "$ORIGIN:$ORIGIN/../../lib"
+        # do not add the automatically determined parts
+        INSTALL_RPATH_USE_LINK_PATH FALSE)
 
     add_custom_command(
       TARGET ${PROJECT_NAME} POST_BUILD
