@@ -6,4 +6,7 @@ class Application:
         return False
 
 def main(args, bootstrap_args):
+    import numpy
+    import scipy
+    import h5py
     return Application()
