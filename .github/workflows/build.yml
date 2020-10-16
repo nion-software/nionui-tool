@@ -229,10 +229,10 @@ jobs:
         python -m pip install packaging
         python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
-        python -m pip install scipy numpy h5py
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v1
@@ -247,6 +247,7 @@ jobs:
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
   test_macos:
     needs: build_macos
@@ -279,10 +280,10 @@ jobs:
         python -m pip install packaging
         python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
-        python -m pip install scipy numpy h5py
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v1
@@ -298,10 +299,10 @@ jobs:
         python -m pip install packaging
         python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
-        python -m pip install scipy numpy h5py
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v1
@@ -316,6 +317,7 @@ jobs:
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
   test_win:
     needs: build_win
@@ -356,6 +358,7 @@ jobs:
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
@@ -372,4 +375,5 @@ jobs:
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
