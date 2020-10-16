@@ -14,7 +14,6 @@
 cmake_minimum_required(VERSION 3.12)
 
 option(USE_CONSOLE "Enable console" ON)
-option(USE_PYTHON_QT "Enable Python Qt" ON)
 
 set(APP_NAME "NionUILauncher")
 set(APP_VERSION "0.4.6")
@@ -66,12 +65,20 @@ set(RESOURCE_FILES
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(${APP_NAME} ${CMAKE_DL_LIBS})
 
-    if (${USE_PYTHON_QT})
-        add_custom_command(
-          TARGET ${PROJECT_NAME} POST_BUILD
-          COMMAND chrpath -r $ORIGIN:$ORIGIN/../../lib
-            $<TARGET_FILE_DIR:${PROJECT_NAME}>/${APP_NAME} VERBATIM)
-    endif()
+    # in conda environments, it is necessary to have lib in the dynamic
+    # library search path. add it here. this has the side effect that if
+    # the user installs Qt in the environment, it will be used over the
+    # system Qt. this would be the recommended installation option if/when
+    # conda releases a version of Qt newer than 5.9.
+    #set_target_properties(${APP_NAME} PROPERTIES
+    #    # this cmake file only a build phase, so do not skip
+    #    SKIP_BUILD_RPATH FALSE
+    #    # and ensure the rpath is set during build
+    #    BUILD_WITH_INSTALL_RPATH TRUE
+    #    # but it uses the one defined here
+    #    INSTALL_RPATH "$ORIGIN:$ORIGIN/../../lib"
+    #    # do not add the automatically determined parts
+    #    INSTALL_RPATH_USE_LINK_PATH FALSE)
 
     add_custom_command(
       TARGET ${PROJECT_NAME} POST_BUILD

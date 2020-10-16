@@ -39,7 +39,7 @@ jobs:
         python -m pip install install numpy
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
-        cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON" -DUSE_PYTHON_QT=OFF
+        cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON"
         cmake --build . --config Release
         mkdir -p linux
         mv build linux/x64
@@ -232,7 +232,9 @@ jobs:
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
+        deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v1
       with:
@@ -241,11 +243,14 @@ jobs:
     - name: Test Conda
       shell: bash -l {0}
       run: |
+        # use conda versions instead of pypi versions. install before anything else.
+        conda install numpy scipy h5py -y
         conda install -y -c nion ${{ env.tool-package }} wheel packaging
         conda install -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
   test_macos:
     needs: build_macos
@@ -281,6 +286,7 @@ jobs:
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v1
@@ -299,6 +305,7 @@ jobs:
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v1
@@ -308,11 +315,14 @@ jobs:
     - name: Test Conda
       shell: bash -l {0}
       run: |
+        # use conda versions instead of pypi versions. install before anything else.
+        conda install numpy scipy h5py -y
         conda install -y -c nion ${{ env.tool-package }} wheel packaging
         conda install -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
   test_win:
     needs: build_win
@@ -353,6 +363,7 @@ jobs:
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
@@ -363,10 +374,13 @@ jobs:
     - name: Test Conda
       shell: pwsh
       run: |
+        # use conda versions instead of pypi versions. install before anything else.
+        conda install numpy scipy h5py -y
         conda install -y -c nion ${{ env.tool-package }} wheel packaging
         $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
         conda install -y ${{steps.download_conda.outputs.download-path}}\$filename
         pushd nionui_app_test
         python setup.py develop
         popd
+        echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
