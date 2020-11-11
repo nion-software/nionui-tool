@@ -214,7 +214,7 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
             directories << home_dir.absoluteFilePath("../lib") << "/usr/local/Cellar/python@" + version_str;
 
             QStringList variants;
-            variants << "libpython3.8.dylib" << "libpython3.7m.dylib";
+            variants << "libpython3.9.dylib" << "libpython3.8.dylib" << "libpython3.7m.dylib";
 
             Q_FOREACH(const QString &directory, directories)
             {
@@ -231,6 +231,7 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
     else
     {
         // probably conda or standard Python
+        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.9.dylib"));
         file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.8.dylib"));
         file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.7m.dylib"));
     }
@@ -263,8 +264,10 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
         {
             QDir home_dir(home_bin_path);
             home_dir.cdUp();
+            file_paths.append(home_dir.absoluteFilePath("lib/python3.9/config-3.9-x86_64-linux-gnu/libpython3.9.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/python3.8/config-3.8-x86_64-linux-gnu/libpython3.8.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/python3.7/config-3.7-x86_64-linux-gnu/libpython3.7m.so"));
+            file_paths.append(home_dir.absoluteFilePath("lib/libpython3.9.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/libpython3.8.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/libpython3.7m.so"));
         }
@@ -272,6 +275,7 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
     else
     {
         // probably conda or standard Python
+        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.9.so"));
         file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.8.so"));
         file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.7m.so"));
     }
@@ -1594,4 +1598,9 @@ PyObject *PythonSupport::import(const char *name)
 // see https://github.com/python/cpython/pull/18361/files
 #undef _Py_Dealloc
 PyAPI_FUNC(void) _Py_Dealloc(PyObject *o) { _Py_Dealloc_inline(o); }
+#endif
+
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 9
+// work around to provide required function that would be available by linking.
+PyAPI_FUNC(void) _Py_Dealloc(PyObject *o) { (*(Py_TYPE(o)->tp_dealloc))(o); }
 #endif
