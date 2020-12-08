@@ -46,7 +46,7 @@ jobs:
         popd
         python setup.py bdist_wheel
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v1
+      uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
@@ -105,7 +105,7 @@ jobs:
         popd
         python setup.py bdist_wheel
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v1
+      uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
@@ -167,7 +167,7 @@ jobs:
         popd
         python setup.py bdist_wheel
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v1
+      uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
@@ -236,7 +236,7 @@ jobs:
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v1
+      uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
@@ -308,7 +308,7 @@ jobs:
         echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v1
+      uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
@@ -367,7 +367,7 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v1
+      uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
