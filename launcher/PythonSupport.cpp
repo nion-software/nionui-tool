@@ -32,7 +32,7 @@
 #include "PythonSupport.h"
 #include "PythonStubs.h"
 
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#define NPY_NO_DEPRECATED_API NPY_1_19_API_VERSION
 #define PY_ARRAY_UNIQUE_SYMBOL d2af2aa3297e
 
 #pragma push_macro("_DEBUG")
