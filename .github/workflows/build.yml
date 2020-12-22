@@ -226,6 +226,7 @@ jobs:
         SYSTEM_PYTHON_EXE=python
         $SYSTEM_PYTHON_EXE -m venv test_venv
         source test_venv/bin/activate
+        python -m pip install --upgrade pip
         python -m pip install wheel
         python -m pip install packaging
         python -m pip install ${{ env.tool-package }}
@@ -277,9 +278,11 @@ jobs:
     - name: Test system Python installed with brew with virtual environment
       shell: bash
       run: |
+        brew install python@${{ matrix.python-version }} || true
         SYSTEM_PYTHON_EXE=/usr/local/opt/python@${{ matrix.python-version }}/bin/python3
         $SYSTEM_PYTHON_EXE -m venv test_venv
         source test_venv/bin/activate
+        python -m pip install --upgrade pip
         python -m pip install wheel
         python -m pip install packaging
         python -m pip install ${{ env.tool-package }}
@@ -299,6 +302,7 @@ jobs:
         SYSTEM_PYTHON_EXE=python3
         $SYSTEM_PYTHON_EXE -m venv test_venv
         source test_venv/bin/activate
+        python -m pip install --upgrade pip
         python -m pip install wheel
         python -m pip install packaging
         python -m pip install ${{ env.tool-package }}
@@ -356,6 +360,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m venv test_venv
         test_venv\Scripts\activate
+        python -m pip install --upgrade pip
         python -m pip install wheel
         python -m pip install packaging
         python -m pip install ${{ env.tool-package }}
