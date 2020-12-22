@@ -220,6 +220,7 @@ jobs:
     - name: Test system Python installed with official build with virtual environment
       shell: bash
       run: |
+        sudo apt update
         sudo apt-get install qt5-default -y
         python -m pip install --upgrade pip
         SYSTEM_PYTHON_EXE=python
