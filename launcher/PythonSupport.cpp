@@ -319,6 +319,10 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
                     {
                         QDir home_dir(QDir::fromNativeSeparators(home_bin_path));
                         python_home_new = home_dir.absolutePath();
+                        file_paths.append(QDir(python_home).absoluteFilePath("Scripts/Python39.dll"));
+                        file_paths.append(QDir(python_home).absoluteFilePath("Python39.dll"));
+                        file_paths.append(QDir(python_home_new).absoluteFilePath("Scripts/Python39.dll"));
+                        file_paths.append(QDir(python_home_new).absoluteFilePath("Python39.dll"));
                         file_paths.append(QDir(python_home).absoluteFilePath("Scripts/Python38.dll"));
                         file_paths.append(QDir(python_home).absoluteFilePath("Python38.dll"));
                         file_paths.append(QDir(python_home_new).absoluteFilePath("Scripts/Python38.dll"));
@@ -334,6 +338,7 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
     }
     else
     {
+        file_paths.append(QDir(python_home).absoluteFilePath("Python39.dll"));
         file_paths.append(QDir(python_home).absoluteFilePath("Python38.dll"));
         file_paths.append(QDir(python_home).absoluteFilePath("Python37.dll"));
     }
@@ -598,6 +603,7 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
 
                         // required to configure the path; see https://bugs.python.org/issue34725
                         QStringList python_paths;
+                        python_paths.append(QDir(python_home).absoluteFilePath("Scripts/python39.zip"));
                         python_paths.append(QDir(python_home).absoluteFilePath("Scripts/python38.zip"));
                         python_paths.append(QDir(python_home).absoluteFilePath("Scripts/python37.zip"));
                         python_paths.append(QDir(python_home_new).absoluteFilePath("DLLs"));
