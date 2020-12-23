@@ -1608,5 +1608,12 @@ PyAPI_FUNC(void) _Py_Dealloc(PyObject *o) { _Py_Dealloc_inline(o); }
 
 #if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 9
 // work around to provide required function that would be available by linking.
+#if defined(Q_OS_WIN)
+#pragma warning(push)
+#pragma warning(disable: 4273)  // do not warn about conflicting dllimport vs dllexport dll linkage.
+void _Py_Dealloc(PyObject* o) { (*(Py_TYPE(o)->tp_dealloc))(o); }
+#pragma warning(pop)
+#else
 PyAPI_FUNC(void) _Py_Dealloc(PyObject *o) { (*(Py_TYPE(o)->tp_dealloc))(o); }
+#endif
 #endif
