@@ -131,7 +131,9 @@ jobs:
     strategy:
       matrix:
         os: [windows-2019]
-        python-version: [3.7, 3.8, 3.9]
+        # 3.9 does not build on Windows. _Py_Dealloc is declared as declspec(dllimport). there is
+        # no way I have found to override this using macros.
+        python-version: [3.7, 3.8]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -342,13 +344,15 @@ jobs:
       uses: actions/download-artifact@v2
       id: download_wheel
       with:
-        name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-win-whl-3.7  # hardcoded to 3.7. see not about 3.9 above.
+        # name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
       uses: actions/download-artifact@v2
       id: download_conda
       with:
-        name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-win-conda-3.7  # hardcoded to 3.7. see not about 3.9 above.
+        # name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: conda_downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v1
