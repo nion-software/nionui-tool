@@ -3,6 +3,7 @@ Changelog (nionui-tool)
 
 0.4.8 (UNRELEASED)
 ------------------
+- Add color dialog.
 - Add support for Python 3.9.
 
 0.4.7 (2020-10-16)
