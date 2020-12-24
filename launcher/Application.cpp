@@ -29,6 +29,7 @@
 #include <QtGui/QScreen>
 #include <QtGui/QWindow>
 
+#include <QtWidgets/QColorDialog>
 #include <QtWidgets/QDockWidget>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QLabel>
@@ -1716,6 +1717,43 @@ static PyObject *DocumentWindow_getDisplayScaling(PyObject * /*self*/, PyObject 
 #else
     return PythonSupport::instance()->build()("f", document_window->logicalDpiY() / 96.0);
 #endif
+}
+
+static PyObject *DocumentWindow_getColorDialog(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    char *color_c = NULL;
+    bool show_alpha = false;
+    if (!PythonSupport::instance()->parse()(args, "Osb", &obj0, &color_c, &show_alpha))
+        return NULL;
+
+    DocumentWindow *document_window = PythonSupport::instance()->isNone(obj0) ? NULL : Unwrap<DocumentWindow>(obj0);
+
+    QColor color(color_c);
+
+    Python_ThreadAllow thread_allow;
+    QColorDialog dialog(color, document_window);
+    dialog.setOption(QColorDialog::ShowAlphaChannel, show_alpha);
+    if (dialog.exec() == QDialog::Accepted) {
+        QString result;
+        if (dialog.selectedColor().alpha() != 255)
+        {
+            int alpha = dialog.selectedColor().alpha();
+            result = "#" + QString("%1").arg(alpha, 2, 16, QLatin1Char('0')) + dialog.selectedColor().name().mid(1);
+        }
+        else
+        {
+            result = dialog.selectedColor().name();
+        }
+        return PythonSupport::instance()->build()("s", result.toUtf8().data());
+    }
+    return PythonSupport::instance()->build()("s", QString(color_c).toUtf8().data());
 }
 
 static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
@@ -5818,6 +5856,7 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_connect", DocumentWindow_connect, METH_VARARGS, "DocumentWindow_connect."},
     {"DocumentWindow_create", DocumentWindow_create, METH_VARARGS, "DocumentWindow_create."},
     {"DocumentWindow_getDisplayScaling", DocumentWindow_getDisplayScaling, METH_VARARGS, "DocumentWindow_getDisplayScaling."},
+    {"DocumentWindow_getColorDialog", DocumentWindow_getColorDialog, METH_VARARGS, "DocumentWindow_getColorDialog."},
     {"DocumentWindow_getFilePath", DocumentWindow_getFilePath, METH_VARARGS, "DocumentWindow_getFilePath."},
     {"DocumentWindow_getScreenSize", DocumentWindow_getScreenSize, METH_VARARGS, "DocumentWindow_getScreenSize."},
     {"DocumentWindow_getScreenDPIInfo", DocumentWindow_getScreenDPIInfo , METH_VARARGS, "DocumentWindow_getScreenDPIInfo"},
