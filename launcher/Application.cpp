@@ -449,6 +449,26 @@ static PyObject *Application_close(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *Application_getKeyboardModifiers(PyObject * /*self*/, PyObject *args)
+{
+    Q_UNUSED(args)
+
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    bool query = false;
+
+    if (!PythonSupport::instance()->parse()(args, "b", &query))
+        return NULL;
+
+    Qt::KeyboardModifiers modifiers = query ? qApp->queryKeyboardModifiers() : qApp->keyboardModifiers();
+
+    return PythonSupport::instance()->build()("i", int(modifiers));
+}
+
 static PyObject *Application_setQuitOnLastWindowClosed(PyObject * /*self*/, PyObject *args)
 {
     Q_UNUSED(args)
@@ -5829,6 +5849,7 @@ static PyMethodDef Methods[] = {
     {"Action_setEnabled", Action_setEnabled, METH_VARARGS, "Action_setEnabled."},
     {"Action_setTitle", Action_setTitle, METH_VARARGS, "Action_setTitle."},
     {"Application_close", Application_close, METH_VARARGS, "Application_close."},
+    {"Application_getKeyboardModifiers", Application_getKeyboardModifiers, METH_VARARGS, "Application_getKeyboardModifiers."},
     {"Application_setQuitOnLastWindowClosed", Application_setQuitOnLastWindowClosed, METH_VARARGS, "Application_setQuitOnLastWindowClosed."},
     {"ButtonGroup_addButton", ButtonGroup_addButton, METH_VARARGS, "ButtonGroup_addButton."},
     {"ButtonGroup_connect", ButtonGroup_connect, METH_VARARGS, "ButtonGroup_connect."},
