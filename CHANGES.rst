@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.9 (UNRELEASED)
+------------------
+- Add method to set window file path.
+
 0.4.8 (2020-12-28)
 ------------------
 - Add color dialog.

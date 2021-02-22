@@ -2106,6 +2106,29 @@ static PyObject *DocumentWindow_setTitle(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *DocumentWindow_setWindowFilePath(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    Py_UNICODE *title_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &title_u))
+        return NULL;
+
+    // Grab the document window
+    DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
+    if (document_window == NULL)
+        return NULL;
+
+    document_window->setWindowFilePath(Py_UNICODE_to_QString(title_u));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *DocumentWindow_setWindowStyle(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5868,6 +5891,7 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_setPosition", DocumentWindow_setPosition, METH_VARARGS, "DocumentWindow_setPosition."},
     {"DocumentWindow_setSize", DocumentWindow_setSize, METH_VARARGS, "DocumentWindow_setSize."},
     {"DocumentWindow_setTitle", DocumentWindow_setTitle, METH_VARARGS, "DocumentWindow_setTitle."},
+    {"DocumentWindow_setWindowFilePath", DocumentWindow_setWindowFilePath, METH_VARARGS, "DocumentWindow_setWindowFilePath."},
     {"DocumentWindow_setWindowStyle", DocumentWindow_setWindowStyle, METH_VARARGS, "DocumentWindow_setWindowStyle."},
     {"DocumentWindow_show", DocumentWindow_show, METH_VARARGS, "DocumentWindow_show."},
     {"DocumentWindow_tabifyDockWidgets", DocumentWindow_tabifyDockWidgets, METH_VARARGS, "DocumentWindow_tabifyDockWidgets."},
