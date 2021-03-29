@@ -286,8 +286,15 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
             break;
     }
 
+    // see Python get_path.c for info about landmarks. this is a hack.
     QDir d = QFileInfo(file_path).absoluteDir();
+    while (d.dirName() != "lib")
+    {
+        if (!d.cdUp())
+            break;
+    }
     d.cdUp();
+
     m_actual_python_home = d.absolutePath();
 
     void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY | RTLD_GLOBAL);
