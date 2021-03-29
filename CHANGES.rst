@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.10 (UNRELEASED)
+-------------------
+- Use a more robust method for locating Python home on Linux (still not perfect).
+
 0.4.9 (2021-03-09)
 ------------------
 - Add method to set window file path.
