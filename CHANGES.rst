@@ -1,7 +1,7 @@
 Changelog (nionui-tool)
 =======================
 
-0.4.10 (UNRELEASED)
+0.4.10 (2021-04-12)
 -------------------
 - Use a more robust method for locating Python home on Linux (still not perfect).
 

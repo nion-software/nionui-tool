@@ -1,5 +1,5 @@
 {% set name = "nionui-tool" %}
-{% set version = "0.4.9" %}
+{% set version = "0.4.10" %}
 {% set macos_app = "Nion UI Launcher" %}
 {% set app_dir = "NionUILauncher" %}
 {% set macos_exe = "Nion UI Launcher" %}
