@@ -266,7 +266,7 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
             home_dir.cdUp();
             file_paths.append(home_dir.absoluteFilePath("lib/python3.9/config-3.9-x86_64-linux-gnu/libpython3.9.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/python3.8/config-3.8-x86_64-linux-gnu/libpython3.8.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/python3.7/config-3.7-x86_64-linux-gnu/libpython3.7m.so"));
+            file_paths.append(home_dir.absoluteFilePath("lib/python3.7/config-3.7m-x86_64-linux-gnu/libpython3.7m.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/libpython3.9.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/libpython3.8.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/libpython3.7m.so"));
