@@ -2749,7 +2749,10 @@ static PyObject *Label_setTextColor(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     QPalette palette = label->palette();
+    // are both palette colors required? maybe for different versions?
+    // foregroundRole is used on macOS Qt 15. argh.
     palette.setColor(QPalette::Text, QColor(r, g, b));
+    palette.setColor(label->foregroundRole(), QColor(r, g, b));
     label->setPalette(palette);
 
     return PythonSupport::instance()->getNoneReturnValue();

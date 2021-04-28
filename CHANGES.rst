@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.11 (UNRELEASED)
+-------------------
+- Improve ability to set text color.
+
 0.4.10 (2021-04-12)
 -------------------
 - Use a more robust method for locating Python home on Linux (still not perfect).
