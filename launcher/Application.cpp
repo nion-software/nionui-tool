@@ -1386,6 +1386,9 @@ static PyObject *Core_out(PyObject * /*self*/, PyObject *args)
         {
             QTextStream cout(stdout);
             cout << (const char *)(output.toUtf8().data()) << endl;
+
+            QTextStream textStream(&static_cast<Application *>(qApp)->getLogFile());
+            textStream << (const char *)(output.toUtf8().data()) << endl;
         }
     }
 
@@ -5833,6 +5836,16 @@ Application::Application(int & argv, char **args)
         m_splash_screen.reset(new QSplashScreen(pixmap));
         m_splash_screen->show();
     }
+
+    QDir dir(QStandardPaths::writableLocation(QStandardPaths::TempLocation));
+    QString logPath = dir.filePath("log.txt");
+    QFile::remove(logPath);
+    QDir().mkpath(dir.absolutePath());
+
+    logFile.setFileName(logPath);
+    logFile.open(QIODevice::WriteOnly | QIODevice::Append);
+
+    // qDebug() << "Log file " << logPath;
 
     // TODO: Handle case where python home contains no dylib/dll.
     // TODO: Handle case where python home contains wrong version of python.
