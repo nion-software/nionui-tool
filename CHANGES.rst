@@ -3,6 +3,7 @@ Changelog (nionui-tool)
 
 0.4.11 (UNRELEASED)
 -------------------
+- Add logging of stdout to temp file.
 - Improve ability to set text color.
 
 0.4.10 (2021-04-12)

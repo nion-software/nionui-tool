@@ -7,6 +7,7 @@
 
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QSplashScreen>
+#include <QtCore/QFile>
 #include <QtCore/QVariant>
 
 float GetDisplayScaling();
@@ -37,6 +38,7 @@ public:
     bool setPyObjectAttribute(const QVariant &object, const QString &attribute, const QVariant &value);
     QVariant getPyObjectAttribute(const QVariant &object, const QString &attribute);
     void closeSplashScreen();
+    QFile &getLogFile() { return logFile; }
 
 public Q_SLOTS:
     void output(const QString &str);
@@ -46,6 +48,8 @@ private Q_SLOTS:
 
 private:
     QScopedPointer<QSplashScreen> m_splash_screen;
+
+    QFile logFile;
 
     QString m_python_home;
     QList<QString> m_python_paths;
