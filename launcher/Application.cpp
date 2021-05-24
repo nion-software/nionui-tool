@@ -1564,6 +1564,27 @@ static PyObject *DockWidget_getToggleAction(PyObject * /*self*/, PyObject *args)
     return WrapQObject(dock_widget->toggleViewAction());
 }
 
+static PyObject *DocumentWindow_activate(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
+    if (document_window == NULL)
+        return NULL;
+
+    document_window->activateWindow();
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *DocumentWindow_addDockWidget(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -5910,6 +5931,7 @@ static PyMethodDef Methods[] = {
     {"Core_writeBinaryToImage", Core_writeBinaryToImage, METH_VARARGS, "Core_writeBinaryToImage."},
     {"DockWidget_connect", DockWidget_connect, METH_VARARGS, "DockWidget_connect."},
     {"DockWidget_getToggleAction", DockWidget_getToggleAction, METH_VARARGS, "DockWidget_getToggleAction."},
+    {"DocumentWindow_activate", DocumentWindow_activate, METH_VARARGS, "DocumentWindow_activate."},
     {"DocumentWindow_addDockWidget", DocumentWindow_addDockWidget, METH_VARARGS, "DocumentWindow_addDockWidget."},
     {"DocumentWindow_addMenu", DocumentWindow_addMenu, METH_VARARGS, "DocumentWindow_addMenu."},
     {"DocumentWindow_close", DocumentWindow_close, METH_VARARGS, "DocumentWindow_close."},
