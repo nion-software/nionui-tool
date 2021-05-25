@@ -3,6 +3,7 @@ Changelog (nionui-tool)
 
 0.4.11 (UNRELEASED)
 -------------------
+- Improve font behavior on Windows.
 - Add method to activate window.
 - Add logging of stdout to temp file.
 - Improve ability to set text color.

@@ -2905,6 +2905,10 @@ void ApplyStylesheet(QWidget *widget)
         {
             stylesheet = stylesheet_file.readAll();
 
+#if defined(Q_OS_WIN)
+            stylesheet = "QWidget { font-size: 11px }\n" + stylesheet;
+#endif
+
             float display_scaling = GetDisplayScaling();
 
             while (true)
