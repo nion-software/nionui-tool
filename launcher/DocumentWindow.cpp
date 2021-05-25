@@ -2943,6 +2943,7 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
         QHBoxLayout *row_layout = new QHBoxLayout(row);
         row_layout->setContentsMargins(0, 0, 0, 0);
         row_layout->setSpacing(0);
+        ApplyStylesheet(row);
         return row;
     }
     else if (intrinsic_id == "column")
@@ -2951,6 +2952,7 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
         QVBoxLayout *column_layout = new QVBoxLayout(column);
         column_layout->setContentsMargins(0, 0, 0, 0);
         column_layout->setSpacing(0);
+        ApplyStylesheet(column);
         return column;
     }
     else if (intrinsic_id == "tab")
