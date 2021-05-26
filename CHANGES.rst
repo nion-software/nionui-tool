@@ -1,7 +1,7 @@
 Changelog (nionui-tool)
 =======================
 
-0.4.11 (UNRELEASED)
+0.4.11 (2021-05-26)
 -------------------
 - Improve font behavior on Windows.
 - Add method to activate window.
