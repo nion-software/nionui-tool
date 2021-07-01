@@ -6232,9 +6232,12 @@ bool Application::initialize()
         qCritical() << "Unable to find Python.";
     }
 
-//    deinitialize();  // not functional yet (numpy and importlib both cause failures).
-
     return false;
+}
+
+Application::~Application()
+{
+    deinitialize();
 }
 
 void Application::deinitialize()

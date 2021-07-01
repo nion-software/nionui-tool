@@ -674,11 +674,6 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
 
     CALL_PY(Py_Initialize)();
 
-    // initialize threads and save the main thread state
-    CALL_PY(PyEval_InitThreads)();
-    PyGILState_STATE main_restore_state = PyGILState_UNLOCKED;
-    CALL_PY(PyGILState_Release)(main_restore_state);
-
     PyObjectPtr::metaId();
 
     Python_ThreadBlock thread_block;
@@ -688,8 +683,6 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
 
 void PythonSupport::deinitialize()
 {
-    CALL_PY(PyGILState_Ensure)();
-
     CALL_PY(Py_Finalize)();
 }
 
