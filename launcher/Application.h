@@ -22,6 +22,7 @@ class Application : public QApplication
 
 public:
     Application(int & argv, char **args);
+    ~Application();
 
     static Application *instance() { return static_cast<Application *>(QCoreApplication::instance()); }
 
