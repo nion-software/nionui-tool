@@ -674,6 +674,11 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
 
     CALL_PY(Py_Initialize)();
 
+    // release the GIL. the tool will normally run with the GIL released. calls back to Python
+    // will need to acquire the GIL. the initial state is saved because the GIL is required to
+    // finalize.
+    m_initial_state = CALL_PY(PyEval_SaveThread)();
+
     PyObjectPtr::metaId();
 
     Python_ThreadBlock thread_block;
@@ -683,6 +688,10 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
 
 void PythonSupport::deinitialize()
 {
+    // grab the GIL that was released after Py_Initialize.
+    CALL_PY(PyEval_RestoreThread)(m_initial_state);
+
+    // finalize.
     CALL_PY(Py_Finalize)();
 }
 
