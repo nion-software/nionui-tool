@@ -109,6 +109,10 @@ private:
     PythonSupport& operator=(PythonSupport const&); // assign op. hidden
     ~PythonSupport(); // dtor hidden
 
+    // store the initial GIL state. the tool runs without holding the GIL, which is released after Python
+    // is initialized. this variable allows restoration of the GIL when finalizing (exiting) the application.
+    PyThreadState *m_initial_state;
+
     // actual python home after following venv
     QString m_actual_python_home;
 
