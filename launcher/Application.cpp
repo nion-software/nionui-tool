@@ -5808,8 +5808,7 @@ static PyObject *Widget_widgetByIndex(PyObject * /*self*/, PyObject *args)
 static PyObject *Widget_widgetCount(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
-    int index = -1;
-    if (!PythonSupport::instance()->parse()(args, "Oi", &obj0, &index))
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
         return NULL;
 
     // Grab the container

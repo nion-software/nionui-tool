@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.13 (UNRELEASED)
+-------------------
+- Fix widget count API call.
+
 0.4.12 (2021-07-23)
 -------------------
 - Simplify GIL handling to support async more consistently.
