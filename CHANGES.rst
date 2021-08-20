@@ -1,7 +1,7 @@
 Changelog (nionui-tool)
 =======================
 
-0.4.13 (UNRELEASED)
+0.4.13 (2021-08-19)
 -------------------
 - Fix widget count API call.
 
