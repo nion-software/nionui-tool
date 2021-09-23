@@ -214,7 +214,7 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
             directories << home_dir.absoluteFilePath("../lib") << "/usr/local/Cellar/python@" + version_str;
 
             QStringList variants;
-            variants << "libpython3.9.dylib" << "libpython3.8.dylib" << "libpython3.7m.dylib";
+            variants << "libpython3.9.dylib" << "libpython3.8.dylib";
 
             Q_FOREACH(const QString &directory, directories)
             {
@@ -233,7 +233,6 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
         // probably conda or standard Python
         file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.9.dylib"));
         file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.8.dylib"));
-        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.7m.dylib"));
     }
 
     Q_FOREACH(file_path, file_paths)
@@ -266,10 +265,8 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
             home_dir.cdUp();
             file_paths.append(home_dir.absoluteFilePath("lib/python3.9/config-3.9-x86_64-linux-gnu/libpython3.9.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/python3.8/config-3.8-x86_64-linux-gnu/libpython3.8.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/python3.7/config-3.7m-x86_64-linux-gnu/libpython3.7m.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/libpython3.9.so"));
             file_paths.append(home_dir.absoluteFilePath("lib/libpython3.8.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/libpython3.7m.so"));
         }
     }
     else
@@ -277,7 +274,6 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
         // probably conda or standard Python
         file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.9.so"));
         file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.8.so"));
-        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.7m.so"));
     }
 
     Q_FOREACH(file_path, file_paths)

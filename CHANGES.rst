@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+UNRELEASED
+----------
+- Drop support for Python 3.7.
+
 0.4.13 (2021-08-19)
 -------------------
 - Fix widget count API call.

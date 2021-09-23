@@ -6223,7 +6223,7 @@ bool Application::initialize()
 
         if (bootstrap_error == "python36" || bootstrap_error == "python37")
         {
-            QMessageBox::critical(NULL, "Unable to Launch", "Unable to launch Python application (requires Python 3.7 or later).\n\n" + m_python_home + "\n\nCheck the Python path passed on the command line or shortcut.");
+            QMessageBox::critical(NULL, "Unable to Launch", "Unable to launch Python application (requires Python 3.8 or later).\n\n" + m_python_home + "\n\nCheck the Python path passed on the command line or shortcut.");
         }
     }
     else
