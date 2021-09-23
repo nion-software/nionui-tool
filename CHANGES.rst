@@ -4,6 +4,7 @@ Changelog (nionui-tool)
 UNRELEASED
 ----------
 - Drop support for Python 3.7.
+- Drop support for Ubuntu 16.04.
 
 0.4.13 (2021-08-19)
 -------------------
