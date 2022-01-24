@@ -3,6 +3,7 @@ Changelog (nionui-tool)
 
 UNRELEASED
 ----------
+- Add support for Python 3.10.
 - Drop support for Python 3.7.
 - Drop support for Ubuntu 16.04.
 
