@@ -40,7 +40,7 @@ artifacts_lookup = {a["name"]: a for a in artifacts}
 upload_paths = dict()
 
 for platform in ("linux", "macos", "win"):
-    for py_version in ("3.8", "3.9"):
+    for py_version in ("3.8", "3.9", "3.10"):
         for pkg in ("whl", "conda"):
             name = f"{repo}-{platform}-{pkg}-{py_version}"
             url = artifacts_lookup[name]["url"]

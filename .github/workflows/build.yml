@@ -15,9 +15,10 @@ jobs:
   build_linux:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-18.04]
-        python-version: [3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -36,7 +37,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install install wheel
         python -m pip install install packaging
-        python -m pip install install numpy==1.19.4
+        python -m pip install install numpy==1.21.5
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON"
@@ -49,14 +50,14 @@ jobs:
       uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.9
     - name: Build Conda Package
       shell: bash -l {0}
       run: |
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
         conda install conda-build -y
-        conda build ./.github/workflows/recipe
+        conda build --python ${{ matrix.python-version }} ./.github/workflows/recipe
     - name: Upload Wheel
       uses: actions/upload-artifact@v2
       with:
@@ -70,9 +71,10 @@ jobs:
   build_macos:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-10.15]
-        python-version: [3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -95,7 +97,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install install packaging
-        python -m pip install install numpy==1.19.4
+        python -m pip install install numpy==1.21.5
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON"
@@ -108,14 +110,14 @@ jobs:
       uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.9
     - name: Build Conda Package
       shell: bash -l {0}
       run: |
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
         conda install conda-build -y
-        conda build ./.github/workflows/recipe
+        conda build --python ${{ matrix.python-version }} ./.github/workflows/recipe
     - name: Upload Wheel
       uses: actions/upload-artifact@v2
       with:
@@ -129,9 +131,10 @@ jobs:
   build_win:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: [3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -155,7 +158,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install packaging
-        pip install numpy==1.19.4
+        pip install numpy==1.21.5
         pushd launcher
         $PYTHON_EXEC = python -c "import sys; print(sys.executable, end='')"
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON_EXEC"
@@ -170,14 +173,14 @@ jobs:
       uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.9
     - name: Build Conda Package
       shell: pwsh
       run: |
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
         conda install conda-build -y
-        conda build ./.github/workflows/recipe
+        conda build --python ${{ matrix.python-version }} ./.github/workflows/recipe
     - name: Upload Wheel
       uses: actions/upload-artifact@v2
       with:
@@ -192,9 +195,10 @@ jobs:
     needs: build_linux
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-18.04, ubuntu-20.04]
-        python-version: [3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
     steps:
     - uses: actions/checkout@v2
     - name: Download Wheel
@@ -227,10 +231,10 @@ jobs:
         $SYSTEM_PYTHON_EXE -m venv test_venv
         source test_venv/bin/activate
         python -m pip install --upgrade pip
-        python -m pip install wheel
-        python -m pip install packaging
+        python -m pip install setuptools
         python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
+        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python setup.py develop
         popd
@@ -246,8 +250,10 @@ jobs:
       shell: bash -l {0}
       run: |
         # use conda versions instead of pypi versions. install before anything else.
-        conda install numpy scipy h5py -y
-        conda install -y -c nion ${{ env.tool-package }} wheel packaging setuptools
+        conda update -n base --all -y
+        conda update --all -y
+        conda install numpy scipy h5py imageio setuptools -y
+        conda install -y -c nion ${{ env.tool-package }}
         conda install -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
         pushd nionui_app_test
         python setup.py develop
@@ -259,9 +265,10 @@ jobs:
     needs: build_macos
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-10.15]
-        python-version: [3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
     steps:
     - uses: actions/checkout@v2
     - name: Download Wheel
@@ -284,10 +291,11 @@ jobs:
         $SYSTEM_PYTHON_EXE -m venv test_venv
         source test_venv/bin/activate
         python -m pip install --upgrade pip
-        python -m pip install wheel
-        python -m pip install packaging
+        python -m pip install setuptools
         python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
+        python --version
+        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python setup.py develop
         popd
@@ -304,15 +312,17 @@ jobs:
         $SYSTEM_PYTHON_EXE -m venv test_venv
         source test_venv/bin/activate
         python -m pip install --upgrade pip
-        python -m pip install wheel
-        python -m pip install packaging
+        python -m pip install setuptools
         python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
+        python --version
+        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python setup.py develop
         popd
         echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
+        deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v2
       with:
@@ -322,8 +332,8 @@ jobs:
       shell: bash -l {0}
       run: |
         # use conda versions instead of pypi versions. install before anything else.
-        conda install numpy scipy h5py -y
-        conda install -y -c nion ${{ env.tool-package }} wheel packaging setuptools
+        conda install numpy scipy h5py imageio setuptools -y
+        conda install -y -c nion ${{ env.tool-package }}
         conda install -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
         pushd nionui_app_test
         python setup.py develop
@@ -335,9 +345,10 @@ jobs:
     needs: build_win
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: [3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
     steps:
     - uses: actions/checkout@v2
     - name: Download Wheel
@@ -363,11 +374,12 @@ jobs:
         python -m venv test_venv
         test_venv\Scripts\activate
         python -m pip install --upgrade pip
-        python -m pip install wheel
-        python -m pip install packaging
+        python -m pip install setuptools
         python -m pip install ${{ env.tool-package }}
         $filename = Get-ChildItem -name ${{steps.download_wheel.outputs.download-path}}\*.whl
         python -m pip install ${{steps.download_wheel.outputs.download-path}}\$filename
+        python --version
+        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python setup.py develop
         popd
@@ -383,12 +395,14 @@ jobs:
       shell: pwsh
       run: |
         # use conda versions instead of pypi versions. install before anything else.
-        conda install numpy scipy h5py -y
-        conda install -y -c nion ${{ env.tool-package }} wheel packaging setuptools
+        conda update -n base --all -y
+        conda update --all -y
+        conda install numpy scipy h5py imageio setuptools -y
+        conda install -y -c nion ${{ env.tool-package }}
         $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
         conda install -y ${{steps.download_conda.outputs.download-path}}\$filename
         pushd nionui_app_test
-        python setup.py develop
+        python setup.py develop --no-deps
         popd
         echo "Running test..."
         conda list
