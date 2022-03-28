@@ -78,7 +78,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
     - name: Display Python version
@@ -92,6 +92,8 @@ jobs:
         version: '5.15.2'
         host: 'mac'
         target: 'desktop'
+        setup-python: 'false'  # see https://github.com/jurplel/install-qt-action/issues/130
+        py7zrversion: '<0.16'  # see https://github.com/miurahr/pyppmd/issues/94#issuecomment-1083205387
     - name: Build
       shell: bash
       run: |
