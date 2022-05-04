@@ -1,8 +1,8 @@
 Changelog (nionui-tool)
 =======================
 
-UNRELEASED
-----------
+0.4.14 (2021-05-04)
+-------------------
 - Add support for Python 3.10.
 - Drop support for Python 3.7.
 - Drop support for Ubuntu 16.04.
