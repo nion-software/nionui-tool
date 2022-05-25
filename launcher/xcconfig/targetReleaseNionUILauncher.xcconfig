@@ -36,7 +36,7 @@ APP_LDFLAGS = -framework QtCore -framework QtGui -framework QtWidgets $(PYTHON_L
 
 OTHER_CFLAGS = $(OTHER_FLAGS) -DDYNAMIC_PYTHON=1
 
-OTHER_CPLUSPLUSFLAGS = $(OTHER_CFLAGS) -std=c++11 -stdlib=libc++
+OTHER_CPLUSPLUSFLAGS = $(OTHER_CFLAGS) -std=c++17 -stdlib=libc++
 
 // numpy is loaded from one of the paths in sys.path. look there to find it if this folder does not work.
 PYTHON_SEARCH_PATHS = $(PYTHON_INCLUDE) $(PYTHON_NUMPY_INCLUDE)
