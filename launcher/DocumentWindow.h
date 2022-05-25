@@ -13,8 +13,13 @@
 #include <QtCore/QRunnable>
 #include <QtCore/QThread>
 #include <QtCore/QWaitCondition>
+#if QT_VERSION >= QT_VERSION_CHECK(6,2,0)
+#include <QtGui/QAction>
+#endif
 #include <QtGui/QDrag>
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
 #include <QtWidgets/QAction>
+#endif
 #include <QtWidgets/QButtonGroup>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
@@ -552,7 +557,11 @@ public:
 
     virtual bool event(QEvent *event) override;
 
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
     virtual void enterEvent(QEvent *event) override;
+#else
+    virtual void enterEvent(QEnterEvent *event) override;
+#endif
     virtual void leaveEvent(QEvent *event) override;
     virtual void mousePressEvent(QMouseEvent *event) override;
     virtual void mouseReleaseEvent(QMouseEvent *event) override;

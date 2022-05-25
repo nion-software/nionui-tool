@@ -12,6 +12,7 @@
 #include <QtCore/QMetaType>
 #include <QtCore/QObject>
 #include <QtCore/QProcessEnvironment>
+#include <QtCore/QRegularExpression>
 #include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringList>
@@ -95,6 +96,13 @@ static void* init_numpy() {
 #include <WinBase.h>
 #endif
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+namespace Qt
+{
+    static auto endl = ::endl;
+}
+#endif
+
 static PythonSupport *thePythonSupport = NULL;
 const char* PythonSupport::qobject_capsule_name = "b93c9a511d32.qobject";
 
@@ -161,7 +169,7 @@ QString PythonSupport::ensurePython(const QString &python_home)
 
     if (!python_home.isEmpty() && QFile(python_home).exists())
     {
-        cout << "Using Python environment: " << python_home << endl;
+        cout << "Using Python environment: " << python_home << Qt::endl;
         return python_home;
     }
 #endif
@@ -204,9 +212,10 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
         if (!home_bin_path.isEmpty())
         {
             QString version_str = settings.value("version").toString();
-            QRegExp re("(\\d+)\\.(\\d+)(\\.\\d+)?");
-            if (re.indexIn(version_str) != -1)
-                version_str = QString::number(re.cap(1).toInt()) + "." + QString::number(re.cap(2).toInt());
+            QRegularExpression re("(\\d+)\\.(\\d+)(\\.\\d+)?");
+            QRegularExpressionMatch match = re.match(version_str);
+            if (match.hasMatch())
+                version_str = QString::number(match.captured(1).toInt()) + "." + QString::number(match.captured(2).toInt());
 
             QDir home_dir(home_bin_path);
 

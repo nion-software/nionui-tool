@@ -45,6 +45,13 @@
 
 #include "LauncherConfig.h"
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+namespace Qt
+{
+    static auto endl = ::endl;
+}
+#endif
+
 QString lastVisitedDir;
 
 QString GetDirectory(const QString &path)
@@ -136,7 +143,7 @@ QString GetExistingDirectory(QWidget *parent,
     // create a qt dialog
     QFileDialog dialog(parent, caption, WorkingDirectory(dir));
     dialog.selectFile(InitialSelection(dir));
-    dialog.setFileMode(QFileDialog::DirectoryOnly);  // also QFileDialog::Directory
+    dialog.setFileMode(QFileDialog::Directory);  // also QFileDialog::Directory
     if (dialog.exec() == QDialog::Accepted) {
         if (selectedDirectory)
         *selectedDirectory = dialog.directory();
@@ -1238,7 +1245,7 @@ QFont ParseFontString(const QString &font_string, float display_scaling = 1.0)
 
     QStringList family_list;
     QString family_str = family_parts.join(" ");
-    QChar quote = 0;
+    QChar quote(static_cast<int>(0));
     QString family;
     for (int i = 0; i < family_str.size(); i++)
     {
@@ -1263,7 +1270,7 @@ QFont ParseFontString(const QString &font_string, float display_scaling = 1.0)
         {
             if (current == quote)
             {
-                quote = 0;
+                quote = QChar(static_cast<int>(0));
             }
             else
             {
@@ -1385,10 +1392,10 @@ static PyObject *Core_out(PyObject * /*self*/, PyObject *args)
         if (!output.isEmpty())
         {
             QTextStream cout(stdout);
-            cout << (const char *)(output.toUtf8().data()) << endl;
+            cout << (const char *)(output.toUtf8().data()) << Qt::endl;
 
             QTextStream textStream(&static_cast<Application *>(qApp)->getLogFile());
-            textStream << (const char *)(output.toUtf8().data()) << endl;
+            textStream << (const char *)(output.toUtf8().data()) << Qt::endl;
         }
     }
 
@@ -1624,7 +1631,7 @@ static PyObject *DocumentWindow_addDockWidget(PyObject * /*self*/, PyObject *arg
     mapping["all"] = Qt::AllDockWidgetAreas;
     mapping["none"] = Qt::NoDockWidgetArea;
 
-    Qt::DockWidgetAreas allowed_positions_mask = 0;
+    Qt::DockWidgetAreas allowed_positions_mask = Qt::NoDockWidgetArea;
     Q_FOREACH(const QString &allowed_position, allowed_positions)
     {
         allowed_positions_mask |= mapping[allowed_position];
@@ -2212,7 +2219,7 @@ static PyObject *DocumentWindow_setWindowStyle(PyObject * /*self*/, PyObject *ar
     mapping["input-transparent"] = Qt::WindowTransparentForInput;
     mapping["no-focus"] = Qt::WindowDoesNotAcceptFocus;
 
-    Qt::WindowFlags windowFlags = 0;
+    Qt::WindowFlags windowFlags = Qt::Widget;
     Q_FOREACH(const QString &style, styles)
     {
         if (mapping.contains(style))
@@ -5325,7 +5332,7 @@ static PyObject *Widget_insertWidget(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     // Alignment
-    Qt::Alignment alignment = 0;
+    Qt::Alignment alignment = Qt::Alignment(0);
     if (alignment_c)
     {
         if (strcmp(alignment_c, "left") == 0)
@@ -6135,7 +6142,7 @@ bool Application::initialize()
                     continue;
 
                 if (line.startsWith("["))
-                    section = line.replace(QRegExp("\\[([A-Za-z9-0_-]+)\\]"), "\\1");
+                    section = line.replace(QRegularExpression("\\[([A-Za-z9-0_-]+)\\]"), "\\1");
 
                 if (section == "python" && line.startsWith("home = "))
                 {

@@ -14,17 +14,21 @@
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QSettings>
-#include <QtCore/QTextCodec>
 #include <QtCore/QThread>
 #include <QtCore/QThreadPool>
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6,2,0)
+#include <QtGui/QAction>
+#endif
 #include <QtGui/QFontDatabase>
 #include <QtGui/QPainter>
 #include <QtGui/QPainterPath>
 
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
 #include <QtWidgets/QAction>
+#endif
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QFileDialog>
@@ -56,7 +60,29 @@
 
 Q_DECLARE_METATYPE(std::string)
 
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+const auto DEFAULT_RENDER_HINTS = QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing;
+#else
+const auto DEFAULT_RENDER_HINTS = QPainter::Antialiasing | QPainter::TextAntialiasing;
+#endif
+
 QFont ParseFontString(const QString &font_string, float display_scaling = 1.0);
+
+QColor ParseColorString(const QString &color_string)
+{
+    QColor color;
+    QRegularExpression re1("^rgba\\((\\d+),\\s*(\\d+),\\s*(\\d+),\\s*(\\d+\\.\\d+)\\)$");
+    QRegularExpression re2("^rgb\\((\\d+),\\s*(\\d+),\\s*(\\d+)\\)$");
+    QRegularExpressionMatch match1 = re1.match(color_string);
+    QRegularExpressionMatch match2 = re2.match(color_string);
+    if (match1.hasMatch())
+        color = QColor(match1.captured(1).toInt(), match1.captured(2).toInt(), match1.captured(3).toInt(), match1.captured(4).toFloat() * 255);
+    else if (match2.hasMatch())
+        color = QColor(match2.captured(1).toInt(), match2.captured(2).toInt(), match2.captured(3).toInt());
+    else
+        color = QColor(color_string);
+    return color;
+}
 
 DocumentWindow::DocumentWindow(const QString &title, QWidget *parent)
     : QMainWindow(parent)
@@ -1173,16 +1199,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         else if (cmd == "fillStyle")
         {
             QString color_arg = args[0].toString().simplified();
-            QRegExp re1("^rgba\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+),\\s*([0-9.]+)\\)$");
-            QRegExp re2("^rgb\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+)\\)$");
-            int pos1 = re1.indexIn(color_arg);
-            int pos2 = re2.indexIn(color_arg);
-            if (pos1 > -1)
-                fill_color = QColor(re1.cap(1).toInt(), re1.cap(2).toInt(), re1.cap(3).toInt(), re1.cap(4).toFloat() * 255);
-            else if (pos2 > -1)
-                fill_color = QColor(re2.cap(1).toInt(), re2.cap(2).toInt(), re2.cap(3).toInt());
-            else
-                fill_color = QColor(color_arg);
+            fill_color = ParseColorString(color_arg);
             fill_gradient = -1;
         }
         else if (cmd == "fillStyleGradient")
@@ -1264,16 +1281,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         else if (cmd == "strokeStyle")
         {
             QString color_arg = args[0].toString().simplified();
-            QRegExp re1("^rgba\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+),\\s*([0-9.]+)\\)$");
-            QRegExp re2("^rgb\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+)\\)$");
-            int pos1 = re1.indexIn(color_arg);
-            int pos2 = re2.indexIn(color_arg);
-            if (pos1 > -1)
-                line_color = QColor(re1.cap(1).toInt(), re1.cap(2).toInt(), re1.cap(3).toInt(), re1.cap(4).toFloat() * 255);
-            else if (pos2 > -1)
-                line_color = QColor(re2.cap(1).toInt(), re2.cap(2).toInt(), re2.cap(3).toInt());
-            else
-                line_color = QColor(color_arg);
+            line_color = ParseColorString(color_arg);
         }
         else if (cmd == "lineDash")
         {
@@ -1903,16 +1911,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
             case 0x666c7374: // flst, fill style
             {
                 QString color_arg = read_string(commands, command_index).simplified();
-                QRegExp re1("^rgba\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+),\\s*([0-9.]+)\\)$");
-                QRegExp re2("^rgb\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+)\\)$");
-                int pos1 = re1.indexIn(color_arg);
-                int pos2 = re2.indexIn(color_arg);
-                if (pos1 > -1)
-                    fill_color = QColor(re1.cap(1).toInt(), re1.cap(2).toInt(), re1.cap(3).toInt(), re1.cap(4).toFloat() * 255);
-                else if (pos2 > -1)
-                    fill_color = QColor(re2.cap(1).toInt(), re2.cap(2).toInt(), re2.cap(3).toInt());
-                else
-                    fill_color = QColor(color_arg);
+                fill_color = ParseColorString(color_arg);
                 fill_gradient = -1;
                 break;
             }
@@ -2012,16 +2011,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
             {
                 QString arg0 = read_string(commands, command_index);
                 QString color_arg = arg0.simplified();
-                QRegExp re1("^rgba\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+),\\s*([0-9.]+)\\)$");
-                QRegExp re2("^rgb\\(([0-9]+),\\s*([0-9]+),\\s*([0-9]+)\\)$");
-                int pos1 = re1.indexIn(color_arg);
-                int pos2 = re2.indexIn(color_arg);
-                if (pos1 > -1)
-                    line_color = QColor(re1.cap(1).toInt(), re1.cap(2).toInt(), re1.cap(3).toInt(), re1.cap(4).toFloat() * 255);
-                else if (pos2 > -1)
-                    line_color = QColor(re2.cap(1).toInt(), re2.cap(2).toInt(), re2.cap(3).toInt());
-                else
-                    line_color = QColor(color_arg);
+                line_color = ParseColorString(color_arg);
                 break;
             }
             case 0x6c647368: // ldsh, line dash
@@ -2151,7 +2141,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                         layer_image = QSharedPointer<QImage>(new QImage(layer_rect.size(), QImage::Format_ARGB32_Premultiplied));
                         layer_image->fill(QColor(0,0,0,0));
                         painter = QSharedPointer<QPainter>(new QPainter(layer_image.data()));
-                        painter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
+                        painter->setRenderHints(DEFAULT_RENDER_HINTS);
                         painter->translate(layer_rect_left, layer_rect_top);
                     }
                 }
@@ -2377,7 +2367,7 @@ QRectOptional PyCanvas::renderSection(QSharedPointer<CanvasSection> section)
         QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(rect.size(), QImage::Format_ARGB32_Premultiplied));
         image->fill(QColor(0,0,0,0));
         QPainter painter(image.data());
-        painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
+        painter.setRenderHints(DEFAULT_RENDER_HINTS);
         RenderedTimeStamps rendered_timestamps = PaintBinaryCommands(&painter, commands_binary, imageMap, &section->m_image_cache, &section->m_layer_cache, 0.0, section_id);
         painter.end();  // ending painter here speeds up QImage assignment below (Windows)
 
@@ -2437,7 +2427,7 @@ void PyCanvas::paintEvent(QPaintEvent *event)
     Q_FOREACH(const RenderedTimeStamp &rendered_timestamp, rendered_timestamps)
     {
         painter.save();
-        painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing);
+        painter.setRenderHints(DEFAULT_RENDER_HINTS);
         QDateTime dt = rendered_timestamp.dateTime;
         QDateTime utc = known_dts.contains(dt) ? known_dts[dt] : QDateTime::currentDateTimeUtc();
         m_known_dts[dt] = utc;
@@ -2517,7 +2507,11 @@ bool PyCanvas::event(QEvent *event)
     return QWidget::event(event);
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
 void PyCanvas::enterEvent(QEvent *event)
+#else
+void PyCanvas::enterEvent(QEnterEvent *event)
+#endif
 {
     Q_UNUSED(event)
 
@@ -2616,9 +2610,9 @@ void PyCanvas::wheelEvent(QWheelEvent *event)
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
         QWheelEvent *wheel_event = static_cast<QWheelEvent *>(event);
         float display_scaling = GetDisplayScaling();
-        bool is_horizontal = wheel_event->orientation() == Qt::Horizontal;
+        bool is_horizontal = wheel_event->angleDelta().rx() != 0;
         QPoint delta = wheel_event->pixelDelta().isNull() ? wheel_event->angleDelta() : wheel_event->pixelDelta();
-        app->dispatchPyMethod(m_py_object, "wheelChanged", QVariantList() << int(wheel_event->x() / display_scaling) << int(wheel_event->y() / display_scaling) << int(delta.x() / display_scaling) << int(delta.y() / display_scaling) << (bool)is_horizontal);
+        app->dispatchPyMethod(m_py_object, "wheelChanged", QVariantList() << int(wheel_event->angleDelta().rx() / display_scaling) << int(wheel_event->angleDelta().ry() / display_scaling) << int(delta.x() / display_scaling) << int(delta.y() / display_scaling) << (bool)is_horizontal);
     }
 }
 
@@ -2897,9 +2891,9 @@ void PyCanvas::dropEvent(QDropEvent *event)
 
 void ApplyStylesheet(QWidget *widget)
 {
-    static QString stylesheet = NULL;
+    static QString stylesheet;
 
-    if (stylesheet == NULL)
+    if (stylesheet.isEmpty())
     {
         QFile stylesheet_file(":/app/stylesheet.qss");
         if (stylesheet_file.open(QIODevice::ReadOnly))
@@ -3776,7 +3770,7 @@ void PyStyledItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     style->drawControl(QStyle::CE_ItemViewItem, &option_copy, painter, widget);
 
     painter->save();
-    painter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
+    painter->setRenderHints(DEFAULT_RENDER_HINTS | QPainter::SmoothPixmapTransform);
 
     if (m_py_object.isValid())
     {
