@@ -325,12 +325,13 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
         {
             QByteArray bytes = file.readAll();
             QString str = QString::fromUtf8(bytes);
-            Q_FOREACH(const QString &line, str.split(QRegExp("[\r\n]"), QString::SkipEmptyParts))
+            Q_FOREACH(const QString &line, str.split(QRegularExpression("[\r\n]"), Qt::SkipEmptyParts))
             {
-                QRegExp re("^home\\s?=\\s?(.+)$");
-                if (re.indexIn(line) >= 0)
+                QRegularExpression re("^home\\s?=\\s?(.+)$");
+                QRegularExpressionMatch match = re.match(line);
+                if (match.hasMatch())
                 {
-                    QString home_bin_path = re.cap(1).trimmed();
+                    QString home_bin_path = match.captured(1).trimmed();
                     if (!home_bin_path.isEmpty())
                     {
                         QDir home_dir(QDir::fromNativeSeparators(home_bin_path));
@@ -608,12 +609,13 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
         {
             QByteArray bytes = file.readAll();
             QString str = QString::fromUtf8(bytes);
-            Q_FOREACH(const QString &line, str.split(QRegExp("[\r\n]"), QString::SkipEmptyParts))
+            Q_FOREACH(const QString &line, str.split(QRegularExpression("[\r\n]"), Qt::SkipEmptyParts))
             {
-                QRegExp re("^home\\s?=\\s?(.+)$");
-                if (re.indexIn(line) >= 0)
+                QRegularExpression re("^home\\s?=\\s?(.+)$");
+                QRegularExpressionMatch match = re.match(line);
+                if (match.hasMatch())
                 {
-                    QString home_bin_path = re.cap(1).trimmed();
+                    QString home_bin_path = match.captured(1).trimmed();
                     if (!home_bin_path.isEmpty())
                     {
                         python_home_new = m_actual_python_home;
@@ -712,9 +714,9 @@ QObject *PythonSupport::UnwrapQObject(PyObject *py_obj)
 #if SIMPLE_WRAP
     return static_cast<QObject *>((void *)PyInt_AsLong(py_obj));
 #else
-	QObject *ptr = NULL;
-	if (CALL_PY(PyCapsule_CheckExact)(py_obj))
-		ptr = static_cast<QObject *>(CALL_PY(PyCapsule_GetPointer)(py_obj, PythonSupport::qobject_capsule_name));
+    QObject *ptr = NULL;
+    if (CALL_PY(PyCapsule_CheckExact)(py_obj))
+        ptr = static_cast<QObject *>(CALL_PY(PyCapsule_GetPointer)(py_obj, PythonSupport::qobject_capsule_name));
     return ptr;
 #endif
 }
@@ -908,7 +910,7 @@ QVariant PyObjectToQVariant(PyObject *py_object)
     {
         return CALL_PY(PyObject_IsTrue)(py_object);
     }
-	else if (CALL_PY(PyCapsule_IsValid)(py_object, PythonSupport::qobject_capsule_name))
+    else if (CALL_PY(PyCapsule_IsValid)(py_object, PythonSupport::qobject_capsule_name))
     {
         return QVariant::fromValue(PythonSupport::instance()->UnwrapQObject(py_object));
     }
@@ -972,7 +974,7 @@ void PythonSupport::addResourcePath(const QString &resources_path)
 
 void PythonSupport::addPyObjectToModuleFromQVariant(PyObject* module, const QString &identifier, const QVariant& object)
 {
-	CALL_PY(PyModule_AddObject)(module, identifier.toLatin1().data(), QVariantToPyObject(object));   // steals reference
+    CALL_PY(PyModule_AddObject)(module, identifier.toLatin1().data(), QVariantToPyObject(object));   // steals reference
 }
 
 void PythonSupport::addPyObjectToModule(PyObject* module, const QString &identifier, PyObject *object)
