@@ -1,7 +1,7 @@
 // set the base Qt version. use an alias to point 5.15 to 5.15.x.
-QTDIR = $(HOME)/Developer/Qt/5.15/clang_64
+QTDIR = $(HOME)/Developer/Qt/6.3.0/macos
 
-ARCHS = x86_64
+ARCHS = $(ARCHS_STANDARD)
 
 // note: headerpad_max_install_names has something to do with using otool to relocate the library paths
 OTHER_LDFLAGS = $(APP_LDFLAGS) $(COND_LDFLAGS) -headerpad_max_install_names -F$(QTDIR)/lib -L$(QTDIR)/lib
@@ -14,7 +14,7 @@ HEADER_SEARCH_PATHS_ALL = $(HEADER_SEARCH_PATHS_LOCAL) $(HEADER_SEARCH_PATHS_QT_
 
 FRAMEWORK_SEARCH_PATHS = $(QTDIR)/lib /Library/Frameworks/
 
-LIBRARY_SEARCH_PATHS = $(QTDIR)/lib $(TARGET_LIBRARY_SEARCH_PATHS) $(COND_LIBRARY_SEARCH_PATHS) /Library/Frameworks/
+LIBRARY_SEARCH_PATHS = $(QTDIR)/lib $(COND_LIBRARY_SEARCH_PATHS) /Library/Frameworks/
 
 // use this to define OTHER_CFLAGS since the preprocessor doesn't seem to be able to use existing definitions when replacing a definition
 OTHER_FLAGS = -pipe -g -Wreturn-type -Wunused-variable -Wno-shorten-64-to-32 -DQT_NO_KEYWORDS -DQT_NETWORK_LIB -DQT_XML_LIB -DQT_OPENGL_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
@@ -43,13 +43,10 @@ PYTHON_SEARCH_PATHS = $(PYTHON_INCLUDE) $(PYTHON_NUMPY_INCLUDE)
 
 HEADER_SEARCH_PATHS = $(HEADER_SEARCH_PATHS_ALL) $(PYTHON_SEARCH_PATHS)
 
-TARGET_LIBRARY_SEARCH_PATHS = $(PYTHON_LIB_SEARCH)
-
 PYTHON_VERSION = python$(PYTHON_VERSION_NUMBER)$(PYTHON_OPTION)
 PYTHON_INCLUDE = $(PYTHONHOME)/include/$(PYTHON_VERSION)
 PYTHON_NUMPY_INCLUDE = $(PYTHONHOME)/lib/python$(PYTHON_VERSION_NUMBER)/site-packages/numpy/core/include
 PYTHON_LDFLAGS =
-PYTHON_LIB_SEARCH = $(PYTHONHOME)/lib
 
 PYTHONHOME = $(HOME)/miniconda3/envs/py39-forge
 PYTHON_VERSION_NUMBER = 3.9

@@ -33,7 +33,7 @@
 			outputFiles = (
 				"$(DERIVED_SOURCES_DIR)/$(CURRENT_ARCH)/moc_$(INPUT_FILE_BASE).cpp",
 			);
-			script = "${QTDIR}/bin/moc ${INPUT_FILE_PATH} > ${DERIVED_SOURCES_DIR}/${CURRENT_ARCH}/moc_${INPUT_FILE_BASE}.cpp";
+			script = "${QTDIR}/libexec/moc ${INPUT_FILE_PATH} > ${DERIVED_SOURCES_DIR}/${CURRENT_ARCH}/moc_${INPUT_FILE_BASE}.cpp\n";
 		};
 		FD840887160D17BA00370586 /* PBXBuildRule */ = {
 			isa = PBXBuildRule;
@@ -44,7 +44,7 @@
 			outputFiles = (
 				"$(DERIVED_SOURCES_DIR)/$(CURRENT_ARCH)/qrc_$(INPUT_FILE_BASE).cpp",
 			);
-			script = "${QTDIR}/bin/rcc -name ${INPUT_FILE_BASE} ${INPUT_FILE_PATH} > ${DERIVED_SOURCES_DIR}/${CURRENT_ARCH}/qrc_${INPUT_FILE_BASE}.cpp";
+			script = "${QTDIR}/libexec/rcc -name ${INPUT_FILE_BASE} ${INPUT_FILE_PATH} > ${DERIVED_SOURCES_DIR}/${CURRENT_ARCH}/qrc_${INPUT_FILE_BASE}.cpp\n";
 		};
 /* End PBXBuildRule section */
 
