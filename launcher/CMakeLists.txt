@@ -11,7 +11,7 @@
 # Windows: cmake -B. -S../launcher
 # Windows: msbuild NionUILauncher.vcxproj -p:Configuration=Release
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.20)
 
 option(USE_CONSOLE "Enable console" ON)
 
@@ -23,14 +23,19 @@ set(APP_VERSION "0.4.14")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build)
 
+# must go before project
+# set(CMAKE_OSX_ARCHITECTURES arm64;x86_64)
+set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures for Mac OS X" FORCE)
+
 # set the project name
 project(${APP_NAME} VERSION ${APP_VERSION})
 
 # set up Qt
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(Qt6 COMPONENTS Core Gui Widgets REQUIRED)
+qt_standard_project_setup()
 add_compile_definitions(QT_NO_KEYWORDS)
-find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
 
 # set up Python
 find_package (Python3 COMPONENTS Development NumPy)
@@ -54,7 +59,7 @@ target_include_directories(${APP_NAME} PRIVATE ${Python3_INCLUDE_DIRS})
 target_include_directories(${APP_NAME} PRIVATE ${Python3_NumPy_INCLUDE_DIRS})
 
 # Qt libraries
-target_link_libraries(${APP_NAME} Qt5::Core Qt5::Gui Qt5::Widgets)
+target_link_libraries(${APP_NAME} Qt6::Core Qt6::Gui Qt6::Widgets)
 
 # Python libraries (intentional not linked since they are loaded dynamically)
 # target_link_libraries(${APP_NAME} ${PYTHON_LIBRARIES})
@@ -161,7 +166,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     endforeach(graphic)
 
     # Get reference to deployqt
-    get_target_property(uic_location Qt5::uic IMPORTED_LOCATION)
+    get_target_property(uic_location Qt6::uic IMPORTED_LOCATION)
     get_filename_component( _dir ${uic_location} DIRECTORY)
     set(deployqt "${_dir}/windeployqt.exe")
     if(NOT EXISTS ${deployqt})
@@ -177,7 +182,7 @@ endif()
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
     set(APP_EXECUTABLE "Nion UI Launcher")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.11)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.14)
     set(MACOSX_BUNDLE_BUNDLE_NAME ${APP_EXECUTABLE})
     set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.nion.ui.launcher")
     set(MACOSX_BUNDLE_ICON_FILE "MacIcon.icns")
@@ -202,9 +207,9 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     endforeach(graphic)
 
     # Get reference to deployqt
-    get_target_property(uic_location Qt5::uic IMPORTED_LOCATION)
+    get_target_property(uic_location Qt6::uic IMPORTED_LOCATION)
     get_filename_component( _dir ${uic_location} DIRECTORY)
-    set(deployqt "${_dir}/macdeployqt")
+    set(deployqt "${_dir}/../bin/macdeployqt")
     if(NOT EXISTS ${deployqt})
       message(FATAL_ERROR "Failed to locate deployqt executable: [${deployqt}]")
     endif()
