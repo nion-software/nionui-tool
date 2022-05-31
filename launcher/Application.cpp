@@ -6142,7 +6142,7 @@ bool Application::initialize()
                     continue;
 
                 if (line.startsWith("["))
-                    section = line.replace(QRegularExpression("\\[([A-Za-z9-0_-]+)\\]"), "\\1");
+                    section = line.replace(QRegularExpression("\\[([A-Za-z0-9_-]+)\\]"), "\\1");
 
                 if (section == "python" && line.startsWith("home = "))
                 {
