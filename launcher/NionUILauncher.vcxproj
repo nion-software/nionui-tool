@@ -24,7 +24,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <IntermediateDirectory>debug\</IntermediateDirectory>
     <PrimaryOutput>NionUILauncher</PrimaryOutput>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <OutputDirectory>release\</OutputDirectory>
@@ -33,16 +33,16 @@
     <ConfigurationType>Application</ConfigurationType>
     <IntermediateDirectory>release\</IntermediateDirectory>
     <PrimaryOutput>NionUILauncher</PrimaryOutput>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
-    <Import Project="PropertySheets\Qt5_x64.props" />
+    <Import Project="PropertySheets\Qt6_x64.props" />
     <Import Project="PropertySheets\Python3_x64.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
-    <Import Project="PropertySheets\Qt5_x64.props" />
+    <Import Project="PropertySheets\Qt6_x64.props" />
     <Import Project="PropertySheets\Python3_x64.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -67,6 +67,8 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus /permissive- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
@@ -93,13 +95,9 @@ mkdir $(TargetDir)\styles
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\styles\qwindowsvistastyled.dll $(TargetDir)\styles
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\imageformats  $(TargetDir)\imageformats
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\d3dcompiler_47.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libEGLd.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libGLESv2d.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Cored.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Guid.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Networkd.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Svgd.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Widgetsd.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt6Cored.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt6Guid.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt6Widgetsd.dll  $(TargetDir)
 xcopy /D /i /y $(ProjectDir)qt.conf  $(TargetDir)
 xcopy /D /i /y $(ProjectDir)bootstrap.py $(TargetDir)
 </Command>
@@ -115,18 +113,19 @@ mkdir $(TargetDir)\styles
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\styles\qwindowsvistastyle.dll $(TargetDir)\styles
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\..\plugins\imageformats  $(TargetDir)\imageformats
 xcopy /D /i /s /y $(QT_BIN_PATH_X64)\d3dcompiler_47.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libEGL.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\libGLESv2.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Core.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Gui.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Network.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Svg.dll  $(TargetDir)
-xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt5Widgets.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt6Core.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt6Gui.dll  $(TargetDir)
+xcopy /D /i /s /y $(QT_BIN_PATH_X64)\Qt6Widgets.dll  $(TargetDir)
 xcopy /D /i /y $(ProjectDir)qt.conf  $(TargetDir)
 xcopy /D /i /y $(ProjectDir)bootstrap.py $(TargetDir)
 </Command>
       <Message>Copy Files</Message>
     </PostBuildEvent>
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus /permissive- %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link />
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
@@ -152,7 +151,7 @@ xcopy /D /i /y $(ProjectDir)bootstrap.py $(TargetDir)
     <ClInclude Include="PythonStubs.h" />
     <ClInclude Include="PythonSupport.h" />
     <CustomBuild Include="Application.h">
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Application.h;moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Application.h;%(AdditionalInputs)</AdditionalInputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">moc.exe  -DUNICODE -DWIN32 -DQT_LARGEFILE_SUPPORT -DQT_DLL -DQT_DECLARATIVE_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_HAVE_MMX -DQT_HAVE_3DNOW -DQT_HAVE_SSE -DQT_HAVE_MMXEXT -DQT_HAVE_SSE2 -DQT_THREAD_SUPPORT -D_MSC_VER=1600 -DWIN32 Application.h -o Intermediate\Release\moc_Application.cpp</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MOC Application.h</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Intermediate\Release\moc_Application.cpp;%(Outputs)</Outputs>
@@ -162,7 +161,7 @@ xcopy /D /i /y $(ProjectDir)bootstrap.py $(TargetDir)
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Intermediate\Release\moc_Application.cpp;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="DocumentWindow.h">
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">moc.exe;DocumentWindow.h;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">DocumentWindow.h;%(AdditionalInputs)</AdditionalInputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">moc.exe  -DUNICODE -DWIN32 -DQT_LARGEFILE_SUPPORT -DQT_DLL -DQT_DECLARATIVE_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_HAVE_MMX -DQT_HAVE_3DNOW -DQT_HAVE_SSE -DQT_HAVE_MMXEXT -DQT_HAVE_SSE2 -DQT_THREAD_SUPPORT -D_MSC_VER=1600 -DWIN32 DocumentWindow.h -o Intermediate\Release\moc_DocumentWindow.cpp</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MOC DocumentWindow.h</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Intermediate\Release\moc_DocumentWindow.cpp;%(Outputs)</Outputs>

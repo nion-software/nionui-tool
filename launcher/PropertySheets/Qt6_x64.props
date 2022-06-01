@@ -20,7 +20,7 @@
     <ClCompile />
     <ClCompile />
     <Link>
-      <AdditionalDependencies>qtmain$(DebugSuffix).lib;Qt5Gui$(DebugSuffix).lib;Qt5Core$(DebugSuffix).lib;Qt5Svg$(DebugSuffix).lib;Qt5Widgets$(DebugSuffix).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Qt6Gui$(DebugSuffix).lib;Qt6Core$(DebugSuffix).lib;Qt6Widgets$(DebugSuffix).lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>QT_NO_KEYWORDS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
