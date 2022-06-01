@@ -290,7 +290,7 @@ struct RenderedTimeStamp
 
 typedef QList<RenderedTimeStamp> RenderedTimeStamps;
 
-RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, LayerCache *layer_cache, float display_scaling = 0.0, int section_id = 0);
+RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, LayerCache *layer_cache, float display_scaling = 0.0, int section_id = 0, float devicePixelRatio = 1.0);
 
 class PyStyledItemDelegate : public QStyledItemDelegate
 {
@@ -501,6 +501,7 @@ public:
     QMutex m_mutex;
     QList<CanvasDrawingCommand> m_commands;
     std::vector<quint32> m_commands_binary;
+    QScreen *m_screen;
     QRect rect;
     QRect image_rect;
     QSharedPointer<QImage> image;

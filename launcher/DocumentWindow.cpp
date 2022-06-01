@@ -25,6 +25,7 @@
 #include <QtGui/QFontDatabase>
 #include <QtGui/QPainter>
 #include <QtGui/QPainterPath>
+#include <QtGui/QScreen>
 
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
 #include <QtWidgets/QAction>
@@ -1394,11 +1395,16 @@ inline QString read_string(const quint32 *commands, unsigned int &command_index)
 
 struct NullDeleter {template<typename T> void operator()(T*) {} };
 
-RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<quint32> commands_v, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, LayerCache *layer_cache, float display_scaling, int section_id)
+RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<quint32> commands_v, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, LayerCache *layer_cache, float display_scaling, int section_id, float devicePixelRatio)
 {
     QSharedPointer<QPainter> painter(rawPainter, NullDeleter());
 
     RenderedTimeStamps rendered_timestamps;
+
+    // this will keep track of the total scaling applied in nested layers. it is used to
+    // update the rendered_timestamps with the proper global transform, which will be drawn
+    // at the top level and should not have resolution transforms applied.
+    float transform_scaling = 1.0;
 
     display_scaling = display_scaling ? display_scaling : GetDisplayScaling();
 
@@ -2114,7 +2120,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                 QList<QSharedPointer<QPainter> > painter_stack_reversed = painter_stack;
                 std::reverse(painter_stack.begin(), painter_stack.end());
                 Q_FOREACH(QSharedPointer<QPainter> p, painter_stack_reversed)
-                    transform = p->transform() * transform;
+                    transform = QTransform::fromScale(1/transform_scaling, 1/transform_scaling) * p->transform() * transform;
                 rendered_timestamps.append(RenderedTimeStamp(transform, date_time, section_id));
                 break;
             }
@@ -2138,10 +2144,15 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                     {
                         painter_stack.push_back(painter);
                         layer_image_stack.push_back(layer_image);
-                        layer_image = QSharedPointer<QImage>(new QImage(layer_rect.size(), QImage::Format_ARGB32_Premultiplied));
+                        // create the layer image at a resolution suitable for the devicePixelRatio of the section's screen.
+                        layer_image = QSharedPointer<QImage>(new QImage(QSize(layer_rect.width() * devicePixelRatio, layer_rect.height() * devicePixelRatio), QImage::Format_ARGB32_Premultiplied));
                         layer_image->fill(QColor(0,0,0,0));
                         painter = QSharedPointer<QPainter>(new QPainter(layer_image.data()));
                         painter->setRenderHints(DEFAULT_RENDER_HINTS);
+                        // draw everything at the higher scale of the section's screen.
+                        painter->scale(devicePixelRatio, devicePixelRatio);
+                        // track the transform scaling
+                        transform_scaling *= devicePixelRatio;
                         painter->translate(layer_rect_left, layer_rect_top);
                     }
                 }
@@ -2174,6 +2185,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                         painter = painter_stack.takeLast();
                         painter->drawImage(layer_rect, *layer_image);
                         layer_image = layer_image_stack.takeLast();
+                        // track the transform scaling
+                        transform_scaling /= devicePixelRatio;
                     }
                 }
                 break;
@@ -2364,11 +2377,15 @@ QRectOptional PyCanvas::renderSection(QSharedPointer<CanvasSection> section)
     }
     if (!commands_binary.empty())
     {
-        QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(rect.size(), QImage::Format_ARGB32_Premultiplied));
+        float devicePixelRatio = section->m_screen->devicePixelRatio();
+        // create the buffer image at a resolution suitable for the devicePixelRatio of the section's screen.
+        QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(QSize(rect.width() * devicePixelRatio, rect.height() * devicePixelRatio), QImage::Format_ARGB32_Premultiplied));
         image->fill(QColor(0,0,0,0));
         QPainter painter(image.data());
         painter.setRenderHints(DEFAULT_RENDER_HINTS);
-        RenderedTimeStamps rendered_timestamps = PaintBinaryCommands(&painter, commands_binary, imageMap, &section->m_image_cache, &section->m_layer_cache, 0.0, section_id);
+        // draw everything at the higher scale of the section's screen.
+        painter.scale(devicePixelRatio, devicePixelRatio);
+        RenderedTimeStamps rendered_timestamps = PaintBinaryCommands(&painter, commands_binary, imageMap, &section->m_image_cache, &section->m_layer_cache, 0.0, section_id, devicePixelRatio);
         painter.end();  // ending painter here speeds up QImage assignment below (Windows)
 
         QMutexLocker locker(&section->m_mutex);
@@ -2379,6 +2396,7 @@ QRectOptional PyCanvas::renderSection(QSharedPointer<CanvasSection> section)
         {
             QTransform transform = r.transform;
             transform.translate(rect.left(), rect.top());
+            transform = transform * QTransform::fromScale(1/devicePixelRatio, 1/devicePixelRatio);
             section->m_rendered_timestamps.append(RenderedTimeStamp(transform, r.dateTime, r.section_id));
         }
         return QRectOptional(rect);
@@ -2417,7 +2435,7 @@ void PyCanvas::paintEvent(QPaintEvent *event)
         if (image && !image->isNull() && image_rect.intersects(event->rect()))
         {
             // qDebug() << "draw " << image_rect.topLeft();
-            painter.drawImage(image_rect.topLeft(), *image);
+            painter.drawImage(image_rect, *image);
         }
     }
 
@@ -2740,6 +2758,7 @@ void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint3
             QSharedPointer<CanvasSection> new_section(new CanvasSection());
             m_sections[section_id] = new_section;
             section = new_section;
+            section->m_screen = screen();
             section->m_section_id = section_id;
             section->rendering = false;
             section->time = 0;
