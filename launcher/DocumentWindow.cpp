@@ -2628,9 +2628,9 @@ void PyCanvas::wheelEvent(QWheelEvent *event)
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
         QWheelEvent *wheel_event = static_cast<QWheelEvent *>(event);
         float display_scaling = GetDisplayScaling();
-        bool is_horizontal = wheel_event->angleDelta().rx() != 0;
+        bool is_horizontal = abs(wheel_event->angleDelta().rx()) > abs(wheel_event->angleDelta().ry());
         QPoint delta = wheel_event->pixelDelta().isNull() ? wheel_event->angleDelta() : wheel_event->pixelDelta();
-        app->dispatchPyMethod(m_py_object, "wheelChanged", QVariantList() << int(wheel_event->angleDelta().rx() / display_scaling) << int(wheel_event->angleDelta().ry() / display_scaling) << int(delta.x() / display_scaling) << int(delta.y() / display_scaling) << (bool)is_horizontal);
+        app->dispatchPyMethod(m_py_object, "wheelChanged", QVariantList() << int(wheel_event->position().x() / display_scaling) << int(wheel_event->position().y() / display_scaling) << int(delta.x() / display_scaling) << int(delta.y() / display_scaling) << (bool)is_horizontal);
     }
 }
 
