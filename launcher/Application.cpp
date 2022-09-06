@@ -5638,7 +5638,10 @@ static PyObject *Widget_setPaletteColor(PyObject * /*self*/, PyObject *args)
 
     QPalette palette = widget->palette();
     if (role_str == "background")
+    {
         palette.setColor(widget->backgroundRole(), QColor(r, g, b, a));
+        widget->setAutoFillBackground(r != 0 || g != 0 || b != 0 || a != 0);
+    }
     widget->setPalette(palette);
 
     return PythonSupport::instance()->getNoneReturnValue();
