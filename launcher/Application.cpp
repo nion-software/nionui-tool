@@ -1280,7 +1280,7 @@ QFont ParseFontString(const QString &font_string, float display_scaling = 1.0)
     }
     family_list << family.simplified();
 
-    QStringList families = QFontDatabase().families();
+    QStringList families = QFontDatabase::families();
     Q_FOREACH(const QString &family, family_list)
     {
         if (families.contains(family, Qt::CaseInsensitive))
