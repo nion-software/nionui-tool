@@ -261,6 +261,22 @@ jobs:
         echo "Running test..."
         conda list
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
+    - name: Test Conda Forge
+      shell: bash -l {0}
+      run: |
+        # use conda versions instead of pypi versions. install before anything else.
+        conda update -n base --all -y
+        conda create -n test-env -c conda-forge python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
+        conda activate test-env
+        conda install -y -c nion -c conda-forge ${{ env.tool-package }}
+        conda install -y -c conda-forge ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        pushd nionui_app_test
+        python -m pip install .
+        popd
+        echo "Running test..."
+        conda list
+        xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
+        conda deactivate
   test_macos:
     needs: build_macos
     runs-on: ${{ matrix.os }}
@@ -342,6 +358,22 @@ jobs:
         echo "Running test..."
         conda list
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
+    - name: Test Conda Forge
+      shell: bash -l {0}
+      run: |
+        # use conda versions instead of pypi versions. install before anything else.
+        # use nomkl until anaconda gets its act together
+        conda create -n test-env -c conda-forge python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
+        conda activate test-env
+        conda install -y -c nion -c conda-forge ${{ env.tool-package }}
+        conda install -y -c conda-forge ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        pushd nionui_app_test
+        python -m pip install .
+        popd
+        echo "Running test..."
+        conda list
+        ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
+        conda deactivate
   test_win:
     needs: build_win
     runs-on: ${{ matrix.os }}
@@ -408,3 +440,20 @@ jobs:
         echo "Running test..."
         conda list
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
+    - name: Test Conda Forge
+      shell: pwsh
+      run: |
+        # use conda versions instead of pypi versions. install before anything else.
+        conda update -n base --all -y
+        conda create -n test-env -c conda-forge python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
+        conda activate test-env
+        conda install -y -c nion -c conda-forge ${{ env.tool-package }}
+        $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
+        conda install -y -c conda-forge ${{steps.download_conda.outputs.download-path}}\$filename
+        pushd nionui_app_test
+        python -m pip install .
+        popd
+        echo "Running test..."
+        conda list
+        ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
+        conda deactivate
