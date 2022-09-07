@@ -71,8 +71,6 @@ public:
 
     static QString ensurePython(const QString &python_home);
 
-    static void checkTarget(const QString &python_path);
-
     void initialize(const QString &python_home, const QList<QString> &python_paths, const QString &python_library);
     void deinitialize();
     void addResourcePath(const QString &resources_path);

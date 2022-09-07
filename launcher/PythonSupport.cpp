@@ -106,62 +106,6 @@ namespace Qt
 static PythonSupport *thePythonSupport = NULL;
 const char* PythonSupport::qobject_capsule_name = "b93c9a511d32.qobject";
 
-void PythonSupport::checkTarget(const QString &python_path)
-{
-    // this code does not work since Python is not made to
-    // be un-loadable. Once NumPy is initialized, it cannot
-    // be initialized again.
-#if defined(Q_OS_WIN)
-    const char *script =
-        "found = '>'\n"
-        "try:\n"
-        "  # import scipy\n"
-        "  found += ' scipy'\n"
-        "except BaseException as e:\n"
-        "  found += ' no-scipy ' + str(e)\n";
-    SetEnvironmentVariable("PYTHONPATH", "C:\\Miniconda3");
-    SetEnvironmentVariable("PYTHONHOME", "C:\\Miniconda3");
-    HMODULE m = LoadLibrary("C:\\Miniconda3\\Python34.dll");
-    typedef void(*Py_InitializeFn)();
-    typedef void(*Py_FinalizeFn)();
-    typedef void(*Py_DecRefFn)(PyObject *);
-    typedef PyObject* (*PyRun_StringFn)(const char *, int start, PyObject *globals, PyObject *locals);
-    typedef char* (*PyBytes_AsStringFn)(PyObject *);
-    typedef PyObject* (*PyDict_NewFn)();
-    typedef PyObject* (*PyDict_GetItemStringFn)(PyObject *p, const char *key);
-    typedef PyObject* (*PyUnicode_AsUTF8StringFn)(PyObject *unicode);
-    typedef PyObject* (*PyImport_AddModuleFn)(const char *module_name);
-    typedef void(*PyImport_CleanupFn)();
-    typedef PyObject* (*PyModule_GetDictFn)(PyObject *module);
-    Py_InitializeFn py_initialize_fn = (Py_InitializeFn)GetProcAddress(m, "Py_Initialize");
-    Py_FinalizeFn py_finalize_fn = (Py_FinalizeFn)GetProcAddress(m, "Py_Finalize");
-    Py_DecRefFn py_dec_ref_fn = (Py_DecRefFn)GetProcAddress(m, "Py_DecRef");
-    PyRun_StringFn pyrun_string_fn = (PyRun_StringFn)GetProcAddress(m, "PyRun_String");
-    PyBytes_AsStringFn pybytes_as_string_fn = (PyBytes_AsStringFn)GetProcAddress(m, "PyBytes_AsString");
-    PyUnicode_AsUTF8StringFn pyunicode_as_utf8_string_fn = (PyUnicode_AsUTF8StringFn)GetProcAddress(m, "PyUnicode_AsUTF8String");
-    PyDict_NewFn pydict_new_fn = (PyDict_NewFn)GetProcAddress(m, "PyDict_New");
-    PyDict_GetItemStringFn pydict_get_item_string_fn = (PyDict_GetItemStringFn)GetProcAddress(m, "PyDict_GetItemString");
-    PyImport_AddModuleFn pyimport_add_module_fn = (PyImport_AddModuleFn)GetProcAddress(m, "PyImport_AddModule");
-    PyImport_CleanupFn pyimport_cleanup_fn = (PyImport_CleanupFn)GetProcAddress(m, "PyImport_Cleanup");
-    PyModule_GetDictFn pymodule_get_dict_fn = (PyModule_GetDictFn)GetProcAddress(m, "PyModule_GetDict");
-    Q_ASSERT(py_initialize_fn != NULL);
-    Q_ASSERT(pyrun_string_fn != NULL);
-    Q_ASSERT(pybytes_as_string_fn != NULL);
-    Q_ASSERT(pydict_new_fn != NULL);
-    Q_ASSERT(pydict_get_item_string_fn != NULL);
-    py_initialize_fn();
-    PyObject *py_main = pyimport_add_module_fn("__main__");
-    PyObject *py_dict = pymodule_get_dict_fn(py_main);
-    //PyObject *py_dict = pydict_new_fn();
-    PyObject* result = pyrun_string_fn(script, Py_file_input, py_dict, py_dict);
-    qDebug() << "Result: " << QString::fromUtf8(pybytes_as_string_fn(pyunicode_as_utf8_string_fn(pydict_get_item_string_fn(py_dict, "found"))));
-    py_dec_ref_fn(result);
-    //py_finalize_fn();
-
-    //FreeLibrary(m);
-#endif
-}
-
 QString PythonSupport::ensurePython(const QString &python_home)
 {
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
@@ -394,7 +338,7 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
     // required, see https://bugs.python.org/issue36085
     AddDllDirectory((PCWSTR)(QDir::toNativeSeparators(QDir(python_home).absoluteFilePath("Library/bin")).utf16()));
 
-    void *dl = LoadLibrary(QDir::toNativeSeparators(file_path).toUtf8());
+    void *dl = LoadLibraryA(QDir::toNativeSeparators(file_path).toUtf8());
 #endif
     extern void initialize_pylib(void *);
     initialize_pylib(dl);
