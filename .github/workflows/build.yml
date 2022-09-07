@@ -87,13 +87,11 @@ jobs:
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v3
       with:
         version: '5.15.2'
         host: 'mac'
         target: 'desktop'
-        setup-python: 'false'  # see https://github.com/jurplel/install-qt-action/issues/130
-        py7zrversion: '<0.16'  # see https://github.com/miurahr/pyppmd/issues/94#issuecomment-1083205387
     - name: Build
       shell: bash
       run: |
@@ -149,7 +147,7 @@ jobs:
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v3
       with:
         version: '5.15.2'
         host: 'windows'
@@ -238,7 +236,7 @@ jobs:
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
         python -m pip install numpy scipy h5py
         pushd nionui_app_test
-        python setup.py develop
+        python -m pip install .
         popd
         echo "Running test..."
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
@@ -258,7 +256,7 @@ jobs:
         conda install -y -c nion ${{ env.tool-package }}
         conda install -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
         pushd nionui_app_test
-        python setup.py develop
+        python -m pip install .
         popd
         echo "Running test..."
         conda list
@@ -289,7 +287,7 @@ jobs:
       shell: bash
       run: |
         brew install python@${{ matrix.python-version }} || true
-        SYSTEM_PYTHON_EXE=/usr/local/opt/python@${{ matrix.python-version }}/bin/python3
+        SYSTEM_PYTHON_EXE=/usr/local/bin/python${{ matrix.python-version }}
         $SYSTEM_PYTHON_EXE -m venv test_venv
         source test_venv/bin/activate
         python -m pip install --upgrade pip
@@ -299,7 +297,7 @@ jobs:
         python --version
         python -m pip install numpy scipy h5py
         pushd nionui_app_test
-        python setup.py develop
+        python -m pip install .
         popd
         echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
@@ -320,7 +318,7 @@ jobs:
         python --version
         python -m pip install numpy scipy h5py
         pushd nionui_app_test
-        python setup.py develop
+        python -m pip install .
         popd
         echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
@@ -334,11 +332,12 @@ jobs:
       shell: bash -l {0}
       run: |
         # use conda versions instead of pypi versions. install before anything else.
-        conda install numpy scipy h5py imageio setuptools -y
+        # use nomkl until anaconda gets its act together
+        conda install nomkl numpy scipy h5py imageio setuptools -y
         conda install -y -c nion ${{ env.tool-package }}
         conda install -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
         pushd nionui_app_test
-        python setup.py develop
+        python -m pip install .
         popd
         echo "Running test..."
         conda list
@@ -383,7 +382,7 @@ jobs:
         python --version
         python -m pip install numpy scipy h5py
         pushd nionui_app_test
-        python setup.py develop
+        python -m pip install .
         popd
         echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
@@ -404,7 +403,7 @@ jobs:
         $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
         conda install -y ${{steps.download_conda.outputs.download-path}}\$filename
         pushd nionui_app_test
-        python setup.py develop --no-deps
+        python -m pip install .
         popd
         echo "Running test..."
         conda list
