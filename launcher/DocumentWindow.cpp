@@ -305,15 +305,15 @@ void PyRadioButton::clicked()
 
 PyButtonGroup::PyButtonGroup()
 {
-    connect(this, SIGNAL(buttonClicked(int)), this, SLOT(buttonClicked(int)));
+    connect(this, SIGNAL(buttonClicked(QAbstractButton *)), this, SLOT(buttonClicked(QAbstractButton *)));
 }
 
-void PyButtonGroup::buttonClicked(int button_id)
+void PyButtonGroup::buttonClicked(QAbstractButton *button)
 {
     if (m_py_object.isValid())
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "clicked", QVariantList() << button_id);
+        app->dispatchPyMethod(m_py_object, "clicked", QVariantList() << id(button));
     }
 }
 
@@ -2558,7 +2558,11 @@ void PyCanvas::mousePressEvent(QMouseEvent *event)
         float display_scaling = GetDisplayScaling();
 
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
         app->dispatchPyMethod(m_py_object, "mousePressed", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
+#else
+        app->dispatchPyMethod(m_py_object, "mousePressed", QVariantList() << int(event->position().x() / display_scaling) << int(event->position().y() / display_scaling) << (int)event->modifiers());
+#endif
         m_last_pos = event->pos();
         m_pressed = true;
     }
@@ -2571,12 +2575,20 @@ void PyCanvas::mouseReleaseEvent(QMouseEvent *event)
         float display_scaling = GetDisplayScaling();
 
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
         app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
+#else
+        app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << int(event->position().x() / display_scaling) << int(event->position().y() / display_scaling) << (int)event->modifiers());
+#endif
         m_pressed = false;
 
         if ((event->pos() - m_last_pos).manhattanLength() < 6 * display_scaling)
         {
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
             app->dispatchPyMethod(m_py_object, "mouseClicked", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
+#else
+            app->dispatchPyMethod(m_py_object, "mouseClicked", QVariantList() << int(event->position().x() / display_scaling) << int(event->position().y() / display_scaling) << (int)event->modifiers());
+#endif
         }
     }
 }
@@ -2588,7 +2600,11 @@ void PyCanvas::mouseDoubleClickEvent(QMouseEvent *event)
         float display_scaling = GetDisplayScaling();
 
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
         app->dispatchPyMethod(m_py_object, "mouseDoubleClicked", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
+#else
+        app->dispatchPyMethod(m_py_object, "mouseDoubleClicked", QVariantList() << int(event->position().x() / display_scaling) << int(event->position().y() / display_scaling) << (int)event->modifiers());
+#endif
     }
 }
 
@@ -2610,12 +2626,20 @@ void PyCanvas::mouseMoveEvent(QMouseEvent *event)
             QApplication::changeOverrideCursor(Qt::BlankCursor);
         }
 
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
         app->dispatchPyMethod(m_py_object, "mousePositionChanged", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
+#else
+        app->dispatchPyMethod(m_py_object, "mousePositionChanged", QVariantList() << int(event->position().x() / display_scaling) << int(event->position().y() / display_scaling) << (int)event->modifiers());
+#endif
 
         // handle case of not getting mouse released event after drag.
         if (m_pressed && !(event->buttons() & Qt::LeftButton))
         {
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
             app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << int(event->x() / display_scaling) << int(event->y() / display_scaling) << (int)event->modifiers());
+#else
+            app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << int(event->position().x() / display_scaling) << int(event->position().y() / display_scaling) << (int)event->modifiers());
+#endif
             m_pressed = false;
         }
     }
@@ -2857,7 +2881,11 @@ void PyCanvas::dragMoveEvent(QDragMoveEvent *event)
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
         float display_scaling = GetDisplayScaling();
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
         QString action = app->dispatchPyMethod(m_py_object, "dragMoveEvent", QVariantList() << QVariant::fromValue((QObject *)event->mimeData()) << int(event->pos().x() / display_scaling) << int(event->pos().y() / display_scaling)).toString();
+#else
+        QString action = app->dispatchPyMethod(m_py_object, "dragMoveEvent", QVariantList() << QVariant::fromValue((QObject *)event->mimeData()) << int(event->position().x() / display_scaling) << int(event->position().y() / display_scaling)).toString();
+#endif
         if (action == "copy")
         {
             event->setDropAction(Qt::CopyAction);
@@ -2890,7 +2918,11 @@ void PyCanvas::dropEvent(QDropEvent *event)
     {
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
         float display_scaling = GetDisplayScaling();
+#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
         QString action = app->dispatchPyMethod(m_py_object, "dropEvent", QVariantList() << QVariant::fromValue((QObject *)event->mimeData()) << int(event->pos().x() / display_scaling) << int(event->pos().y() / display_scaling)).toString();
+#else
+        QString action = app->dispatchPyMethod(m_py_object, "dropEvent", QVariantList() << QVariant::fromValue((QObject *)event->mimeData()) << int(event->position().x() / display_scaling) << int(event->position().y() / display_scaling)).toString();
+#endif
         if (action == "copy")
         {
             event->setDropAction(Qt::CopyAction);

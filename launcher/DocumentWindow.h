@@ -349,7 +349,7 @@ public:
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
 
 private Q_SLOTS:
-    void buttonClicked(int button_id);
+    void buttonClicked(QAbstractButton *button);
 
 private:
     QVariant m_py_object;
