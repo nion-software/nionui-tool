@@ -2375,7 +2375,7 @@ QRectOptional PyCanvas::renderSection(QSharedPointer<CanvasSection> section)
         section_id = section->m_section_id;
         section->m_commands_binary.clear();
     }
-    if (!commands_binary.empty())
+    if (!commands_binary.empty() && !rect.isEmpty())
     {
         float devicePixelRatio = section->m_screen ? section->m_screen->devicePixelRatio() : 1.0;  // m_screen may be nullptr in earlier versions of Qt
         // create the buffer image at a resolution suitable for the devicePixelRatio of the section's screen.
