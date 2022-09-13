@@ -1,7 +1,15 @@
 Changelog (nionui-tool)
 =======================
 
-0.4.14 (2021-05-04)
+0.4.15 (2022-09-13)
+-------------------
+- Enable universal binary support on macOS.
+- Fix issue when drawing into empty widget.
+- Add support for widget background colors.
+- Improve drawing on high resolution platforms.
+- Use Qt 6 as host framework.
+
+0.4.14 (2022-05-04)
 -------------------
 - Add support for Python 3.10.
 - Drop support for Python 3.7.
