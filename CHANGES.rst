@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.16 (2022-09-14)
+-------------------
+- Fix buffer overflow in python path.
+
 0.4.15 (2022-09-13)
 -------------------
 - Enable universal binary support on macOS.
