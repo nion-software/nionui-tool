@@ -13,6 +13,7 @@ env:
 
 jobs:
   build_linux:
+    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -94,6 +95,7 @@ jobs:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: /usr/share/miniconda/envs/test/conda-bld/linux-64/*.tar.bz2
   build_macos:
+    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -160,7 +162,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.9"]
         qt-version: ["6.3.2"]
     steps:
     - uses: actions/checkout@v2
@@ -197,11 +199,13 @@ jobs:
         popd
         python setup.py bdist_wheel
     - name: Set up Miniconda ${{ matrix.python-version }}
+      if: false
       uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
         python-version: 3.9
     - name: Build Conda Package
+      if: false
       shell: pwsh
       run: |
         python -c "import sys; print(sys.version)"
@@ -214,11 +218,13 @@ jobs:
         name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: dist\*.whl
     - name: Upload Conda Package
+      if: false
       uses: actions/upload-artifact@v2
       with:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: C:\Miniconda\envs\test\conda-bld\win-64\*.tar.bz2
   test_linux:
+    if: false
     needs: build_linux
     runs-on: ${{ matrix.os }}
     strategy:
@@ -309,6 +315,7 @@ jobs:
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
   test_macos:
+    if: false
     needs: build_macos
     runs-on: ${{ matrix.os }}
     strategy:
@@ -412,7 +419,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.9"]
     steps:
     - uses: actions/checkout@v2
     - name: Download Wheel
@@ -422,6 +429,7 @@ jobs:
         name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
+      if: false
       uses: actions/download-artifact@v2
       id: download_conda
       with:
@@ -451,11 +459,13 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
+      if: false
       uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
     - name: Test Conda
+      if: false
       shell: pwsh
       run: |
         # use conda versions instead of pypi versions. install before anything else.
@@ -472,6 +482,7 @@ jobs:
         conda list
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Test Conda Forge
+      if: false
       shell: pwsh
       run: |
         # use conda versions instead of pypi versions. install before anything else.
