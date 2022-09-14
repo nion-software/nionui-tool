@@ -496,7 +496,6 @@ void Python_ThreadAllow::grab()
 
 static wchar_t python_home_static[512];
 static wchar_t python_program_name_static[512];
-static wchar_t python_path_static[512];
 
 void PythonSupport::initialize(const QString &python_home, const QList<QString> &python_paths, const QString &python_library)
 {
@@ -530,11 +529,7 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
     }
 
     if (!python_paths.isEmpty())
-    {
-        memset(&python_path_static[0], 0, sizeof(python_path_static));
-        python_paths.join(":").toWCharArray(python_path_static);
-        CALL_PY(Py_SetPath)(python_path_static);  // requires a permanent buffer
-    }
+        CALL_PY(Py_SetPath)(const_cast<wchar_t *>(python_paths.join(":").toStdWString().c_str()));
 
     memset(&python_home_static[0], 0, sizeof(python_home_static));
     python_home_new.toWCharArray(python_home_static);
@@ -586,9 +581,7 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
                         python_paths.append(QDir(python_home_new).absolutePath());
                         python_paths.append(QDir(python_home).absolutePath());
                         python_paths.append(QDir(python_home).absoluteFilePath("lib/site-packages"));
-                        memset(&python_path_static[0], 0, sizeof(python_path_static));
-                        python_paths.join(";").toWCharArray(python_path_static);
-                        CALL_PY(Py_SetPath)(python_path_static);  // requires a permanent buffer
+                        CALL_PY(Py_SetPath)(const_cast<wchar_t *>(python_paths.join(";").toStdWString().c_str()));
                     }
                 }
             }
@@ -596,11 +589,7 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
     }
 
     if (!python_paths.isEmpty())
-    {
-        memset(&python_path_static[0], 0, sizeof(python_path_static));
-        python_paths.join(";").toWCharArray(python_path_static);
-        CALL_PY(Py_SetPath)(python_path_static);  // requires a permanent buffer
-    }
+        CALL_PY(Py_SetPath)(const_cast<wchar_t *>(python_paths.join(";").toStdWString().c_str()));
 
     memset(&python_home_static[0], 0, sizeof(python_home_static));
     python_home_new.toWCharArray(python_home_static);
@@ -625,11 +614,7 @@ void PythonSupport::initialize(const QString &python_home, const QList<QString> 
     }
 
     if (!python_paths.isEmpty())
-    {
-        memset(&python_path_static[0], 0, sizeof(python_path_static));
-        python_paths.join(":").toWCharArray(python_path_static);
-        CALL_PY(Py_SetPath)(python_path_static);  // requires a permanent buffer
-    }
+        CALL_PY(Py_SetPath)(const_cast<wchar_t *>(python_paths.join(":").toStdWString().c_str()));
 
     memset(&python_home_static[0], 0, sizeof(python_home_static));
     python_home_new.toWCharArray(python_home_static);
