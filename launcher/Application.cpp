@@ -1426,10 +1426,11 @@ static PyObject *Core_readImageToBinary(PyObject * /*self*/, PyObject *args)
     {
         Python_ThreadAllow thread_allow;
 
-        QImage image = reader.read();
+        QImageInterface image;
+        image.image = reader.read();
 
-        if (image.format() != QImage::Format_ARGB32_Premultiplied)
-            image = image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+        if (image.image.format() != QImage::Format_ARGB32_Premultiplied)
+            image.image = image.image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
 
         thread_allow.release();
 
@@ -1513,16 +1514,17 @@ static PyObject *Core_writeBinaryToImage(PyObject * /*self*/, PyObject *args)
     if (!PythonSupport::instance()->parse()(args, "iiOus", &w, &h, &obj0, &filename_u, &format_c))
         return NULL;
 
-    QImage image = PythonSupport::instance()->imageFromRGBA(obj0);
+    QImageInterface image;
+    PythonSupport::instance()->imageFromRGBA(obj0, &image);
 
-    if (image.isNull())
+    if (image.image.isNull())
         return NULL;
 
     // Write the image
     QImageWriter writer(Py_UNICODE_to_QString(filename_u), format_c);
 
     if (writer.canWrite())
-        writer.write(image);
+        writer.write(image.image);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -2405,14 +2407,15 @@ static PyObject *Drag_setThumbnail(PyObject * /*self*/, PyObject *args)
 
     if (!PythonSupport::instance()->isNone(obj1))
     {
-        QImage image = PythonSupport::instance()->imageFromRGBA(obj1);
+        QImageInterface image;
+        PythonSupport::instance()->imageFromRGBA(obj1, &image);
 
-        if (image.isNull())
+        if (image.image.isNull())
             return NULL;
 
         float display_scaling = GetDisplayScaling();
 
-        drag->setPixmap(QPixmap::fromImage(image));
+        drag->setPixmap(QPixmap::fromImage(image.image));
         drag->setHotSpot(QPoint(int(x * display_scaling), int(y * display_scaling)));
     }
 
@@ -2471,11 +2474,12 @@ static PyObject *DrawingContext_paintRGBA(PyObject * /*self*/, PyObject *args)
 
     Python_ThreadAllow thread_allow;
 
-    QImage image(width, height, QImage::Format_ARGB32);
-    image.fill(QColor(0,0,0,0));
+    QImageInterface image;
+    image.create(width, height, ImageFormat::Format_ARGB32);
+    image.image.fill(QColor(0,0,0,0));
 
     {
-        QPainter painter(&image);
+        QPainter painter(&image.image);
         PaintImageCache image_cache;
         QList<CanvasDrawingCommand> drawing_commands;
         Q_FOREACH(const QVariant &raw_command_variant, raw_commands)
@@ -2489,8 +2493,8 @@ static PyObject *DrawingContext_paintRGBA(PyObject * /*self*/, PyObject *args)
         PaintCommands(painter, drawing_commands, &image_cache, 1.0);
     }
 
-    if (image.format() != QImage::Format_ARGB32_Premultiplied)
-        image = image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    if (image.image.format() != QImage::Format_ARGB32_Premultiplied)
+        image.image = image.image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
 
     thread_allow.release();
 
@@ -2510,11 +2514,12 @@ static PyObject *DrawingContext_paintRGBA_binary(PyObject * /*self*/, PyObject *
 
     Python_ThreadAllow thread_allow;
 
-    QImage image(width, height, QImage::Format_ARGB32);
-    image.fill(QColor(0,0,0,0));
+    QImageInterface image;
+    image.create(width, height, ImageFormat::Format_ARGB32);
+    image.image.fill(QColor(0,0,0,0));
 
     {
-        QPainter painter(&image);
+        QPainter painter(&image.image);
         PaintImageCache image_cache;
         LayerCache layer_cache;
         std::vector<quint32> commands;
@@ -2522,8 +2527,8 @@ static PyObject *DrawingContext_paintRGBA_binary(PyObject * /*self*/, PyObject *
         PaintBinaryCommands(&painter, commands, imageMap, &image_cache, &layer_cache, 1.0);
     }
 
-    if (image.format() != QImage::Format_ARGB32_Premultiplied)
-        image = image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    if (image.image.format() != QImage::Format_ARGB32_Premultiplied)
+        image.image = image.image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
 
     thread_allow.release();
 
@@ -3404,14 +3409,15 @@ static PyObject *PushButton_setIcon(PyObject * /*self*/, PyObject *args)
 
     if (!PythonSupport::instance()->isNone(obj1))
     {
-        QImage image = PythonSupport::instance()->imageFromRGBA(obj1);
+        QImageInterface image;
+        PythonSupport::instance()->imageFromRGBA(obj1, &image);
 
-        if (image.isNull())
+        if (image.image.isNull())
             return NULL;
 
         float display_scaling = GetDisplayScaling();
 
-        push_button->setIcon(QIcon(QPixmap::fromImage(image)));
+        push_button->setIcon(QIcon(QPixmap::fromImage(image.image)));
         push_button->setIconSize(QSize(width * display_scaling, height * display_scaling));
     }
     else
@@ -3534,14 +3540,15 @@ static PyObject *RadioButton_setIcon(PyObject * /*self*/, PyObject *args)
 
     if (!PythonSupport::instance()->isNone(obj1))
     {
-        QImage image = PythonSupport::instance()->imageFromRGBA(obj1);
+        QImageInterface image;
+        PythonSupport::instance()->imageFromRGBA(obj1, &image);
 
-        if (image.isNull())
+        if (image.image.isNull())
             return NULL;
 
         float display_scaling = GetDisplayScaling();
 
-        radio_button->setIcon(QIcon(QPixmap::fromImage(image)));
+        radio_button->setIcon(QIcon(QPixmap::fromImage(image.image)));
         radio_button->setIconSize(QSize(width * display_scaling, height * display_scaling));
     }
     else

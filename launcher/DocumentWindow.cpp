@@ -1096,7 +1096,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             }
             else
             {
-                QImage image;
+                QImageInterface image;
 
                 QRectF destination_rect(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling));
                 float context_scaling = qMin(context_scaling_x, context_scaling_y);
@@ -1110,22 +1110,22 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
                     if (ndarray_py)
                     {
-                        image = PythonSupport::instance()->imageFromRGBA(ndarray_py);
+                        PythonSupport::instance()->imageFromRGBA(ndarray_py, &image);
 
                         FreePyObject(ndarray_py);
                     }
                 }
 
-                if (!image.isNull())
+                if (!image.image.isNull())
                 {
                     if (destination_size.width() < width * 0.75 || destination_size.height() < height * 0.75)
                     {
-                        image = image.scaled((destination_rect.size() * context_scaling).toSize(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                        image.image = image.image.scaled((destination_rect.size() * context_scaling).toSize(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
                     }
-                    painter.drawImage(destination_rect, image);
+                    painter.drawImage(destination_rect, image.image);
                     if (image_cache)
                     {
-                        PaintImageCacheEntry cache_entry(image_id, true, image);
+                        PaintImageCacheEntry cache_entry(image_id, true, image.image);
                         (*image_cache)[image_id] = cache_entry;
                     }
                 }
@@ -1143,7 +1143,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             }
             else
             {
-                QImage image;
+                QImageInterface image;
 
                 QRectF destination_rect(QPointF(args[4].toFloat() * display_scaling, args[5].toFloat() * display_scaling), QSizeF(args[6].toFloat() * display_scaling, args[7].toFloat() * display_scaling));
                 float context_scaling = qMin(context_scaling_x, context_scaling_y);
@@ -1161,18 +1161,18 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
                         if (args[10].toInt() != 0)
                             colormap_ndarray_py = QVariantToPyObject(args[10]);
 
-                        image = PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.size(), context_scaling, args[8].toFloat(), args[9].toFloat(), colormap_ndarray_py);
+                        PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.size(), context_scaling, args[8].toFloat(), args[9].toFloat(), colormap_ndarray_py, &image);
 
                         FreePyObject(ndarray_py);
                     }
                 }
 
-                if (!image.isNull())
+                if (!image.image.isNull())
                 {
-                    painter.drawImage(destination_rect, image);
+                    painter.drawImage(destination_rect, image.image);
                     if (image_cache)
                     {
-                        PaintImageCacheEntry cache_entry(image_id, true, image);
+                        PaintImageCacheEntry cache_entry(image_id, true, image.image);
                         (*image_cache)[image_id] = cache_entry;
                     }
                 }
@@ -1771,7 +1771,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                     // QTime timer;
                     // timer.start();
 
-                    QImage image;
+                    QImageInterface image;
 
                     QRectF destination_rect(QPointF(arg4, arg5), QSizeF(arg6, arg7));
                     float context_scaling = qMin(context_scaling_x, context_scaling_y);
@@ -1789,7 +1789,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                         {
                             // scaledImageFromRGBA is slower than using image.scaled.
                             // image = PythonSupport::instance()->scaledImageFromRGBA(ndarray_py, destination_size);
-                            image = PythonSupport::instance()->imageFromRGBA(ndarray_py);
+                            PythonSupport::instance()->imageFromRGBA(ndarray_py, &image);
 
                             FreePyObject(ndarray_py);
                         }
@@ -1797,16 +1797,16 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                     else
                         qDebug() << "missing " << image_key;
 
-                    if (!image.isNull())
+                    if (!image.image.isNull())
                     {
                         if (destination_size.width() < width * 0.75 || destination_size.height() < height * 0.75)
                         {
-                            image = image.scaled(destination_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                            image.image = image.image.scaled(destination_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                         }
-                        painter->drawImage(destination_rect, image);
+                        painter->drawImage(destination_rect, image.image);
                         if (image_cache)
                         {
-                            PaintImageCacheEntry cache_entry(image_id, true, image);
+                            PaintImageCacheEntry cache_entry(image_id, true, image.image);
                             (*image_cache)[image_id] = cache_entry;
                         }
                     }
@@ -1846,7 +1846,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
 //                    QTime timer;
 //                    timer.start();
 
-                    QImage image;
+                    QImageInterface image;
 
                     QRectF destination_rect(QPointF(arg4, arg5), QSizeF(arg6, arg7));
                     float context_scaling = qMin(context_scaling_x, context_scaling_y);
@@ -1870,8 +1870,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                                     colormap_ndarray_py = (PyObject *)QVariantToPyObject(imageMap[color_map_image_key]);
                             }
 
-//                            image = PythonSupport::instance()->imageFromArray(ndarray_py, low, high, colormap_ndarray_py);
-                            image = PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.size(), context_scaling, low, high, colormap_ndarray_py);
+//                          PythonSupport::instance()->imageFromArray(ndarray_py, low, high, colormap_ndarray_py, &image);
+                            PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.size(), context_scaling, low, high, colormap_ndarray_py, &image);
 
                             FreePyObject(ndarray_py);
                         }
@@ -1879,12 +1879,12 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                     else
                         qDebug() << "missing " << image_key;
 
-                    if (!image.isNull())
+                    if (!image.image.isNull())
                     {
-                        painter->drawImage(destination_rect, image);
+                        painter->drawImage(destination_rect, image.image);
                         if (image_cache)
                         {
-                            PaintImageCacheEntry cache_entry(image_id, true, image);
+                            PaintImageCacheEntry cache_entry(image_id, true, image.image);
                             (*image_cache)[image_id] = cache_entry;
                         }
                     }

@@ -33,6 +33,8 @@
 #include "PythonSupport.h"
 #include "PythonStubs.h"
 
+#include "Image.h"
+
 #define NPY_NO_DEPRECATED_API NPY_1_19_API_VERSION
 #define PY_ARRAY_UNIQUE_SYMBOL d2af2aa3297e
 
@@ -1361,7 +1363,7 @@ bool PythonSupport::setAttribute(const QVariant &object, const QString &attribut
     return result != -1;
 }
 
-QImage PythonSupport::scaledImageFromRGBA(PyObject *ndarray_py, const QSize &destination_size)
+void PythonSupport::scaledImageFromRGBA(PyObject *ndarray_py, const QSize &destination_size, ImageInterface *image)
 {
     PyArrayObject *array = (PyArrayObject *)PyArray_ContiguousFromObject(ndarray_py, NPY_UINT32, 2, 2);
     if (array != NULL)
@@ -1373,7 +1375,7 @@ QImage PythonSupport::scaledImageFromRGBA(PyObject *ndarray_py, const QSize &des
             const long dest_width = destination_size.width();
             const long dest_height = destination_size.height();
 
-            QImage image((int)dest_width, (int)dest_height, QImage::Format_ARGB32);
+            image->create((int)dest_width, (int)dest_height, ImageFormat::Format_ARGB32);
 
             int *a_buffer = new int[dest_width];
             int *r_buffer = new int[dest_width];
@@ -1399,7 +1401,7 @@ QImage PythonSupport::scaledImageFromRGBA(PyObject *ndarray_py, const QSize &des
                 {
                     if (dst_row > 0)
                     {
-                        uint32_t *dst = (uint32_t *)image.scanLine(last_dst_row);
+                        uint32_t *dst = (uint32_t *)image->scanLine(last_dst_row);
                         int *a_ptr = a_buffer;
                         int *r_ptr = r_buffer;
                         int *g_ptr = g_buffer;
@@ -1475,7 +1477,7 @@ QImage PythonSupport::scaledImageFromRGBA(PyObject *ndarray_py, const QSize &des
                 *b_ptr += b_sum / mm;
             }
 
-            uint32_t *dst = (uint32_t *)image.scanLine(last_dst_row);
+            uint32_t *dst = (uint32_t *)image->scanLine(last_dst_row);
             int *a_ptr = a_buffer;
             int *r_ptr = r_buffer;
             int *g_ptr = g_buffer;
@@ -1500,38 +1502,32 @@ QImage PythonSupport::scaledImageFromRGBA(PyObject *ndarray_py, const QSize &des
             Py_DECREF(array);
 
             // qDebug() << width << "x" << height << " --> " << dest_width << "x" << dest_height;
-
-            return image;
         }
         else
         {
-            QImage image((int)width, (int)height, QImage::Format_ARGB32);
+            image->create((int)width, (int)height, ImageFormat::Format_ARGB32);
             for (int row=0; row<height; ++row)
-                memcpy(image.scanLine(row), ((uint32_t *)PyArray_DATA(array)) + row*width, width*sizeof(uint32_t));
+                memcpy(image->scanLine(row), ((uint32_t *)PyArray_DATA(array)) + row*width, width*sizeof(uint32_t));
             Py_DECREF(array);
-            return image;
         }
     }
-    return QImage();
 }
 
-QImage PythonSupport::imageFromRGBA(PyObject *ndarray_py)
+void PythonSupport::imageFromRGBA(PyObject *ndarray_py, ImageInterface *image)
 {
     PyArrayObject *array = (PyArrayObject *)PyArray_ContiguousFromObject(ndarray_py, NPY_UINT32, 2, 2);
     if (array != NULL)
     {
         long width = PyArray_DIMS(array)[1];
         long height = PyArray_DIMS(array)[0];
-        QImage image((int)width, (int)height, QImage::Format_ARGB32);
+        image->create((int)width, (int)height, ImageFormat::Format_ARGB32);
         for (int row=0; row<height; ++row)
-            memcpy(image.scanLine(row), ((uint32_t *)PyArray_DATA(array)) + row*width, width*sizeof(uint32_t));
+            memcpy(image->scanLine(row), ((uint32_t *)PyArray_DATA(array)) + row*width, width*sizeof(uint32_t));
         Py_DECREF(array);
-        return image;
     }
-    return QImage();
 }
 
-QImage PythonSupport::scaledImageFromArray(PyObject *ndarray_py, const QSizeF &destination_size, float context_scaling, float display_limit_low, float display_limit_high, PyObject *lookup_table_ndarray)
+void PythonSupport::scaledImageFromArray(PyObject *ndarray_py, const QSizeF &destination_size, float context_scaling, float display_limit_low, float display_limit_high, PyObject *lookup_table_ndarray, ImageInterface *image)
 {
     PyArrayObject *array = (PyArrayObject *)PyArray_ContiguousFromObject(ndarray_py, NPY_FLOAT32, 2, 2);
     if (array != NULL)
@@ -1539,7 +1535,7 @@ QImage PythonSupport::scaledImageFromArray(PyObject *ndarray_py, const QSizeF &d
         long width = PyArray_DIMS(array)[1];
         long height = PyArray_DIMS(array)[0];
         float m = display_limit_high != display_limit_low ? 255.0 / (display_limit_high - display_limit_low) : 1;
-        QVector<QRgb> colorTable;
+        std::vector<unsigned int> colorTable;
         if (lookup_table_ndarray != NULL)
         {
             PyArrayObject *lookup_table_array = (PyArrayObject *)PyArray_ContiguousFromObject(lookup_table_ndarray, NPY_UINT32, 1, 1);
@@ -1551,7 +1547,7 @@ QImage PythonSupport::scaledImageFromArray(PyObject *ndarray_py, const QSizeF &d
                 Py_DECREF(lookup_table_array);
             }
         }
-        if (colorTable.length() == 0)
+        if (colorTable.size() == 0)
             for (int i=0; i<256; ++i)
                 colorTable.push_back(0xFF << 24 | i << 16 | i << 8 | i);
 
@@ -1560,7 +1556,7 @@ QImage PythonSupport::scaledImageFromArray(PyObject *ndarray_py, const QSizeF &d
 
         if ((destination_size.width() * context_scaling < width * 0.75 || destination_size.height() * context_scaling < height * 0.75) && (dest_width > 0 && dest_height > 0))
         {
-            QImage image((int)dest_width, (int)dest_height, QImage::Format_Indexed8);
+            image->create((int)dest_width, (int)dest_height, ImageFormat::Format_Indexed8);
 
             float *line_buffer = new float[dest_width];
             long *x_index_buffer = new long[width];
@@ -1583,7 +1579,7 @@ QImage PythonSupport::scaledImageFromArray(PyObject *ndarray_py, const QSizeF &d
                 {
                     if (dst_row > 0)
                     {
-                        uint8_t *dst = (uint8_t *)image.scanLine(last_dst_row);
+                        uint8_t *dst = (uint8_t *)image->scanLine(last_dst_row);
                         float *line_ptr = line_buffer;
                         float mm =  1.0 / (row - last_row_change);
                         for (int dst_col=0; dst_col<dest_width; ++dst_col)
@@ -1631,7 +1627,7 @@ QImage PythonSupport::scaledImageFromArray(PyObject *ndarray_py, const QSizeF &d
                 *line_ptr += sum / (width - last_col_change);
             }
 
-            uint8_t *dst = (uint8_t *)image.scanLine(last_dst_row);
+            uint8_t *dst = (uint8_t *)image->scanLine(last_dst_row);
             float *line_ptr = line_buffer;
             float mm =  1.0 / (height - last_row_change);
             for (int dst_col=0; dst_col<dest_width; ++dst_col)
@@ -1649,20 +1645,18 @@ QImage PythonSupport::scaledImageFromArray(PyObject *ndarray_py, const QSizeF &d
             delete [] x_index_buffer;
             delete [] y_index_buffer;
 
-            image.setColorTable(colorTable);
+            image->setColorTable(colorTable);
             Py_DECREF(array);
 
             // qDebug() << width << "x" << height << " --> " << dest_width << "x" << dest_height;
-
-            return image;
         }
         else
         {
-            QImage image((int)width, (int)height, QImage::Format_Indexed8);
+            image->create((int)width, (int)height, ImageFormat::Format_Indexed8);
             for (int row=0; row<height; ++row)
             {
                 float *src = ((float *)PyArray_DATA(array)) + row*width;
-                uint8_t *dst = (uint8_t *)image.scanLine(row);
+                uint8_t *dst = (uint8_t *)image->scanLine(row);
                 for (int col=0; col<width; ++col)
                 {
                     float v = *src++;
@@ -1674,15 +1668,13 @@ QImage PythonSupport::scaledImageFromArray(PyObject *ndarray_py, const QSizeF &d
                         *dst++ = (unsigned char)((v - display_limit_low) * m);
                 }
             }
-            image.setColorTable(colorTable);
+            image->setColorTable(colorTable);
             Py_DECREF(array);
-            return image;
         }
     }
-    return QImage();
 }
 
-QImage PythonSupport::imageFromArray(PyObject *ndarray_py, float display_limit_low, float display_limit_high, PyObject *lookup_table_ndarray)
+void PythonSupport::imageFromArray(PyObject *ndarray_py, float display_limit_low, float display_limit_high, PyObject *lookup_table_ndarray, ImageInterface *image)
 {
     PyArrayObject *array = (PyArrayObject *)PyArray_ContiguousFromObject(ndarray_py, NPY_FLOAT32, 2, 2);
     if (array != NULL)
@@ -1690,7 +1682,7 @@ QImage PythonSupport::imageFromArray(PyObject *ndarray_py, float display_limit_l
         long width = PyArray_DIMS(array)[1];
         long height = PyArray_DIMS(array)[0];
         float m = display_limit_high != display_limit_low ? 255.0 / (display_limit_high - display_limit_low) : 1;
-        QVector<QRgb> colorTable;
+        std::vector<unsigned int> colorTable;
         if (lookup_table_ndarray != NULL)
         {
             PyArrayObject *lookup_table_array = (PyArrayObject *)PyArray_ContiguousFromObject(lookup_table_ndarray, NPY_UINT32, 1, 1);
@@ -1702,17 +1694,17 @@ QImage PythonSupport::imageFromArray(PyObject *ndarray_py, float display_limit_l
                 Py_DECREF(lookup_table_array);
             }
         }
-        if (colorTable.length() == 0)
+        if (colorTable.size() == 0)
             for (int i=0; i<256; ++i)
                 colorTable.push_back(0xFF << 24 | i << 16 | i << 8 | i);
         if (false)
         {
-            const QRgb *colorTableP = colorTable.constData();
-            QImage image((int)width, (int)height, QImage::Format_ARGB32_Premultiplied);
+            const unsigned int *colorTableP = static_cast<const unsigned int *>(colorTable.data());
+            image->create((int)width, (int)height, ImageFormat::Format_ARGB32_Premultiplied);
             for (int row=0; row<height; ++row)
             {
                 float *src = ((float *)PyArray_DATA(array)) + row*width;
-                uint32_t *dst = (uint32_t *)image.scanLine(row);
+                uint32_t *dst = (uint32_t *)image->scanLine(row);
                 for (int col=0; col<width; ++col)
                 {
                     float v = *src++;
@@ -1728,15 +1720,14 @@ QImage PythonSupport::imageFromArray(PyObject *ndarray_py, float display_limit_l
                 }
             }
             Py_DECREF(array);
-            return image;
         }
         else
         {
-            QImage image((int)width, (int)height, QImage::Format_Indexed8);
+            image->create((int)width, (int)height, ImageFormat::Format_Indexed8);
             for (int row=0; row<height; ++row)
             {
                 float *src = ((float *)PyArray_DATA(array)) + row*width;
-                uint8_t *dst = (uint8_t *)image.scanLine(row);
+                uint8_t *dst = (uint8_t *)image->scanLine(row);
                 for (int col=0; col<width; ++col)
                 {
                     float v = *src++;
@@ -1748,15 +1739,13 @@ QImage PythonSupport::imageFromArray(PyObject *ndarray_py, float display_limit_l
                         *dst++ = (unsigned char)((v - display_limit_low) * m);
                 }
             }
-            image.setColorTable(colorTable);
+            image->setColorTable(colorTable);
             Py_DECREF(array);
-            return image;
         }
     }
-    return QImage();
 }
 
-PyObject *PythonSupport::arrayFromImage(const QImage &image)
+PyObject *PythonSupport::arrayFromImage(const ImageInterface &image)
 {
     Py_ssize_t dims[2];
     dims[0] = image.height();

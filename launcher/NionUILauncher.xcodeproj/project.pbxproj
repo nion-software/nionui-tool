@@ -29,6 +29,8 @@
 			compilerSpec = com.apple.compilers.proxy.script;
 			filePatterns = "*.h";
 			fileType = pattern.proxy;
+			inputFiles = (
+			);
 			isEditable = 1;
 			outputFiles = (
 				"$(DERIVED_SOURCES_DIR)/$(CURRENT_ARCH)/moc_$(INPUT_FILE_BASE).cpp",
@@ -40,6 +42,8 @@
 			compilerSpec = com.apple.compilers.proxy.script;
 			filePatterns = "*.qrc";
 			fileType = pattern.proxy;
+			inputFiles = (
+			);
 			isEditable = 1;
 			outputFiles = (
 				"$(DERIVED_SOURCES_DIR)/$(CURRENT_ARCH)/qrc_$(INPUT_FILE_BASE).cpp",
@@ -73,6 +77,7 @@
 		FDD5B8711D81C8C200FD8F7B /* bootstrap.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = bootstrap.py; sourceTree = SOURCE_ROOT; };
 		FDE306E916BC27480023B7FD /* Graphics */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Graphics; sourceTree = SOURCE_ROOT; };
 		FDE306EC16BC59360023B7FD /* stylesheet.qss */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = stylesheet.qss; sourceTree = SOURCE_ROOT; };
+		FDE7C57C28D7F92800F4A865 /* Image.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Image.h; sourceTree = "<group>"; };
 		FDFA4FE61621F473002D4129 /* resources.qrc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = resources.qrc; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -171,6 +176,7 @@
 			children = (
 				FD840889160D180200370586 /* Application.h */,
 				FD6CB7CA1663CB29000CF2F1 /* DocumentWindow.h */,
+				FDE7C57C28D7F92800F4A865 /* Image.h */,
 				FD4943491B9784A600CE4307 /* PythonSelectDialog.h */,
 				FD8C40721B8F84DE00C6D55C /* PythonStubs.h */,
 				FD60C55416C5AD91009C6448 /* PythonSupport.h */,

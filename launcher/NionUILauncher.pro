@@ -16,6 +16,7 @@ SOURCES +=\
 HEADERS  += \
     DocumentWindow.h \
     Application.h \
+    Image.h \
     PythonSelectDialog.h \
     PythonStubs.h \
     PythonSupport.h
