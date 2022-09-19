@@ -35,7 +35,6 @@ public:
     QString resourcesPath() const;
 
     // Python related methods
-    bool hasPyMethod(const QVariant &object, const QString &method);
     QVariant invokePyMethod(const QVariant &object, const QString &method, const QVariantList &args);
     QVariant dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args);
     bool setPyObjectAttribute(const QVariant &object, const QString &attribute, const QVariant &value);

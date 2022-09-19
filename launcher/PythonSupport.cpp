@@ -618,11 +618,6 @@ void *PythonSupport::UnwrapObject(PyObject *py_obj)
     return UnwrapObject2(py_obj);
 }
 
-void FreePyObject(PyObject *py_object)
-{
-    Py_XDECREF(py_object);
-}
-
 PyObject *PythonValueVariantToPyObject(const PythonValueVariant &value_variant)
 {
     if (value_variant.value.valueless_by_exception())
@@ -684,7 +679,7 @@ PyObject *PythonValueVariantToPyObject(const PythonValueVariant &value_variant)
     else if (std::holds_alternative<PyObjectPtr>(value_variant.value))
     {
         const PyObjectPtr *ptr = std::get_if<PyObjectPtr>(&value_variant.value);
-        PyObject *py_object = ptr->pyObject();
+        PyObject *py_object = ptr->get();
         Py_INCREF(py_object);
         return py_object;
     }
@@ -784,49 +779,21 @@ void PythonSupport::addResourcePath(const std::string &resources_path)
     Py_DECREF(sys_module);
 }
 
-bool PythonSupport::hasPyMethod(PyObject *py_object, const std::string &method)
-{
-    bool result = false;
-
-    Python_ThreadBlock thread_block;
-
-    if (py_object)
-    {
-        result = CALL_PY(PyObject_HasAttrString)(py_object, method.c_str()) == 1;
-
-        Py_DECREF(py_object);
-    }
-
-    return result;
-}
-
-class AutoDecrement
-{
-    PyObject *object;
-public:
-    AutoDecrement(PyObject *object) : object(object) { }
-    ~AutoDecrement() { Py_XDECREF(object); }
-};
-
 PythonValueVariant PythonSupport::invokePyMethod(PyObject *py_object, const QString &method, const std::list<PythonValueVariant> &args)
 {
     Python_ThreadBlock thread_block;
 
     if (py_object)
     {
-        AutoDecrement py_object_dec(py_object);
-
-        PyObject *callable = CALL_PY(PyObject_GetAttrString)(py_object, method.toLatin1().data());
-        AutoDecrement callable_dec(callable);
-
+        PyObjectPtr py_object_ptr(py_object);
+        PyObjectPtr callable(CALL_PY(PyObject_GetAttrString)(py_object_ptr, method.toLatin1().data()));
         if (CALL_PY(PyCallable_Check)(callable))
         {
             CALL_PY(PyErr_Clear)();
 
             bool err = false;
 
-            PyObject *py_args = args.size() > 0 ? CALL_PY(PyTuple_New)(args.size()) : NULL;
-            AutoDecrement py_args_dec(py_args);
+            PyObjectPtr py_args(args.size() > 0 ? CALL_PY(PyTuple_New)(args.size()) : NULL);
 
             int index = 0;
             for (auto arg: args)
@@ -848,9 +815,7 @@ PythonValueVariant PythonSupport::invokePyMethod(PyObject *py_object, const QStr
             if (!err)
             {
                 CALL_PY(PyErr_Clear)();
-                PyObject *py_result = CALL_PY(PyObject_CallObject)(callable, py_args);
-                AutoDecrement py_result_dec(py_result);
-
+                PyObjectPtr py_result(CALL_PY(PyObject_CallObject)(callable, py_args));
                 if (py_result)
                 {
                     return PyObjectToValueVariant(py_result);
@@ -874,16 +839,14 @@ PythonValueVariant PythonSupport::getAttribute(PyObject *py_object, const std::s
 
     if (py_object)
     {
-        AutoDecrement py_object_dec(py_object);
-        PyObject *py_attribute = CALL_PY(PyUnicode_FromString)(attribute.c_str());
+        PyObjectPtr py_object_ptr(py_object);
+        PyObjectPtr py_attribute(CALL_PY(PyUnicode_FromString)(attribute.c_str()));
         if (py_attribute)
         {
-            AutoDecrement py_attribute_dec(py_attribute);
             CALL_PY(PyErr_Clear)();
-            PyObject *py_result = CALL_PY(PyObject_GetAttr)(py_object, py_attribute);
+            PyObjectPtr py_result(CALL_PY(PyObject_GetAttr)(py_object, py_attribute));
             if (py_result)
             {
-                AutoDecrement py_result_dec(py_result);
                 return PyObjectToValueVariant(py_result);
             }
             else

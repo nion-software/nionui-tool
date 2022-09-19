@@ -154,8 +154,6 @@ PythonValueVariant QVariantToPythonValueVariant(const QVariant &value)
         {
             if (type == PyObjectPtr::metaId())
             {
-                PyObject *py_object = ((PyObjectPtr *)data)->pyObject();
-                Py_INCREF(py_object);
                 return PythonValueVariant{*(PyObjectPtr *)data};
             }
             else if (type == qMetaTypeId<QList<QUrl>>())
@@ -221,7 +219,7 @@ QVariant PythonValueVariantToQVariant(const PythonValueVariant &value_variant)
     else if (std::holds_alternative<PyObjectPtr>(value_variant.value))
     {
         const PyObjectPtr *ptr = std::get_if<PyObjectPtr>(&value_variant.value);
-        PyObject *py_object = ptr->pyObject();
+        PyObject *py_object = ptr->get();
         PyObjectPtr py_object_ptr;
         py_object_ptr.setPyObject(py_object);
         return QVariant::fromValue(py_object_ptr);
@@ -6470,11 +6468,6 @@ QString Application::resourcesPath() const
 #if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
     return qApp->applicationDirPath()+"/";
 #endif
-}
-
-bool Application::hasPyMethod(const QVariant &object, const QString &method)
-{
-    return PythonSupport::instance()->hasPyMethod(QVariantToPyObject(object), method.toStdString());
 }
 
 QVariant Application::invokePyMethod(const QVariant &object, const QString &method, const QVariantList &qargs)

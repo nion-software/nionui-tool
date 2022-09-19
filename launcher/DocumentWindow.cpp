@@ -1109,13 +1109,10 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
                     Python_ThreadBlock thread_block;
 
                     // Grab the ndarray
-                    PyObject *ndarray_py = QVariantToPyObject(args[2]);
-
+                    PyObjectPtr ndarray_py(QVariantToPyObject(args[2]));
                     if (ndarray_py)
                     {
                         PythonSupport::instance()->imageFromRGBA(ndarray_py, &image);
-
-                        FreePyObject(ndarray_py);
                     }
                 }
 
@@ -1155,7 +1152,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
                     Python_ThreadBlock thread_block;
 
                     // Grab the ndarray
-                    PyObject *ndarray_py = QVariantToPyObject(args[2]);
+                    PyObjectPtr ndarray_py(QVariantToPyObject(args[2]));
 
                     if (ndarray_py)
                     {
@@ -1165,8 +1162,6 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
                             colormap_ndarray_py = QVariantToPyObject(args[10]);
 
                         PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.size(), context_scaling, args[8].toFloat(), args[9].toFloat(), colormap_ndarray_py, &image);
-
-                        FreePyObject(ndarray_py);
                     }
                 }
 
@@ -1787,14 +1782,12 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                         Python_ThreadBlock thread_block;
 
                         // Put the ndarray in image
-                        PyObject *ndarray_py = (PyObject *)QVariantToPyObject(imageMap[image_key]);
+                        PyObjectPtr ndarray_py(QVariantToPyObject(imageMap[image_key]));
                         if (ndarray_py)
                         {
                             // scaledImageFromRGBA is slower than using image.scaled.
                             // image = PythonSupport::instance()->scaledImageFromRGBA(ndarray_py, destination_size);
                             PythonSupport::instance()->imageFromRGBA(ndarray_py, &image);
-
-                            FreePyObject(ndarray_py);
                         }
                     }
                     else
@@ -1861,7 +1854,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                         Python_ThreadBlock thread_block;
 
                         // Put the ndarray in image
-                        PyObject *ndarray_py = (PyObject *)QVariantToPyObject(imageMap[image_key]);
+                        PyObjectPtr ndarray_py(QVariantToPyObject(imageMap[image_key]));
                         if (ndarray_py)
                         {
                             PyObject *colormap_ndarray_py = NULL;
@@ -1875,8 +1868,6 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
 
 //                          PythonSupport::instance()->imageFromArray(ndarray_py, low, high, colormap_ndarray_py, &image);
                             PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.size(), context_scaling, low, high, colormap_ndarray_py, &image);
-
-                            FreePyObject(ndarray_py);
                         }
                     }
                     else

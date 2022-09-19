@@ -46,35 +46,41 @@ private:
     Python_ThreadAllowState *m_state;
 };
 
-void FreePyObject(PyObject *py_object);
-
 class PyObjectPtr
 {
 public:
-    PyObjectPtr() : py_object(NULL) { }
+    PyObjectPtr(PyObject *py_object = nullptr, bool borrowed = false) : py_object(py_object)
+    {
+        if (borrowed)
+        {
+            Python_ThreadBlock thread_block;
+            Py_INCREF(py_object);
+        }
+    }
     PyObjectPtr(const PyObjectPtr &py_object_ptr)
     {
         Python_ThreadBlock thread_block;
-        py_object = py_object_ptr.pyObject();
+        py_object = py_object_ptr.get();
         Py_INCREF(py_object);
     }
     ~PyObjectPtr()
     {
         Python_ThreadBlock thread_block;
-        if (this->py_object)
-        {
-            Py_DECREF(this->py_object);
-        }
+        Py_XDECREF(this->py_object);
     }
     PyObjectPtr &operator=(const PyObjectPtr &) = delete;
-    PyObject *pyObject() const { return this->py_object; }
+    PyObject *get() const { return this->py_object; }
+    PyObject *release()
+    {
+        PyObject *py_object = this->py_object;
+        this->py_object = nullptr;
+        return py_object;
+    }
+    operator PyObject*() const { return py_object; }
     void setPyObject(PyObject *py_object)
     {
         Python_ThreadBlock thread_block;
-        if (this->py_object)
-        {
-            Py_DECREF(this->py_object);
-        }
+        Py_XDECREF(this->py_object);
         Py_INCREF(py_object);
         this->py_object = py_object;
     }
@@ -130,7 +136,6 @@ public:
     void scaledImageFromArray(PyObject *ndarray_py, const QSizeF &destination_size, float context_scaling, float display_limit_low, float display_limit_high, PyObject *lookup_table, ImageInterface *image);
     PyObject *arrayFromImage(const ImageInterface &image);
     void bufferRelease(Py_buffer *buffer);
-    bool hasPyMethod(PyObject *object, const std::string &method);
     PythonValueVariant invokePyMethod(PyObject *object, const QString &method, const std::list<PythonValueVariant> &args);
     bool setAttribute(PyObject *object, const std::string &attribute, const PythonValueVariant &value);
     PythonValueVariant getAttribute(PyObject *object, const std::string &attribute);
