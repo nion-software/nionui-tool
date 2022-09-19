@@ -48,12 +48,71 @@ private:
     Python_ThreadAllowState *m_state;
 };
 
-PyObject *WrapQObject(QObject *ptr);
-
 QVariant PyObjectToQVariant(PyObject *py_object);
 PyObject *QVariantToPyObject(const QVariant &value);
 PyObject* QStringToPyObject(const QString& str);
 void FreePyObject(PyObject *py_object);
+
+class PyObjectPtr
+{
+public:
+    PyObjectPtr() : py_object(NULL) { }
+    PyObjectPtr(const PyObjectPtr &py_object_ptr)
+    {
+        Python_ThreadBlock thread_block;
+        py_object = py_object_ptr.pyObject();
+        Py_INCREF(py_object);
+    }
+    ~PyObjectPtr()
+    {
+        Python_ThreadBlock thread_block;
+        if (this->py_object)
+        {
+            Py_DECREF(this->py_object);
+        }
+    }
+    PyObjectPtr &operator=(const PyObjectPtr &) = delete;
+    PyObject *pyObject() const { return this->py_object; }
+    void setPyObject(PyObject *py_object)
+    {
+        Python_ThreadBlock thread_block;
+        if (this->py_object)
+        {
+            Py_DECREF(this->py_object);
+        }
+        Py_INCREF(py_object);
+        this->py_object = py_object;
+    }
+
+    static int metaId();
+
+private:
+    PyObject *py_object;
+};
+
+struct PythonValueVariant {
+    std::variant<
+        std::nullptr_t,
+        bool,
+        long,
+        long long,
+        double,
+        void *,
+        std::string,
+        std::map<std::string, PythonValueVariant>,
+        std::vector<PythonValueVariant>,
+        PyObjectPtr
+    > value;
+};
+
+PyObject *PythonValueVariantToPyObject(const PythonValueVariant &value_variant);
+QVariant PythonValueVariantToQVariant(const PythonValueVariant &value_variant);
+PythonValueVariant QVariantToPythonValueVariant(const QVariant &value);
+
+inline PyObject *WrapQObject(QObject *ptr)
+{
+    return PythonValueVariantToPyObject(QVariantToPythonValueVariant(QVariant::fromValue(static_cast<QObject *>(ptr))));
+}
 
 typedef PyObject *CreateAndAddModuleFn();
 

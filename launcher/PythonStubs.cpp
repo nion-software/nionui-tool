@@ -2,9 +2,6 @@
 
 #if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 
-#include <QtCore/QObject>
-#include <QtCore/QDebug>
-
 #if !defined(Q_OS_WIN)
 #include <dlfcn.h>
 #define LOOKUP_SYMBOL dlsym

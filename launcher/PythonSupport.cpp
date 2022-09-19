@@ -400,43 +400,6 @@ PythonSupport::~PythonSupport()
 #endif
 }
 
-class PyObjectPtr
-{
-public:
-    PyObjectPtr() : py_object(NULL) { }
-    PyObjectPtr(const PyObjectPtr &py_object_ptr)
-    {
-        Python_ThreadBlock thread_block;
-        py_object = py_object_ptr.pyObject();
-        Py_INCREF(py_object);
-    }
-    ~PyObjectPtr()
-    {
-        Python_ThreadBlock thread_block;
-        if (this->py_object)
-        {
-            Py_DECREF(this->py_object);
-        }
-    }
-    PyObjectPtr &operator=(const PyObjectPtr &) = delete;
-    PyObject *pyObject() const { return this->py_object; }
-    void setPyObject(PyObject *py_object)
-    {
-        Python_ThreadBlock thread_block;
-        if (this->py_object)
-        {
-            Py_DECREF(this->py_object);
-        }
-        Py_INCREF(py_object);
-        this->py_object = py_object;
-    }
-
-    static int metaId();
-
-private:
-    PyObject *py_object;
-};
-
 Q_DECLARE_METATYPE(PyObjectPtr)
 
 // static
@@ -660,6 +623,7 @@ QObject *PythonSupport::UnwrapQObject(PyObject *py_obj)
 #endif
 }
 
+#if 0
 PyObject *WrapQObject(QObject *ptr)
 {
 #if SIMPLE_WRAP
@@ -669,6 +633,7 @@ PyObject *WrapQObject(QObject *ptr)
     return ret;
 #endif
 }
+#endif
 
 // New reference
 PyObject* QStringToPyObject(const QString& str)
@@ -715,6 +680,203 @@ PyObject *QVariantListToPyObject(const QVariantList &variant_list)
     return py_list;
 }
 
+PyObject *PythonValueVariantToPyObject(const PythonValueVariant &value_variant)
+{
+    if (value_variant.value.valueless_by_exception())
+    {
+        Py_INCREF(CALL_PY(Py_NoneGet)());
+        return CALL_PY(Py_NoneGet)();
+    }
+    else if (std::holds_alternative<bool>(value_variant.value))
+    {
+        PyObject *py_obj = *std::get_if<bool>(&value_variant.value) ? CALL_PY(Py_TrueGet)() : CALL_PY(Py_FalseGet)();
+        Py_INCREF(py_obj);
+        return py_obj;
+    }
+    else if (std::holds_alternative<long>(value_variant.value))
+    {
+        return CALL_PY(PyLong_FromLong)(*std::get_if<long>(&value_variant.value));
+    }
+    else if (std::holds_alternative<long long>(value_variant.value))
+    {
+        return CALL_PY(PyLong_FromLongLong)(*std::get_if<long long>(&value_variant.value));
+    }
+    else if (std::holds_alternative<double>(value_variant.value))
+    {
+        return CALL_PY(PyFloat_FromDouble)(*std::get_if<double>(&value_variant.value));
+    }
+    else if (std::holds_alternative<void *>(value_variant.value))
+    {
+        return CALL_PY(PyCapsule_New)(*std::get_if<void *>(&value_variant.value), PythonSupport::qobject_capsule_name, NULL);
+    }
+    else if (std::holds_alternative<std::string>(value_variant.value))
+    {
+        return CALL_PY(PyUnicode_FromString)(std::get_if<std::string>(&value_variant.value)->c_str());
+    }
+    else if (std::holds_alternative<std::map<std::string, PythonValueVariant>>(value_variant.value))
+    {
+        PyObject *py_map = CALL_PY(PyDict_New)();
+        for (auto item: *std::get_if<std::map<std::string, PythonValueVariant>>(&value_variant.value))
+        {
+            PyObject *py_key = CALL_PY(PyUnicode_FromString)(item.first.c_str());
+            PyObject *py_value = PythonValueVariantToPyObject(item.second);
+            CALL_PY(PyDict_SetItem)(py_map, py_key, py_value);
+            Py_DECREF(py_key);
+            Py_DECREF(py_value);
+        }
+        return py_map;
+    }
+    else if (std::holds_alternative<std::vector<PythonValueVariant>>(value_variant.value))
+    {
+        auto variant_list = std::get_if<std::vector<PythonValueVariant>>(&value_variant.value);
+        PyObject *py_list = CALL_PY(PyTuple_New)(variant_list->size());
+        int i = 0;
+        for (auto item: *variant_list)
+        {
+            CALL_PY(PyTuple_SetItem)(py_list, i, PythonValueVariantToPyObject(item)); // steals reference
+            i++;
+        }
+        return py_list;
+    }
+    else if (std::holds_alternative<PyObjectPtr>(value_variant.value))
+    {
+        const PyObjectPtr *ptr = std::get_if<PyObjectPtr>(&value_variant.value);
+        PyObject *py_object = ptr->pyObject();
+        Py_INCREF(py_object);
+        return py_object;
+    }
+
+    Py_INCREF(CALL_PY(Py_NoneGet)());
+    return CALL_PY(Py_NoneGet)();
+}
+
+
+typedef QObject *QObjectPtr;
+
+PythonValueVariant QVariantToPythonValueVariant(const QVariant &value)
+{
+    const void *data = (void *)value.constData();
+    int type = value.userType();
+
+    switch (type)
+    {
+        case QMetaType::Void:
+            return PythonValueVariant();
+
+        case QMetaType::Char:
+            return PythonValueVariant{static_cast<long>(*((char*)data))};
+
+        case QMetaType::UChar:
+            return PythonValueVariant{static_cast<long>(*((unsigned char*)data))};
+
+        case QMetaType::Short:
+            return PythonValueVariant{static_cast<long>(*((short*)data))};
+
+        case QMetaType::UShort:
+            return PythonValueVariant{static_cast<long>(*((unsigned short*)data))};
+
+        case QMetaType::Long:
+            return PythonValueVariant{*((long*)data)};
+
+        case QMetaType::ULong:
+            // does not fit into simple int of python
+            return PythonValueVariant{static_cast<long long>(*((unsigned long*)data))};
+
+        case QMetaType::Bool:
+            return PythonValueVariant{value.toBool()};
+
+        case QMetaType::Int:
+            return PythonValueVariant{static_cast<long>(*((int*)data))};
+
+        case QMetaType::UInt:
+            // does not fit into simple int of python
+            return PythonValueVariant{static_cast<long long>(*((unsigned int*)data))};
+
+        case QMetaType::QChar:
+            return PythonValueVariant{static_cast<long>(*((short*)data))};
+
+        case QMetaType::Float:
+            return PythonValueVariant{static_cast<double>(*((float*)data))};
+
+        case QMetaType::Double:
+            return PythonValueVariant{*((double*)data)};
+
+        case QMetaType::LongLong:
+            return PythonValueVariant{static_cast<long long>(*((qint64*)data))};
+
+        case QMetaType::ULongLong:
+            return PythonValueVariant{static_cast<long long>(*((qint64*)data))};
+
+        case QMetaType::QVariantMap:
+        {
+            std::map<std::string, PythonValueVariant> map;
+            Q_FOREACH(const QString &key, value.toMap().keys())
+            {
+                map.insert(std::pair(key.toStdString(), QVariantToPythonValueVariant(value.toMap().value(key))));
+            }
+            return PythonValueVariant{map};
+        }
+
+        case QMetaType::QVariantList:
+        {
+            std::vector<PythonValueVariant> list;
+            Q_FOREACH(const QVariant &variant, value.toList())
+            {
+                list.push_back(QVariantToPythonValueVariant(variant));
+            }
+            return PythonValueVariant{list};
+        }
+
+        case QMetaType::QString:
+            return PythonValueVariant{static_cast<const QString *>(data)->toStdString()};
+
+        case QMetaType::QStringList:
+        {
+            std::vector<PythonValueVariant> list;
+            Q_FOREACH(const QString &str, value.toStringList())
+            {
+                list.push_back(PythonValueVariant{str.toStdString()});
+            }
+            return PythonValueVariant{list};
+        }
+
+        case QMetaType::QObjectStar:
+        {
+            return PythonValueVariant{value.value<QObject *>()};
+        }
+
+        default:
+        {
+            if (type == PyObjectPtr::metaId())
+            {
+                PyObject *py_object = ((PyObjectPtr *)data)->pyObject();
+                Py_INCREF(py_object);
+                return PythonValueVariant{*(PyObjectPtr *)data};
+            }
+            else if (type == qMetaTypeId<QList<QUrl>>())
+            {
+                std::vector<PythonValueVariant> list;
+                Q_FOREACH(const QVariant &variant, value.toList())
+                {
+                    list.push_back(PythonValueVariant{variant.toUrl().toString().toStdString()});
+                }
+                return PythonValueVariant{list};
+            }
+        }
+    }
+
+    return PythonValueVariant();
+}
+
+#if 1
+// New reference
+PyObject *QVariantToPyObject(const QVariant &value)
+{
+    return PythonValueVariantToPyObject(QVariantToPythonValueVariant(value));
+}
+#endif
+
+#if 0
 // New reference
 PyObject *QVariantToPyObject(const QVariant &value)
 {
@@ -817,6 +979,7 @@ PyObject *QVariantToPyObject(const QVariant &value)
     Py_INCREF(CALL_PY(Py_NoneGet)());
     return CALL_PY(Py_NoneGet)();
 }
+#endif
 
 QString PyObjectToQString(PyObject* val)
 {
@@ -827,6 +990,142 @@ QString PyObjectToQString(PyObject* val)
     return QString();
 }
 
+PythonValueVariant PyObjectToValueVariant(PyObject *py_object)
+{
+    if (PyString_Check(py_object) || PyUnicode_Check(py_object))
+    {
+        return PythonValueVariant{std::string(CALL_PY(PyUnicode_AsUTF8)(py_object))};
+    }
+    else if (PyInt_Check(py_object))
+    {
+        return PythonValueVariant{PyInt_AsLong(py_object)};
+    }
+    else if (PyLong_Check(py_object))
+    {
+        return PythonValueVariant{CALL_PY(PyLong_AsLongLong)(py_object)};
+    }
+    else if (CALL_PY(PyFloat_Check)(py_object))
+    {
+        return PythonValueVariant{CALL_PY(PyFloat_AsDouble)(py_object)};
+    }
+    else if (CALL_PY(PyBool_Check)(py_object))
+    {
+        return PythonValueVariant{static_cast<bool>(CALL_PY(PyObject_IsTrue)(py_object))};
+    }
+    else if (CALL_PY(PyCapsule_IsValid)(py_object, PythonSupport::qobject_capsule_name) && CALL_PY(PyCapsule_CheckExact)(py_object))
+    {
+        return PythonValueVariant{CALL_PY(PyCapsule_GetPointer)(py_object, PythonSupport::qobject_capsule_name)};
+    }
+    else if (PyDict_Check(py_object))
+    {
+        std::map<std::string, PythonValueVariant> map;
+        PyObject *items = CALL_PY(PyMapping_Items)(py_object);
+        if (items)
+        {
+            int count = (int)CALL_PY(PyList_Size)(items);
+            for (int i=0; i<count; i++)
+            {
+                PyObject *tuple = CALL_PY(PyList_GetItem)(items,i); //borrowed
+                PyObject *key = CALL_PY(PyTuple_GetItem)(tuple, 0); //borrowed
+                PyObject *value = CALL_PY(PyTuple_GetItem)(tuple, 1); //borrowed
+                std::string key_string = std::string(CALL_PY(PyUnicode_AsUTF8)(key));
+                PythonValueVariant value_variant = PyObjectToValueVariant(value);
+                map.insert(std::pair(key_string, value_variant));
+            }
+            Py_DECREF(items);
+        }
+        return PythonValueVariant{map};
+    }
+    else if ((PyList_Check(py_object) || PyTuple_Check(py_object)) && CALL_PY(PySequence_Check)(py_object))
+    {
+        std::vector<PythonValueVariant> list;
+        int count = (int)CALL_PY(PySequence_Size)(py_object);
+        PyObject *fast_list = CALL_PY(PySequence_Fast)(py_object, "error");
+        PyObject **fast_items = PySequence_Fast_ITEMS(fast_list);
+        for (int i=0; i<count; i++)
+        {
+            list.push_back(PyObjectToValueVariant(fast_items[i]));
+        }
+        Py_DECREF(fast_list);
+        return PythonValueVariant{list};
+    }
+    else if (py_object == CALL_PY(Py_NoneGet)())
+    {
+        return PythonValueVariant();
+    }
+    else
+    {
+        PyObjectPtr py_object_ptr;
+        py_object_ptr.setPyObject(py_object);
+        return PythonValueVariant{py_object_ptr};
+    }
+}
+
+QVariant PythonValueVariantToQVariant(const PythonValueVariant &value_variant)
+{
+    if (value_variant.value.valueless_by_exception())
+    {
+        return QVariant();
+    }
+    else if (std::holds_alternative<bool>(value_variant.value))
+    {
+        return QVariant(*std::get_if<bool>(&value_variant.value));
+    }
+    else if (std::holds_alternative<long>(value_variant.value))
+    {
+        return QVariant(static_cast<int>(*std::get_if<long>(&value_variant.value)));
+    }
+    else if (std::holds_alternative<long long>(value_variant.value))
+    {
+        return QVariant(*std::get_if<long long>(&value_variant.value));
+    }
+    else if (std::holds_alternative<double>(value_variant.value))
+    {
+        return QVariant(*std::get_if<double>(&value_variant.value));
+    }
+    else if (std::holds_alternative<void *>(value_variant.value))
+    {
+        PyObject *py_object = static_cast<PyObject *>(*std::get_if<void *>(&value_variant.value));
+        if (CALL_PY(PyCapsule_CheckExact)(py_object))
+            return QVariant::fromValue(static_cast<QObject *>(CALL_PY(PyCapsule_GetPointer)(py_object, PythonSupport::qobject_capsule_name)));
+        return QVariant::fromValue(nullptr);
+    }
+    else if (std::holds_alternative<std::string>(value_variant.value))
+    {
+        return QString::fromStdString(*std::get_if<std::string>(&value_variant.value));
+    }
+    else if (std::holds_alternative<std::map<std::string, PythonValueVariant>>(value_variant.value))
+    {
+        QMap<QString, QVariant> map;
+        for (auto item: *std::get_if<std::map<std::string, PythonValueVariant>>(&value_variant.value))
+            map.insert(QString::fromStdString(item.first), PythonValueVariantToQVariant(item.second));
+        return map;
+    }
+    else if (std::holds_alternative<std::vector<PythonValueVariant>>(value_variant.value))
+    {
+        QVariantList list;
+        auto variant_list = std::get_if<std::vector<PythonValueVariant>>(&value_variant.value);
+        for (auto item: *variant_list)
+            list.append(PythonValueVariantToQVariant(item));
+        return list;
+    }
+    else if (std::holds_alternative<PyObjectPtr>(value_variant.value))
+    {
+        const PyObjectPtr *ptr = std::get_if<PyObjectPtr>(&value_variant.value);
+        PyObject *py_object = ptr->pyObject();
+        PyObjectPtr py_object_ptr;
+        py_object_ptr.setPyObject(py_object);
+        return QVariant::fromValue(py_object_ptr);
+    }
+    return QVariant();
+}
+
+QVariant PyObjectToQVariant(PyObject *py_object)
+{
+    return PythonValueVariantToQVariant(PyObjectToValueVariant(py_object));
+}
+
+#if 0
 QVariant PyObjectToQVariant(PyObject *py_object)
 {
     if (PyString_Check(py_object) || PyUnicode_Check(py_object))
@@ -899,6 +1198,7 @@ QVariant PyObjectToQVariant(PyObject *py_object)
     }
     return QVariant();
 }
+#endif
 
 void PythonSupport::addResourcePath(const QString &resources_path)
 {
