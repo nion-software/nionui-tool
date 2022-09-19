@@ -6393,7 +6393,7 @@ bool Application::initialize()
         return false;
 #endif
 
-    PythonSupport::initInstance(m_python_home, m_python_library);
+    PythonSupport::initInstance(m_python_home.toStdString(), m_python_library.toStdString());
 
     if (PythonSupport::instance()->isValid())
     {
@@ -6412,21 +6412,20 @@ bool Application::initialize()
             PythonSupport::instance()->addResourcePath(resourcesPath().toStdString());
 
             // Bootstrap the python stuff.
-            PyObject *module = PythonSupport::instance()->import("bootstrap");
             PythonSupport::instance()->printAndClearErrors();
-            m_bootstrap_module = PyObjectToQVariant(module); // new reference
+            m_bootstrap_module = std::unique_ptr<PyObjectPtr>(new PyObjectPtr(PythonSupport::instance()->import("bootstrap"))); // new reference
             PythonSupport::instance()->printAndClearErrors();
             QVariantList args;
             if (m_python_app.isEmpty())
                 args << arguments();
             else
                 args << (QStringList() << arguments()[0] << m_python_home << m_python_app);
-            QVariant bootstrap_result = invokePyMethod(m_bootstrap_module, "bootstrap_main", args);
-            m_py_application = bootstrap_result.toList()[0];
+            QVariant bootstrap_result = invokePyMethod(m_bootstrap_module.get(), "bootstrap_main", args);
+            m_py_application = std::unique_ptr<PyObjectPtr>(new PyObjectPtr(bootstrap_result.toList()[0].value<PyObjectPtr>()));
             bootstrap_error = bootstrap_result.toList()[1].toString();
 
-            if (!m_py_application.isNull())
-                return invokePyMethod(m_py_application, "start", QVariantList()).toBool();
+            if (m_py_application->isValid())
+                return invokePyMethod(m_py_application.get(), "start", QVariantList()).toBool();
         }
 
         if (bootstrap_error == "python36" || bootstrap_error == "python37")
@@ -6449,15 +6448,15 @@ Application::~Application()
 
 void Application::deinitialize()
 {
-    m_bootstrap_module.clear();
-    m_py_application.clear();
+    m_bootstrap_module.reset();
+    m_py_application.reset();
     PythonSupport::instance()->deinitialize();
     PythonSupport::deinitInstance();
 }
 
 void Application::aboutToQuit()
 {
-    invokePyMethod(m_py_application, "stop", QVariantList());
+    invokePyMethod(m_py_application.get(), "stop", QVariantList());
 }
 
 QString Application::resourcesPath() const
@@ -6470,29 +6469,29 @@ QString Application::resourcesPath() const
 #endif
 }
 
-QVariant Application::invokePyMethod(const QVariant &object, const QString &method, const QVariantList &qargs)
+QVariant Application::invokePyMethod(PyObjectPtr *object, const QString &method, const QVariantList &qargs)
 {
     std::list<PythonValueVariant> args;
     Q_FOREACH(const QVariant &variant, qargs)
     {
         args.push_back(QVariantToPythonValueVariant(variant));
     }
-    return PythonValueVariantToQVariant(PythonSupport::instance()->invokePyMethod(QVariantToPyObject(object), method, args));
+    return PythonValueVariantToQVariant(PythonSupport::instance()->invokePyMethod(object, method, args));
 }
 
-bool Application::setPyObjectAttribute(const QVariant &object, const QString &attribute, const QVariant &value)
+bool Application::setPyObjectAttribute(PyObjectPtr *object, const QString &attribute, const QVariant &value)
 {
-    return PythonSupport::instance()->setAttribute(QVariantToPyObject(object), attribute.toStdString(), QVariantToPythonValueVariant(value));
+    return PythonSupport::instance()->setAttribute(object, attribute.toStdString(), QVariantToPythonValueVariant(value));
 }
 
-QVariant Application::getPyObjectAttribute(const QVariant &object, const QString &attribute)
+QVariant Application::getPyObjectAttribute(PyObjectPtr *object, const QString &attribute)
 {
-    return PythonValueVariantToQVariant(PythonSupport::instance()->getAttribute(QVariantToPyObject(object), attribute.toStdString()));
+    return PythonValueVariantToQVariant(PythonSupport::instance()->getAttribute(object, attribute.toStdString()));
 }
 
 QVariant Application::dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args)
 {
-    return invokePyMethod(m_bootstrap_module, "bootstrap_dispatch", QVariantList() << object << method << QVariant(args));
+    return invokePyMethod(m_bootstrap_module.get(), "bootstrap_dispatch", QVariantList() << object << method << QVariant(args));
 }
 
 void Application::closeSplashScreen()

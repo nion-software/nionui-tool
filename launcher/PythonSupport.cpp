@@ -4,6 +4,9 @@
 
 #include <stdint.h>
 
+// for Q_OS_xyz defs
+#include <QtCore/QObject>
+
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QDirIterator>
@@ -114,7 +117,7 @@ QString PythonSupport::ensurePython(const QString &python_home)
     return QString();
 }
 
-void PythonSupport::initInstance(const QString &python_home, const QString &python_library)
+void PythonSupport::initInstance(const std::string &python_home, const std::string &python_library)
 {
     thePythonSupport = new PythonSupport(python_home, python_library);
 }
@@ -130,139 +133,30 @@ PythonSupport *PythonSupport::instance()
     return thePythonSupport;
 }
 
-PythonSupport::PythonSupport(const QString &python_home, const QString &python_library)
-    : module_exception(NULL)
+class FileSystem
 {
-#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
-#if defined(Q_OS_MAC)
-    QStringList file_paths;
-    QString file_path;
-    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
-    if (!python_library.isEmpty())
+public:
+    std::string absoluteFilePath(const std::string &dir, const std::string &fileName)
     {
-        file_paths.append(python_library);
-    }
-    else if (QFile(venv_conf_file_name).exists())
-    {
-        // probably Python w/ virtual environment
-        QSettings settings(venv_conf_file_name, QSettings::IniFormat);
-        QString home_bin_path = settings.value("home").toString();
-        if (!home_bin_path.isEmpty())
-        {
-            QString version_str = settings.value("version").toString();
-            QRegularExpression re("(\\d+)\\.(\\d+)(\\.\\d+)?");
-            QRegularExpressionMatch match = re.match(version_str);
-            if (match.hasMatch())
-                version_str = QString::number(match.captured(1).toInt()) + "." + QString::number(match.captured(2).toInt());
-
-            QDir home_dir(home_bin_path);
-
-            QStringList directories;
-            directories << home_dir.absoluteFilePath("../lib") << "/usr/local/Cellar/python@" + version_str;
-
-            QStringList variants;
-            variants << "libpython3.11.dylib" << "libpython3.10.dylib" << "libpython3.9.dylib" << "libpython3.8.dylib";
-
-            Q_FOREACH(const QString &directory, directories)
-            {
-                QDirIterator it(directory, variants, QDir::NoFilter, QDirIterator::Subdirectories);
-                while (it.hasNext())
-                {
-                    QString file_path = it.next();
-                    if (QFileInfo(file_path).absoluteDir().dirName() == "lib")
-                        file_paths.append(file_path);
-                }
-            }
-        }
-    }
-    else
-    {
-        // probably conda or standard Python
-        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.11.dylib"));
-        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.10.dylib"));
-        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.9.dylib"));
-        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.8.dylib"));
+        return QDir(QString::fromStdString(dir)).absoluteFilePath(QString::fromStdString(fileName)).toStdString();
     }
 
-    Q_FOREACH(file_path, file_paths)
+    bool exists(const std::string &filePath)
     {
-        if (QFile(file_path).exists())
-            break;
+        return QFile(QString::fromStdString(filePath)).exists();
     }
 
-    QDir d = QFileInfo(file_path).absoluteDir();
-    d.cdUp();
-    m_actual_python_home = d.absolutePath();
-
-    void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY);
-#elif defined(Q_OS_LINUX)
-    QStringList file_paths;
-    QString file_path;
-    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
-    if (!python_library.isEmpty())
+    std::string toNativeSeparators(const std::string &filePath)
     {
-        file_paths.append(python_library);
-    }
-    else if (QFile(venv_conf_file_name).exists())
-    {
-        // probably Python w/ virtual environment
-        QSettings settings(venv_conf_file_name, QSettings::IniFormat);
-        QString home_bin_path = settings.value("home").toString();
-        if (!home_bin_path.isEmpty())
-        {
-            QDir home_dir(home_bin_path);
-            home_dir.cdUp();
-            file_paths.append(home_dir.absoluteFilePath("lib/python3.11/config-3.11-x86_64-linux-gnu/libpython3.11.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/python3.9/config-3.9-x86_64-linux-gnu/libpython3.9.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/python3.8/config-3.8-x86_64-linux-gnu/libpython3.8.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/libpython3.11.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/libpython3.10.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/libpython3.9.so"));
-            file_paths.append(home_dir.absoluteFilePath("lib/libpython3.8.so"));
-        }
-    }
-    else
-    {
-        // probably conda or standard Python
-        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.11.so"));
-        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.10.so"));
-        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.9.so"));
-        file_paths.append(QDir(python_home).absoluteFilePath("lib/libpython3.8.so"));
+        return QDir::toNativeSeparators(QString::fromStdString(filePath)).toStdString();
     }
 
-    Q_FOREACH(file_path, file_paths)
+    bool parseConfigFile(const std::string &filePath, std::string &home, std::string &version)
     {
-        if (QFile(file_path).exists())
-            break;
-    }
+        QSettings settings(QString::fromStdString(filePath), QSettings::IniFormat);
 
-    // see Python get_path.c for info about landmarks. this is a hack.
-    QDir d = QFileInfo(file_path).absoluteDir();
-    while (d.dirName() != "lib")
-    {
-        if (!d.cdUp())
-            break;
-    }
-    d.cdUp();
-
-    m_actual_python_home = d.absolutePath();
-
-    void *dl = dlopen(file_path.toUtf8().constData(), RTLD_LAZY | RTLD_GLOBAL);
-#else
-    QStringList file_paths;
-    QString python_home_new = python_home;
-    QString file_path;
-    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
-    if (!python_library.isEmpty())
-    {
-        file_paths.append(python_library);
-    }
-    else if (QFile(venv_conf_file_name).exists())
-    {
-        // probably Python w/ virtual environment.
         // this code makes me hate both Windows and Qt equally. it is necessary to handle backslashes in paths.
-        QFile file(venv_conf_file_name);
+        QFile file(QString::fromStdString(filePath));
         if (file.open(QFile::ReadOnly))
         {
             QByteArray bytes = file.readAll();
@@ -276,86 +170,355 @@ PythonSupport::PythonSupport(const QString &python_home, const QString &python_l
                     QString home_bin_path = match.captured(1).trimmed();
                     if (!home_bin_path.isEmpty())
                     {
-                        QDir home_dir(QDir::fromNativeSeparators(home_bin_path));
-                        python_home_new = home_dir.absolutePath();
-                        file_paths.append(QDir(python_home).absoluteFilePath("Scripts/Python311.dll"));
-                        file_paths.append(QDir(python_home).absoluteFilePath("Python311.dll"));
-                        file_paths.append(QDir(python_home_new).absoluteFilePath("Scripts/Python311.dll"));
-                        file_paths.append(QDir(python_home_new).absoluteFilePath("Python311.dll"));
-                        file_paths.append(QDir(python_home).absoluteFilePath("Scripts/Python310.dll"));
-                        file_paths.append(QDir(python_home).absoluteFilePath("Python310.dll"));
-                        file_paths.append(QDir(python_home_new).absoluteFilePath("Scripts/Python310.dll"));
-                        file_paths.append(QDir(python_home_new).absoluteFilePath("Python310.dll"));
-                        file_paths.append(QDir(python_home).absoluteFilePath("Scripts/Python39.dll"));
-                        file_paths.append(QDir(python_home).absoluteFilePath("Python39.dll"));
-                        file_paths.append(QDir(python_home_new).absoluteFilePath("Scripts/Python39.dll"));
-                        file_paths.append(QDir(python_home_new).absoluteFilePath("Python39.dll"));
-                        file_paths.append(QDir(python_home).absoluteFilePath("Scripts/Python38.dll"));
-                        file_paths.append(QDir(python_home).absoluteFilePath("Python38.dll"));
-                        file_paths.append(QDir(python_home_new).absoluteFilePath("Scripts/Python38.dll"));
-                        file_paths.append(QDir(python_home_new).absoluteFilePath("Python38.dll"));
+                        QString version_str = settings.value("version").toString();
+                        QRegularExpression re("(\\d+)\\.(\\d+)(\\.\\d+)?");
+                        QRegularExpressionMatch match = re.match(version_str);
+                        if (match.hasMatch())
+                            version_str = QString::number(match.captured(1).toInt()) + "." + QString::number(match.captured(2).toInt());
+                        home = QDir::fromNativeSeparators(home_bin_path).toStdString();
+                        version = version_str.toStdString();
+                        return true;
                     }
                 }
             }
         }
+        return false;
+    }
+
+    void iterateDirectory(const std::string &directoryPath, const std::list<std::string> &nameFilters, std::list<std::string> &filePaths)
+    {
+        QStringList nameFiltersQ;
+        for (auto nameFilter : nameFilters)
+            nameFiltersQ.append(QString::fromStdString(nameFilter));
+        QDirIterator it(QString::fromStdString(directoryPath), nameFiltersQ, QDir::NoFilter, QDirIterator::Subdirectories);
+        while (it.hasNext())
+            filePaths.push_back(it.next().toStdString());
+    }
+
+    std::string directoryName(const std::string &filePath)
+    {
+        QFileInfo fileInfo(QString::fromStdString(filePath));
+        if (fileInfo.isDir())
+            return fileInfo.fileName().toStdString();
+        else
+            return fileInfo.absoluteDir().dirName().toStdString();
+    }
+
+    std::string directory(const std::string &filePath)
+    {
+        return QFileInfo(QString::fromStdString(filePath)).absoluteDir().canonicalPath().toStdString();
+    }
+
+    std::string parentDirectory(const std::string &filePath)
+    {
+        QFileInfo fileInfo(QString::fromStdString(filePath));
+        if (fileInfo.isDir())
+        {
+            return fileInfo.absoluteDir().canonicalPath().toStdString();
+        }
+        else
+        {
+            QDir d = fileInfo.absoluteDir();
+            d.cdUp();
+            return d.absolutePath().toStdString();
+        }
+    }
+
+    void putEnv(const std::string &key, const std::string &value)
+    {
+        qputenv(key.c_str(), value.c_str());
+    }
+
+    std::string getEnv(const std::string &key)
+    {
+        return QString::fromLocal8Bit(qgetenv(key.c_str())).toStdString();
+    }
+};
+
+#if defined(Q_OS_MAC)
+class MacSupport : public PlatformSupport
+{
+    void *dl;
+public:
+    MacSupport() : dl(nullptr) { }
+    ~MacSupport()
+    {
+        extern void deinitialize_pylib();
+        deinitialize_pylib();
+        if (dl != nullptr)
+            dlclose(dl);
+        dl = nullptr;
+    }
+
+    virtual void loadLibrary(FileSystem *fs, const std::string &python_home, const std::string &filePath) override
+    {
+        dl = dlopen(filePath.c_str(), RTLD_LAZY);
+        extern void initialize_pylib(void *);
+        initialize_pylib(dl);
+    }
+
+    virtual void *lookupSymbol(const std::string &symbolName) override
+    {
+        return dlsym(dl, symbolName.c_str());
+    }
+
+    virtual bool isValid() const override
+    {
+        return dl != nullptr;
+    }
+
+    virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) override
+    {
+        std::list<std::string> directories;
+        directories.push_back(fs->absoluteFilePath(home_bin_path, "../lib"));
+        directories.push_back(fs->absoluteFilePath(home_bin_path, "/usr/local/Cellar/python@" + version));
+
+        std::list<std::string> variants;
+        variants.push_back("libpython3.11.dylib");
+        variants.push_back("libpython3.10.dylib");
+        variants.push_back("libpython3.9.dylib");
+        variants.push_back("libpython3.8.dylib");
+
+        for (auto directory: directories)
+        {
+            std::list<std::string> directoryFilePaths;
+            fs->iterateDirectory(directory, variants, directoryFilePaths);
+            for (auto filePath : directoryFilePaths)
+                if (fs->directoryName(filePath) == "lib")
+                    filePaths.push_back(filePath);
+        }
+    }
+
+    virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
+    {
+        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.11.dylib"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.10.dylib"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.9.dylib"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.8.dylib"));
+    }
+
+    virtual std::string findLandmarkLibrary(FileSystem *fs, const std::string &filePath) override
+    {
+        return fs->parentDirectory(filePath);
+    }
+};
+#endif
+
+#if defined(Q_OS_LINUX)
+class LinuxSupport : public PlatformSupport
+{
+    void *dl;
+public:
+    LinuxSupport() : dl(nullptr) { }
+    ~LinuxSupport()
+    {
+        extern void deinitialize_pylib();
+        deinitialize_pylib();
+        if (dl != nullptr)
+            dlclose(dl);
+        dl = nullptr;
+    }
+
+    virtual void loadLibrary(FileSystem *fs, const std::string &python_home, const std::string &filePath) override
+    {
+        dl = dlopen(filePath.c_str(), RTLD_LAZY | RTLD_GLOBAL);
+        extern void initialize_pylib(void *);
+        initialize_pylib(dl);
+    }
+
+    virtual void *lookupSymbol(const std::string &symbolName) override
+    {
+        return dlsym(dl, symbolName.c_str());
+    }
+
+    virtual bool isValid() const override
+    {
+        return dl != nullptr;
+    }
+
+    virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) override
+    {
+        std::string homeParentDirectory = fs->parentDirectory(home_bin_path);
+        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.11/config-3.11-x86_64-linux-gnu/libpython3.11.so"));
+        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.so"));
+        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.9/config-3.9-x86_64-linux-gnu/libpython3.9.so"));
+        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.8/config-3.8-x86_64-linux-gnu/libpython3.8.so"));
+        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.11.so"));
+        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.10.so"));
+        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.9.so"));
+        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.8.so"));
+    }
+
+    virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
+    {
+        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.11.so"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.10.so"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.9.so"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.8.so"));
+    }
+
+    virtual std::string findLandmarkLibrary(FileSystem *fs, const std::string &filePath) override
+    {
+        std::string directory = fs->directory(filePath);
+        std::string lastDirectory;
+        while (directory != lastDirectory && fs->directoryName(directory) != "lib")
+        {
+            lastDirectory = directory;
+            directory = fs->parentDirectory(directory);
+        }
+        return fs->parentDirectory(directory);
+    }
+};
+#endif
+
+#if defined(Q_OS_WIN)
+class WinSupport : public PlatformSupport
+{
+    void *dl;
+public:
+    WinSupport() : dl(nullptr) { }
+    ~WinSupport()
+    {
+        extern void deinitialize_pylib();
+        deinitialize_pylib();
+        if (dl != nullptr)
+            FreeLibrary((HMODULE)dl);
+        dl = nullptr;
+    }
+
+    virtual void loadLibrary(FileSystem *fs, const std::string &python_home, const std::string &filePath) override
+    {
+        // Python may have side-by-side DLLs that it uses. This seems to be an issue with how
+        // Anaconda handles installation of the VS redist -- they include it in the directory
+        // rather than installing it system wide. That approach works great when running the
+        // python.exe, but not so great when loading the python35.dll. To avoid _us_ having to
+        // install the VS redist, we add the python home to the DLL search path. Through trial
+        // and error, the qputenv or SetDllDirectory approach works. The AddDllDirectory does not
+        // work. I leave this code here so the next time someone encounters it, they can try these
+        // different solutions.
+
+        // DOES NOT WORK
+        //SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_USER_DIRS);
+        //AddDllDirectory((PCWSTR)QDir::toNativeSeparators(python_home).utf16());  // ensure that DLLs local to Python can be found
+
+        // DOES NOT WORK
+        //QProcessEnvironment::systemEnvironment().insert("PATH", QProcessEnvironment::systemEnvironment().value("PATH") + ";" + python_home);
+
+        // WORKS. Library/bin added for Anaconda/Miniconda 3.7 compatibility.
+        fs->putEnv("PATH", (fs->getEnv("PATH") + ";" + python_home + ";" + fs->absoluteFilePath(python_home, "Library/bin")));
+
+        // WORKS ALMOST. DOESN'T ALLOW CAMERA PLUG-INS TO LOAD.
+        //SetDllDirectory(QDir::toNativeSeparators(python_home).toUtf8());  // ensure that DLLs local to Python can be found
+
+        // required, see https://bugs.python.org/issue36085
+        std::string dll_directory = fs->toNativeSeparators(fs->absoluteFilePath(python_home, "Library/bin"));
+        std::wstring dll_directory_w = std::wstring(dll_directory.begin(), dll_directory.end());
+        AddDllDirectory(dll_directory_w.c_str());
+
+        dl = LoadLibraryA(fs->toNativeSeparators(filePath).c_str());
+
+        extern void initialize_pylib(void *);
+        initialize_pylib(dl);
+    }
+
+    virtual void *lookupSymbol(const std::string &symbolName) override
+    {
+        return GetProcAddress(HMODULE(dl), symbolName.c_str());
+    }
+
+    virtual bool isValid() const override
+    {
+        return dl != nullptr;
+    }
+
+    virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) override
+    {
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/Python311.dll"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Python311.dll"));
+        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python311.dll"));
+        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Python311.dll"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/Python310.dll"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Python310.dll"));
+        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python310.dll"));
+        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Python310.dll"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/Python39.dll"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Python39.dll"));
+        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python39.dll"));
+        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Python39.dll"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/Python38.dll"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Python38.dll"));
+        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python38.dll"));
+        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Python38.dll"));
+    }
+
+    virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
+    {
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Python311.dll"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Python310.dll"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Python39.dll"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Python38.dll"));
+    }
+
+    virtual std::string findLandmarkLibrary(FileSystem *fs, const std::string &filePath) override
+    {
+        return fs->directory(filePath);
+    }
+};
+#endif
+
+PlatformSupport::~PlatformSupport()
+{
+}
+
+PythonSupport::PythonSupport(const std::string &python_home, const std::string &python_library)
+    : module_exception(NULL)
+{
+#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
+#if defined(Q_OS_MAC)
+    ps = std::unique_ptr<PlatformSupport>(new MacSupport());
+#elif defined(Q_OS_LINUX)
+    ps = std::unique_ptr<PlatformSupport>(new LinuxSupport());
+#else
+    ps = std::unique_ptr<PlatformSupport>(new WinSupport());
+#endif
+    std::unique_ptr<FileSystem> fs(new FileSystem());
+    std::list<std::string> filePaths;
+    std::string venv_conf_file_name = fs->absoluteFilePath(python_home, "pyvenv.cfg");
+    if (!python_library.empty())
+    {
+        filePaths.push_back(python_library);
+    }
+    else if (fs->exists(venv_conf_file_name))
+    {
+        std::string home_bin_path;
+        std::string version;
+        if (fs->parseConfigFile(venv_conf_file_name, home_bin_path, version))
+            ps->buildVirtualEnvironmentPaths(fs.get(), python_home, home_bin_path, version, filePaths);
     }
     else
     {
-        file_paths.append(QDir(python_home).absoluteFilePath("Python311.dll"));
-        file_paths.append(QDir(python_home).absoluteFilePath("Python310.dll"));
-        file_paths.append(QDir(python_home).absoluteFilePath("Python39.dll"));
-        file_paths.append(QDir(python_home).absoluteFilePath("Python38.dll"));
+        // probably conda or standard Python
+        ps->buildStandardPaths(fs.get(), python_home, filePaths);
     }
 
-    Q_FOREACH(file_path, file_paths)
+    std::string filePath;
+    for (auto filePath_ : filePaths)
     {
-        if (QFile(file_path).exists())
+        if (fs->exists(filePath_))
+        {
+            filePath = filePath_;
             break;
+        }
     }
 
-    QDir d = QFileInfo(file_path).absoluteDir();
-    m_actual_python_home = d.absolutePath();
+    m_actual_python_home = QString::fromStdString(ps->findLandmarkLibrary(fs.get(), filePath));
 
-    // Python may have side-by-side DLLs that it uses. This seems to be an issue with how
-    // Anaconda handles installation of the VS redist -- they include it in the directory
-    // rather than installing it system wide. That approach works great when running the
-    // python.exe, but not so great when loading the python35.dll. To avoid _us_ having to
-    // install the VS redist, we add the python home to the DLL search path. Through trial
-    // and error, the qputenv or SetDllDirectory approach works. The AddDllDirectory does not
-    // work. I leave this code here so the next time someone encounters it, they can try these
-    // different solutions.
+    ps->loadLibrary(fs.get(), python_home, filePath);
 
-    // DOES NOT WORK
-    //SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_USER_DIRS);
-    //AddDllDirectory((PCWSTR)QDir::toNativeSeparators(python_home).utf16());  // ensure that DLLs local to Python can be found
+    m_valid = ps->isValid();
 
-    // DOES NOT WORK
-    //QProcessEnvironment::systemEnvironment().insert("PATH", QProcessEnvironment::systemEnvironment().value("PATH") + ";" + python_home);
-
-    // WORKS. Library/bin added for Anaconda/Miniconda 3.7 compatibility.
-    qputenv("PATH", (qgetenv("PATH") + ";" + python_home + ";" + QDir(python_home).absoluteFilePath("Library/bin")).toUtf8());
-
-    // WORKS ALMOST. DOESN'T ALLOW CAMERA PLUG-INS TO LOAD.
-    //SetDllDirectory(QDir::toNativeSeparators(python_home).toUtf8());  // ensure that DLLs local to Python can be found
-
-    // required, see https://bugs.python.org/issue36085
-    AddDllDirectory((PCWSTR)(QDir::toNativeSeparators(QDir(python_home).absoluteFilePath("Library/bin")).utf16()));
-
-    void *dl = LoadLibraryA(QDir::toNativeSeparators(file_path).toUtf8());
-#endif
-    extern void initialize_pylib(void *);
-    initialize_pylib(dl);
-    m_valid = dl != NULL;
-#endif
-
-#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
-#if !defined(Q_OS_WIN)
-    dynamic_PyArg_ParseTuple = (PyArg_ParseTupleFn)dlsym(dl, "PyArg_ParseTuple");
-    dynamic_Py_BuildValue = (Py_BuildValueFn)dlsym(dl, "Py_BuildValue");
-#else
-    dynamic_PyArg_ParseTuple = (PyArg_ParseTupleFn)GetProcAddress(HMODULE(dl), "PyArg_ParseTuple");
-    dynamic_Py_BuildValue = (Py_BuildValueFn)GetProcAddress(HMODULE(dl), "Py_BuildValue");
-#endif
+    dynamic_PyArg_ParseTuple = (PyArg_ParseTupleFn)ps->lookupSymbol("PyArg_ParseTuple");
+    dynamic_Py_BuildValue = (Py_BuildValueFn)ps->lookupSymbol("Py_BuildValue");
 #else
     dynamic_PyArg_ParseTuple = PyArg_ParseTuple;
     dynamic_Py_BuildValue = Py_BuildValue;
@@ -374,24 +537,6 @@ PythonSupport& PythonSupport::operator=(PythonSupport const &)
 PythonSupport::~PythonSupport()
 {
     Py_XDECREF(module_exception);
-
-#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
-    extern void *pylib;
-    void *dl = pylib;
-#endif
-
-    extern void deinitialize_pylib();
-    deinitialize_pylib();
-
-#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
-#if defined(Q_OS_MAC)
-    dlclose(dl);
-#elif defined(Q_OS_LINUX)
-    dlclose(dl);
-#else
-    FreeLibrary((HMODULE)dl);
-#endif
-#endif
 }
 
 Q_DECLARE_METATYPE(PyObjectPtr)
@@ -779,14 +924,15 @@ void PythonSupport::addResourcePath(const std::string &resources_path)
     Py_DECREF(sys_module);
 }
 
-PythonValueVariant PythonSupport::invokePyMethod(PyObject *py_object, const QString &method, const std::list<PythonValueVariant> &args)
+PythonValueVariant PythonSupport::invokePyMethod(PyObjectPtr *object, const QString &method, const std::list<PythonValueVariant> &args)
 {
     Python_ThreadBlock thread_block;
 
+    PyObject *py_object = object->get();
+
     if (py_object)
     {
-        PyObjectPtr py_object_ptr(py_object);
-        PyObjectPtr callable(CALL_PY(PyObject_GetAttrString)(py_object_ptr, method.toLatin1().data()));
+        PyObjectPtr callable(CALL_PY(PyObject_GetAttrString)(py_object, method.toLatin1().data()));
         if (CALL_PY(PyCallable_Check)(callable))
         {
             CALL_PY(PyErr_Clear)();
@@ -833,13 +979,14 @@ PythonValueVariant PythonSupport::invokePyMethod(PyObject *py_object, const QStr
 }
 
 
-PythonValueVariant PythonSupport::getAttribute(PyObject *py_object, const std::string &attribute)
+PythonValueVariant PythonSupport::getAttribute(PyObjectPtr *object, const std::string &attribute)
 {
     Python_ThreadBlock thread_block;
 
+    PyObject *py_object = object->get();
+
     if (py_object)
     {
-        PyObjectPtr py_object_ptr(py_object);
         PyObjectPtr py_attribute(CALL_PY(PyUnicode_FromString)(attribute.c_str()));
         if (py_attribute)
         {
@@ -861,11 +1008,13 @@ PythonValueVariant PythonSupport::getAttribute(PyObject *py_object, const std::s
 }
 
 
-bool PythonSupport::setAttribute(PyObject *py_object, const std::string &attribute, const PythonValueVariant &value)
+bool PythonSupport::setAttribute(PyObjectPtr *object, const std::string &attribute, const PythonValueVariant &value)
 {
     int result = 0;
 
     Python_ThreadBlock thread_block;
+
+    PyObject *py_object = object->get();
 
     if (py_object)
     {
@@ -881,7 +1030,6 @@ bool PythonSupport::setAttribute(PyObject *py_object, const std::string &attribu
             }
             Py_DECREF(py_attribute);
         }
-        Py_DECREF(py_object);
     }
 
     return result != -1;

@@ -15,6 +15,7 @@
 float GetDisplayScaling();
 
 class DocumentWindow;
+class PyObjectPtr;
 
 typedef QList<DocumentWindow *> DocumentWindowList;
 
@@ -35,10 +36,10 @@ public:
     QString resourcesPath() const;
 
     // Python related methods
-    QVariant invokePyMethod(const QVariant &object, const QString &method, const QVariantList &args);
+    QVariant invokePyMethod(PyObjectPtr *object, const QString &method, const QVariantList &args);
     QVariant dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args);
-    bool setPyObjectAttribute(const QVariant &object, const QString &attribute, const QVariant &value);
-    QVariant getPyObjectAttribute(const QVariant &object, const QString &attribute);
+    bool setPyObjectAttribute(PyObjectPtr *object, const QString &attribute, const QVariant &value);
+    QVariant getPyObjectAttribute(PyObjectPtr *object, const QString &attribute);
     void closeSplashScreen();
     QFile &getLogFile() { return logFile; }
 
@@ -58,9 +59,8 @@ private:
     QString m_python_library;
     QString m_python_app;
 
-    QVariant m_bootstrap_module;
-
-    QVariant m_py_application;
+    std::unique_ptr<PyObjectPtr> m_bootstrap_module;
+    std::unique_ptr<PyObjectPtr> m_py_application;
 
     friend class DocumentWindow;
 };

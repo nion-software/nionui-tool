@@ -8,6 +8,7 @@
 #pragma push_macro("_DEBUG")
 #undef _DEBUG
 #define PY_SSIZE_T_CLEAN
+#define MS_NO_COREDLL 1
 #include <Python.h>
 #pragma pop_macro("_DEBUG")
 
@@ -76,6 +77,7 @@ public:
         this->py_object = nullptr;
         return py_object;
     }
+    bool isValid() const { return py_object != nullptr; }
     operator PyObject*() const { return py_object; }
     void setPyObject(PyObject *py_object)
     {
@@ -109,9 +111,23 @@ struct PythonValueVariant {
 PythonValueVariant PyObjectToValueVariant(PyObject *py_object);
 PyObject *PythonValueVariantToPyObject(const PythonValueVariant &value_variant);
 
-struct ImageInterface;
+class ImageInterface;
 
 typedef PyObject *CreateAndAddModuleFn();
+
+class FileSystem;
+
+class PlatformSupport
+{
+public:
+    virtual ~PlatformSupport();
+    virtual void loadLibrary(FileSystem *fs, const std::string &python_home, const std::string &filePath) = 0;
+    virtual void *lookupSymbol(const std::string &symbolName) = 0;
+    virtual bool isValid() const = 0;
+    virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) = 0;
+    virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) = 0;
+    virtual std::string findLandmarkLibrary(FileSystem *fs, const std::string &filePath) = 0;
+};
 
 class PythonSupport
 {
@@ -122,7 +138,7 @@ public:
     static PythonSupport *instance();
 
     // only called once
-    static void initInstance(const QString &python_home, const QString &python_library);
+    static void initInstance(const std::string &python_home, const std::string &python_library);
     static void deinitInstance();
 
     static QString ensurePython(const QString &python_home);
@@ -136,9 +152,9 @@ public:
     void scaledImageFromArray(PyObject *ndarray_py, const QSizeF &destination_size, float context_scaling, float display_limit_low, float display_limit_high, PyObject *lookup_table, ImageInterface *image);
     PyObject *arrayFromImage(const ImageInterface &image);
     void bufferRelease(Py_buffer *buffer);
-    PythonValueVariant invokePyMethod(PyObject *object, const QString &method, const std::list<PythonValueVariant> &args);
-    bool setAttribute(PyObject *object, const std::string &attribute, const PythonValueVariant &value);
-    PythonValueVariant getAttribute(PyObject *object, const std::string &attribute);
+    PythonValueVariant invokePyMethod(PyObjectPtr *object, const QString &method, const std::list<PythonValueVariant> &args);
+    bool setAttribute(PyObjectPtr *object, const std::string &attribute, const PythonValueVariant &value);
+    PythonValueVariant getAttribute(PyObjectPtr *object, const std::string &attribute);
     void setErrorString(const QString &error_string);
     PyObject *getPyListFromStrings(const QStringList &strings);
     PyArg_ParseTupleFn parse();
@@ -151,11 +167,11 @@ public:
     void printAndClearErrors();
     PyObject *import(const char *name);
     void *UnwrapObject(PyObject *py_object);
-	static const char* qobject_capsule_name;
+    static const char* qobject_capsule_name;
 
     bool isValid() const { return m_valid; }
 private:
-    PythonSupport(const QString &python_home, const QString &python_library); // ctor hidden
+    PythonSupport(const std::string &python_home, const std::string &python_library); // ctor hidden
     PythonSupport(PythonSupport const&); // copy ctor hidden
     PythonSupport& operator=(PythonSupport const&); // assign op. hidden
     ~PythonSupport(); // dtor hidden
@@ -166,6 +182,9 @@ private:
 
     // actual python home after following venv
     QString m_actual_python_home;
+
+    // platform support
+    std::unique_ptr<PlatformSupport> ps;
 
     // whether dl loaded
     bool m_valid;
