@@ -61,6 +61,9 @@
 
 Q_DECLARE_METATYPE(std::string)
 
+// from application
+PyObject *QVariantToPyObject(const QVariant &value);
+
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
 const auto DEFAULT_RENDER_HINTS = QPainter::Antialiasing | QPainter::TextAntialiasing | QPainter::HighQualityAntialiasing;
 #else

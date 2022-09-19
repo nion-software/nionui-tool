@@ -46,9 +46,6 @@ private:
     Python_ThreadAllowState *m_state;
 };
 
-QVariant PyObjectToQVariant(PyObject *py_object);
-PyObject *QVariantToPyObject(const QVariant &value);
-PyObject* QStringToPyObject(const QString& str);
 void FreePyObject(PyObject *py_object);
 
 class PyObjectPtr
@@ -103,14 +100,8 @@ struct PythonValueVariant {
     > value;
 };
 
+PythonValueVariant PyObjectToValueVariant(PyObject *py_object);
 PyObject *PythonValueVariantToPyObject(const PythonValueVariant &value_variant);
-QVariant PythonValueVariantToQVariant(const PythonValueVariant &value_variant);
-PythonValueVariant QVariantToPythonValueVariant(const QVariant &value);
-
-inline PyObject *WrapQObject(QObject *ptr)
-{
-    return PythonValueVariantToPyObject(QVariantToPythonValueVariant(QVariant::fromValue(static_cast<QObject *>(ptr))));
-}
 
 struct ImageInterface;
 
@@ -132,19 +123,17 @@ public:
 
     void initialize(const QString &python_home, const QList<QString> &python_paths, const QString &python_library);
     void deinitialize();
-    void addResourcePath(const QString &resources_path);
-	void addPyObjectToModuleFromQVariant(PyObject* module, const QString &identifier, const QVariant& object);
-	void addPyObjectToModule(PyObject* module, const QString &identifier, PyObject *object);
+    void addResourcePath(const std::string &resources_path);
     void imageFromRGBA(PyObject *ndarray_py, ImageInterface *image);
     void scaledImageFromRGBA(PyObject *ndarray_py, const QSize &destination_size, ImageInterface *image);
     void imageFromArray(PyObject *ndarray_py, float display_limit_low, float display_limit_high, PyObject *lookup_table, ImageInterface *image);
     void scaledImageFromArray(PyObject *ndarray_py, const QSizeF &destination_size, float context_scaling, float display_limit_low, float display_limit_high, PyObject *lookup_table, ImageInterface *image);
     PyObject *arrayFromImage(const ImageInterface &image);
     void bufferRelease(Py_buffer *buffer);
-    bool hasPyMethod(const QVariant &object, const QString &method);
-    QVariant invokePyMethod(const QVariant &object, const QString &method, const QVariantList &args);
-    bool setAttribute(const QVariant &object, const QString &attribute, const QVariant &value);
-    QVariant getAttribute(const QVariant &object, const QString &attribute);
+    bool hasPyMethod(PyObject *object, const std::string &method);
+    PythonValueVariant invokePyMethod(PyObject *object, const QString &method, const std::list<PythonValueVariant> &args);
+    bool setAttribute(PyObject *object, const std::string &attribute, const PythonValueVariant &value);
+    PythonValueVariant getAttribute(PyObject *object, const std::string &attribute);
     void setErrorString(const QString &error_string);
     PyObject *getPyListFromStrings(const QStringList &strings);
     PyArg_ParseTupleFn parse();
@@ -156,7 +145,7 @@ public:
     void initializeModule(const char *name, CreateAndAddModuleFn fn);
     void printAndClearErrors();
     PyObject *import(const char *name);
-    QObject *UnwrapQObject(PyObject *py_object);
+    void *UnwrapObject(PyObject *py_object);
 	static const char* qobject_capsule_name;
 
     bool isValid() const { return m_valid; }
@@ -183,7 +172,5 @@ private:
     // exceptions
     PyObject *module_exception;
 };
-
-template <typename T> inline T *Unwrap(PyObject *py_object) { return dynamic_cast<T *>(PythonSupport::instance()->UnwrapQObject(py_object)); }
 
 #endif // PYTHON_SUPPORT_H
