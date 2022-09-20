@@ -6399,7 +6399,11 @@ bool Application::initialize()
     {
         PythonSupport::instance()->initializeModule("HostLib", &InitializeHostLibModule);
 
-        PythonSupport::instance()->initialize(m_python_home, m_python_paths, m_python_library);  // initialize Python support
+        std::list<std::string> pythonPaths;
+        Q_FOREACH(const QString &pythonPath, m_python_paths)
+            pythonPaths.push_back(pythonPath.toStdString());
+
+        PythonSupport::instance()->initialize(m_python_home.toStdString(), pythonPaths, m_python_library.toStdString());  // initialize Python support
 
         QString bootstrap_error;
 

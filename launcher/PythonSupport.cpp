@@ -297,9 +297,23 @@ public:
         filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.8.dylib"));
     }
 
+    virtual void buildLibraryPaths(FileSystem *fs, const std::string &python_home, const std::string &python_home_new, std::list<std::string> &filePaths) override
+    {
+    }
+
     virtual std::string findLandmarkLibrary(FileSystem *fs, const std::string &filePath) override
     {
         return fs->parentDirectory(filePath);
+    }
+
+    virtual std::string findProgramName(FileSystem *fs, const std::string &python_home) override
+    {
+        return fs->absoluteFilePath(python_home, "bin/python3");
+    }
+
+    virtual std::string joinedPathSeparator() override
+    {
+        return ":";
     }
 };
 #endif
@@ -357,6 +371,10 @@ public:
         filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.8.so"));
     }
 
+    virtual void buildLibraryPaths(FileSystem *fs, const std::string &python_home, const std::string &python_home_new, std::list<std::string> &filePaths) override
+    {
+    }
+
     virtual std::string findLandmarkLibrary(FileSystem *fs, const std::string &filePath) override
     {
         std::string directory = fs->directory(filePath);
@@ -367,6 +385,16 @@ public:
             directory = fs->parentDirectory(directory);
         }
         return fs->parentDirectory(directory);
+    }
+
+    virtual std::string findProgramName(FileSystem *fs, const std::string &python_home) override
+    {
+        return fs->absoluteFilePath(python_home, "bin/python3");
+    }
+
+    virtual std::string joinedPathSeparator() override
+    {
+        return ":";
     }
 };
 #endif
@@ -459,9 +487,32 @@ public:
         filePaths.push_back(fs->absoluteFilePath(python_home, "Python38.dll"));
     }
 
+    virtual void buildLibraryPaths(FileSystem *fs, const std::string &python_home, const std::string &python_home_new, std::list<std::string> &filePaths) override
+    {
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python311.zip"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python310.zip"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python39.zip"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python38.zip"));
+        filePaths.push_back(fs->absoluteFilePath(python_home_new, "DLLs"));
+        filePaths.push_back(fs->absoluteFilePath(python_home_new, "lib"));
+        filePaths.push_back(python_home_new);
+        filePaths.push_back(python_home);
+        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/site-packages"));
+    }
+
     virtual std::string findLandmarkLibrary(FileSystem *fs, const std::string &filePath) override
     {
         return fs->directory(filePath);
+    }
+
+    virtual std::string findProgramName(FileSystem *fs, const std::string &python_home) override
+    {
+        return fs->absoluteFilePath(python_home, "Python.exe");
+    }
+
+    virtual std::string joinedPathSeparator() override
+    {
+        return ";";
     }
 };
 #endif
@@ -596,136 +647,65 @@ void Python_ThreadAllow::grab()
     m_state->gstate = CALL_PY(PyEval_SaveThread)();
 }
 
-static wchar_t python_home_static[512];
-static wchar_t python_program_name_static[512];
+std::string join(std::list<std::string>::const_iterator begin, std::list<std::string>::const_iterator end, const std::string &separator)
+{
+    std::string joined;
+    bool first = true;
+    for (auto iter = begin; iter != end; ++iter, first = false)
+    {
+        if (!first)
+            joined += separator + *iter;
+        else
+            joined = *iter;
+    }
+    return joined;
+}
 
-void PythonSupport::initialize(const QString &python_home, const QList<QString> &python_paths, const QString &python_library)
+static std::wstring python_home_static;
+static std::wstring python_program_name_static;
+
+void PythonSupport::initialize(const std::string &python_home, const std::list<std::string> &python_paths, const std::string &python_library)
 {
 #if !(defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON)
 #if defined(Q_OS_MAC) && !defined(DEBUG)
     if (!python_home.isEmpty())
         setenv("PYTHONHOME", python_home.toUtf8().constData(), 1);
 #endif
-#else
-    if (!python_home.isEmpty())
-    {
-        memset(&python_home_static[0], 0, sizeof(python_home_static));
-        python_home.toWCharArray(python_home_static);
-        CALL_PY(Py_SetPythonHome)(python_home_static);  // requires a permanent buffer
-    }
 #endif
 
-#if defined(Q_OS_MAC)
-    QString python_home_new = python_home;
-    QString python_program_name = QDir(python_home).absoluteFilePath("bin/python3");
+    auto python_paths_ = python_paths;
+
+    std::unique_ptr<FileSystem> fs(new FileSystem());
+
+    std::string python_home_new = python_home;
+    std::string python_program_name = ps->findProgramName(fs.get(), python_home);
 
     // check if we're running inside a venv, determined by whether pyvenv.cfg exists.
     // if so, read the config file and find the home key, indicating the python installation
     // directory (with /bin attached). then call SetPythonHome and SetProgramName with the
     // installation directory and virtual environment python path respectively. these are
     // required for the virtual environment to load correctly.
-    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
-    if (QFile(venv_conf_file_name).exists())
+    std::string venv_conf_file_name = fs->absoluteFilePath(python_home, "pyvenv.cfg");
+    if (fs->exists(venv_conf_file_name))
     {
-        python_home_new = m_actual_python_home;
+        python_home_new = m_actual_python_home.toStdString();
+
+        // may be required to configure the path; see https://bugs.python.org/issue34725
+        ps->buildLibraryPaths(fs.get(), python_home, python_home_new, python_paths_);
     }
 
-    if (!python_paths.isEmpty())
-        CALL_PY(Py_SetPath)(const_cast<wchar_t *>(python_paths.join(":").toStdWString().c_str()));
-
-    memset(&python_home_static[0], 0, sizeof(python_home_static));
-    python_home_new.toWCharArray(python_home_static);
-    CALL_PY(Py_SetPythonHome)(python_home_static);  // requires a permanent buffer
-
-    memset(&python_program_name_static[0], 0, sizeof(python_program_name_static));
-    python_program_name.toWCharArray(python_program_name_static);
-    CALL_PY(Py_SetProgramName)(python_program_name_static);  // requires a permanent buffer
-#elif defined(Q_OS_WIN)
-    QString python_home_new = python_home;
-    QString python_program_name = QDir(python_home).absoluteFilePath("Python.exe");
-
-    // check if we're running inside a venv, determined by whether pyvenv.cfg exists.
-    // if so, read the config file and find the home key, indicating the python installation
-    // directory (with /bin attached). then call SetPythonHome and SetProgramName with the
-    // installation directory and virtual environment python path respectively. these are
-    // required for the virtual environment to load correctly.
-    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
-    if (QFile(venv_conf_file_name).exists())
+    if (!python_paths_.empty())
     {
-        // probably Python w/ virtual environment.
-        // this code makes me hate both Windows and Qt equally. it is necessary to handle backslashes in paths.
-        QFile file(venv_conf_file_name);
-        if (file.open(QFile::ReadOnly))
-        {
-            QByteArray bytes = file.readAll();
-            QString str = QString::fromUtf8(bytes);
-            Q_FOREACH(const QString &line, str.split(QRegularExpression("[\r\n]"), Qt::SkipEmptyParts))
-            {
-                QRegularExpression re("^home\\s?=\\s?(.+)$");
-                QRegularExpressionMatch match = re.match(line);
-                if (match.hasMatch())
-                {
-                    QString home_bin_path = match.captured(1).trimmed();
-                    if (!home_bin_path.isEmpty())
-                    {
-                        python_home_new = m_actual_python_home;
-
-                        python_program_name = QDir(python_home).absoluteFilePath("Python.exe");
-
-                        // required to configure the path; see https://bugs.python.org/issue34725
-                        QStringList python_paths;
-                        python_paths.append(QDir(python_home).absoluteFilePath("Scripts/python311.zip"));
-                        python_paths.append(QDir(python_home).absoluteFilePath("Scripts/python310.zip"));
-                        python_paths.append(QDir(python_home).absoluteFilePath("Scripts/python39.zip"));
-                        python_paths.append(QDir(python_home).absoluteFilePath("Scripts/python38.zip"));
-                        python_paths.append(QDir(python_home_new).absoluteFilePath("DLLs"));
-                        python_paths.append(QDir(python_home_new).absoluteFilePath("lib"));
-                        python_paths.append(QDir(python_home_new).absolutePath());
-                        python_paths.append(QDir(python_home).absolutePath());
-                        python_paths.append(QDir(python_home).absoluteFilePath("lib/site-packages"));
-                        CALL_PY(Py_SetPath)(const_cast<wchar_t *>(python_paths.join(";").toStdWString().c_str()));
-                    }
-                }
-            }
-        }
+        std::string path = join(python_paths_.begin(), python_paths_.end(), ps->joinedPathSeparator());
+        std::wstring path_w(path.begin(), path.end());
+        CALL_PY(Py_SetPath)(path_w.data());
     }
 
-    if (!python_paths.isEmpty())
-        CALL_PY(Py_SetPath)(const_cast<wchar_t *>(python_paths.join(";").toStdWString().c_str()));
+    python_home_static = std::wstring(python_home_new.begin(), python_home_new.end());
+    CALL_PY(Py_SetPythonHome)(python_home_static.data());  // requires a permanent buffer
 
-    memset(&python_home_static[0], 0, sizeof(python_home_static));
-    python_home_new.toWCharArray(python_home_static);
-    CALL_PY(Py_SetPythonHome)(python_home_static);  // requires a permanent buffer
-
-    memset(&python_program_name_static[0], 0, sizeof(python_program_name_static));
-    python_program_name.toWCharArray(python_program_name_static);
-    CALL_PY(Py_SetProgramName)(python_program_name_static);  // requires a permanent buffer
-#elif defined(Q_OS_LINUX)
-    QString python_home_new = python_home;
-    QString python_program_name = QDir(python_home).absoluteFilePath("bin/python3");
-
-    // check if we're running inside a venv, determined by whether pyvenv.cfg exists.
-    // if so, read the config file and find the home key, indicating the python installation
-    // directory (with /bin attached). then call SetPythonHome and SetProgramName with the
-    // installation directory and virtual environment python path respectively. these are
-    // required for the virtual environment to load correctly.
-    QString venv_conf_file_name = QDir(python_home).absoluteFilePath("pyvenv.cfg");
-    if (QFile(venv_conf_file_name).exists())
-    {
-        python_home_new = m_actual_python_home;
-    }
-
-    if (!python_paths.isEmpty())
-        CALL_PY(Py_SetPath)(const_cast<wchar_t *>(python_paths.join(":").toStdWString().c_str()));
-
-    memset(&python_home_static[0], 0, sizeof(python_home_static));
-    python_home_new.toWCharArray(python_home_static);
-    CALL_PY(Py_SetPythonHome)(python_home_static);  // requires a permanent buffer
-
-    memset(&python_program_name_static[0], 0, sizeof(python_program_name_static));
-    python_program_name.toWCharArray(python_program_name_static);
-    CALL_PY(Py_SetProgramName)(python_program_name_static);  // requires a permanent buffer
-#endif
+    python_program_name_static = std::wstring(python_program_name.begin(), python_program_name.end());
+    CALL_PY(Py_SetProgramName)(python_program_name_static.data());  // requires a permanent buffer
 
     CALL_PY(Py_Initialize)();
 

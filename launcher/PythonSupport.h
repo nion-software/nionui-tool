@@ -127,6 +127,9 @@ public:
     virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) = 0;
     virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) = 0;
     virtual std::string findLandmarkLibrary(FileSystem *fs, const std::string &filePath) = 0;
+    virtual std::string findProgramName(FileSystem *fs, const std::string &python_home) = 0;
+    virtual std::string joinedPathSeparator() = 0;
+    virtual void buildLibraryPaths(FileSystem *fs, const std::string &python_home, const std::string &python_home_new, std::list<std::string> &filePaths) = 0;
 };
 
 class PythonSupport
@@ -143,7 +146,7 @@ public:
 
     static QString ensurePython(const QString &python_home);
 
-    void initialize(const QString &python_home, const QList<QString> &python_paths, const QString &python_library);
+    void initialize(const std::string &python_home, const std::list<std::string> &python_paths, const std::string &python_library);
     void deinitialize();
     void addResourcePath(const std::string &resources_path);
     void imageFromRGBA(PyObject *ndarray_py, ImageInterface *image);
