@@ -1,20 +1,7 @@
 // Declare the dynamic python versions of the Python API. Handcoded for now.
 
-#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
-
 #define DECLARE_PY(x) D##x
 #define CALL_PY(x) D##x
-
-#else
-
-#define DECLARE_PY(x) D##x
-#define CALL_PY(x) x
-
-PyObject* Py_TrueGet() { return Py_True; }
-PyObject* Py_FalseGet() { return Py_False; }
-PyObject* Py_NoneGet() { return Py_None; }
-
-#endif
 
 void DECLARE_PY(PyBuffer_Release)(Py_buffer *o);
 int DECLARE_PY(PyCallable_Check)(PyObject *o);

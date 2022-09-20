@@ -23,13 +23,11 @@
 #define OS_LINUX 0
 #endif
 
-#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 #if !OS_WINDOWS
 #include <dlfcn.h>
 #define LOOKUP_SYMBOL dlsym
 #else
 #define LOOKUP_SYMBOL GetProcAddress
-#endif
 #endif
 
 #include "PythonSupport.h"
@@ -44,7 +42,6 @@
 #pragma push_macro("_DEBUG")
 #undef _DEBUG
 
-#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 // numpy uses these functions, so to allow linking to occur
 // override them here and redefine them with the dynamic
 // python versions.
@@ -59,6 +56,7 @@
 #pragma push_macro("PyImport_ImportModule")
 #pragma push_macro("PyObject_HasAttrString")
 #pragma push_macro("PyObject_GetAttrString")
+
 #undef PyCapsule_CheckExact
 #define PyCapsule_CheckExact DPyCapsule_CheckExact
 #define PyCapsule_GetPointer DPyCapsule_GetPointer
@@ -71,7 +69,6 @@
 #define PyImport_ImportModule DPyImport_ImportModule
 #define PyObject_GetAttrString DPyObject_GetAttrString
 #define PyObject_HasAttrString DPyObject_HasAttrString
-#endif
 
 #include "numpy/arrayobject.h"
 #include "structmember.h"
@@ -81,7 +78,6 @@ static void* init_numpy() {
     return NULL;
 }
 
-#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 #pragma pop_macro("PyCapsule_CheckExact")
 #pragma pop_macro("PyCapsule_GetPointer")
 #pragma pop_macro("PyErr_Format")
@@ -90,7 +86,6 @@ static void* init_numpy() {
 #pragma pop_macro("PyExc_AttributeError")
 #pragma pop_macro("PyExc_ImportError")
 #pragma pop_macro("PyExc_RuntimeError")
-#endif
 
 #pragma pop_macro("_DEBUG")
 
@@ -104,13 +99,11 @@ const char* PythonSupport::qobject_capsule_name = "b93c9a511d32.qobject";
 
 std::string PythonSupport::ensurePython(FileSystem *fs, const std::string &python_home)
 {
-#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
     if (!python_home.empty() && fs->exists(python_home))
     {
         std::cout << "Using Python environment: " << python_home << std::endl;
         return python_home;
     }
-#endif
     return std::string();
 }
 
@@ -435,7 +428,6 @@ PythonSupport::PythonSupport(FileSystem *fs_, const std::string &python_home, co
     : module_exception(NULL)
     , fs(fs_)
 {
-#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
 #if OS_MACOS
     ps = std::unique_ptr<PlatformSupport>(new MacSupport());
 #elif OS_LINUX
@@ -480,10 +472,6 @@ PythonSupport::PythonSupport(FileSystem *fs_, const std::string &python_home, co
 
     dynamic_PyArg_ParseTuple = (PyArg_ParseTupleFn)ps->lookupSymbol("PyArg_ParseTuple");
     dynamic_Py_BuildValue = (Py_BuildValueFn)ps->lookupSymbol("Py_BuildValue");
-#else
-    dynamic_PyArg_ParseTuple = PyArg_ParseTuple;
-    dynamic_Py_BuildValue = Py_BuildValue;
-#endif
 }
 
 PythonSupport::PythonSupport(PythonSupport const &)
@@ -561,13 +549,6 @@ static std::wstring python_program_name_static;
 
 void PythonSupport::initialize(const std::string &python_home, const std::list<std::string> &python_paths, const std::string &python_library)
 {
-#if !(defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON)
-#if OS_MACOS && !defined(DEBUG)
-    if (!python_home.isEmpty())
-        setenv("PYTHONHOME", python_home.toUtf8().constData(), 1);
-#endif
-#endif
-
     auto python_paths_ = python_paths;
 
     std::string python_home_new = python_home;
@@ -575,7 +556,7 @@ void PythonSupport::initialize(const std::string &python_home, const std::list<s
 
     // check if we're running inside a venv, determined by whether pyvenv.cfg exists.
     // if so, read the config file and find the home key, indicating the python installation
-    // directory (with /bin attached). then call SetPythonHome and SetProgramName with the
+    // directory (with /bin attached). then call SetPythonHoCme and SetProgramName with the
     // installation directory and virtual environment python path respectively. these are
     // required for the virtual environment to load correctly.
     std::string venv_conf_file_name = fs->absoluteFilePath(python_home, "pyvenv.cfg");

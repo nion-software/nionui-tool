@@ -11,9 +11,6 @@
   <ItemDefinitionGroup>
     <ClCompile />
     <Link />
-    <ClCompile>
-      <PreprocessorDefinitions>DYNAMIC_PYTHON=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <BuildMacro Include="PYTHON_EXE">

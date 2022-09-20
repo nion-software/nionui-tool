@@ -1,7 +1,5 @@
 // Define the dynamic python methods, if in use.
 
-#if defined(DYNAMIC_PYTHON) && DYNAMIC_PYTHON
-
 // for Q_OS defs
 #include <QtCore/QObject>
 
@@ -778,6 +776,4 @@ void DPy_SetProgramName(wchar_t *ph)
         fSetProgramName = (Py_SetProgramNameFn)LOOKUP_SYMBOL(pylib, "Py_SetProgramName");
     return fSetProgramName(ph);
 }
-
-#endif // defined(DYNAMIC_PYTHON)
 
