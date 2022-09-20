@@ -7,9 +7,11 @@
 #include "Application.h"
 #include "DocumentWindow.h"
 #include "PythonSupport.h"
+#include "FileSystem.h"
 
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
+#include <QtCore/QDirIterator>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMetaType>
 #include <QtCore/QMimeData>
@@ -56,6 +58,21 @@ template <typename T>
 inline T *Unwrap(PyObject *py_object)
 {
     return dynamic_cast<T *>(static_cast<QObject *>(PythonSupport::instance()->UnwrapObject(py_object)));
+}
+
+Q_DECLARE_METATYPE(PyObjectPtr)
+
+// static
+int PyObjectPtr_metaId()
+{
+    static bool once = false;
+    static int meta_id = 0;
+    if (!once)
+    {
+        meta_id = qRegisterMetaType<PyObjectPtr>("PyObjectPtr");
+        once = true;
+    }
+    return meta_id;
 }
 
 PythonValueVariant QVariantToPythonValueVariant(const QVariant &value)
@@ -152,7 +169,7 @@ PythonValueVariant QVariantToPythonValueVariant(const QVariant &value)
 
         default:
         {
-            if (type == PyObjectPtr::metaId())
+            if (type == PyObjectPtr_metaId())
             {
                 return PythonValueVariant{*(PyObjectPtr *)data};
             }
@@ -3528,7 +3545,11 @@ static PyObject *MimeData_formats(PyObject * /*self*/, PyObject *args)
     if (mime_data == NULL)
         return NULL;
 
-    return PythonSupport::instance()->getPyListFromStrings(mime_data->formats());
+    std::vector<std::string> formats;
+    Q_FOREACH(const QString &format, mime_data->formats())
+        formats.push_back(format.toStdString());
+
+    return PythonSupport::instance()->getPyListFromStrings(formats);
 }
 
 static PyObject *MimeData_setDataAsString(PyObject * /*self*/, PyObject *args)
@@ -6081,6 +6102,8 @@ Application::Application(int & argv, char **args)
     // TODO: Handle case where python home exists.
 
     m_python_home = argv > 1 ? QString::fromUtf8(args[1]) : QString();
+
+    PyObjectPtr_metaId();
 }
 
 static PyMethodDef Methods[] = {
@@ -6323,6 +6346,108 @@ PyObject* InitializeHostLibModule()
     return module;
 }
 
+class QFileSystem : public FileSystem
+{
+public:
+    std::string absoluteFilePath(const std::string &dir, const std::string &fileName)
+    {
+        return QDir(QString::fromStdString(dir)).absoluteFilePath(QString::fromStdString(fileName)).toStdString();
+    }
+
+    bool exists(const std::string &filePath)
+    {
+        return QFile(QString::fromStdString(filePath)).exists();
+    }
+
+    std::string toNativeSeparators(const std::string &filePath)
+    {
+        return QDir::toNativeSeparators(QString::fromStdString(filePath)).toStdString();
+    }
+
+    bool parseConfigFile(const std::string &filePath, std::string &home, std::string &version)
+    {
+        QSettings settings(QString::fromStdString(filePath), QSettings::IniFormat);
+
+        // this code makes me hate both Windows and Qt equally. it is necessary to handle backslashes in paths.
+        QFile file(QString::fromStdString(filePath));
+        if (file.open(QFile::ReadOnly))
+        {
+            QByteArray bytes = file.readAll();
+            QString str = QString::fromUtf8(bytes);
+            Q_FOREACH(const QString &line, str.split(QRegularExpression("[\r\n]"), Qt::SkipEmptyParts))
+            {
+                QRegularExpression re("^home\\s?=\\s?(.+)$");
+                QRegularExpressionMatch match = re.match(line);
+                if (match.hasMatch())
+                {
+                    QString home_bin_path = match.captured(1).trimmed();
+                    if (!home_bin_path.isEmpty())
+                    {
+                        QString version_str = settings.value("version").toString();
+                        QRegularExpression re("(\\d+)\\.(\\d+)(\\.\\d+)?");
+                        QRegularExpressionMatch match = re.match(version_str);
+                        if (match.hasMatch())
+                            version_str = QString::number(match.captured(1).toInt()) + "." + QString::number(match.captured(2).toInt());
+                        home = QDir::fromNativeSeparators(home_bin_path).toStdString();
+                        version = version_str.toStdString();
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    void iterateDirectory(const std::string &directoryPath, const std::list<std::string> &nameFilters, std::list<std::string> &filePaths)
+    {
+        QStringList nameFiltersQ;
+        for (auto nameFilter : nameFilters)
+            nameFiltersQ.append(QString::fromStdString(nameFilter));
+        QDirIterator it(QString::fromStdString(directoryPath), nameFiltersQ, QDir::NoFilter, QDirIterator::Subdirectories);
+        while (it.hasNext())
+            filePaths.push_back(it.next().toStdString());
+    }
+
+    std::string directoryName(const std::string &filePath)
+    {
+        QFileInfo fileInfo(QString::fromStdString(filePath));
+        if (fileInfo.isDir())
+            return fileInfo.fileName().toStdString();
+        else
+            return fileInfo.absoluteDir().dirName().toStdString();
+    }
+
+    std::string directory(const std::string &filePath)
+    {
+        return QFileInfo(QString::fromStdString(filePath)).absoluteDir().canonicalPath().toStdString();
+    }
+
+    std::string parentDirectory(const std::string &filePath)
+    {
+        QFileInfo fileInfo(QString::fromStdString(filePath));
+        if (fileInfo.isDir())
+        {
+            return fileInfo.absoluteDir().canonicalPath().toStdString();
+        }
+        else
+        {
+            QDir d = fileInfo.absoluteDir();
+            d.cdUp();
+            return d.absolutePath().toStdString();
+        }
+    }
+
+    void putEnv(const std::string &key, const std::string &value)
+    {
+        qputenv(key.c_str(), value.c_str());
+    }
+
+    std::string getEnv(const std::string &key)
+    {
+        return QString::fromLocal8Bit(qgetenv(key.c_str())).toStdString();
+    }
+};
+
 bool Application::initialize()
 {
     if (arguments().length() < 2 || !QDir(arguments()[1]).exists())
@@ -6387,13 +6512,15 @@ bool Application::initialize()
         m_python_paths.append(m_python_home);
     }
 
-    m_python_home = PythonSupport::ensurePython(m_python_home);
+    FileSystem *fs = new QFileSystem();
+
+    m_python_home = QString::fromStdString(PythonSupport::ensurePython(fs, m_python_home.toStdString()));
 #if !defined(DEBUG)
     if (m_python_home.isEmpty() || !QFile(m_python_home).exists())
         return false;
 #endif
 
-    PythonSupport::initInstance(m_python_home.toStdString(), m_python_library.toStdString());
+    PythonSupport::initInstance(fs, m_python_home.toStdString(), m_python_library.toStdString());
 
     if (PythonSupport::instance()->isValid())
     {
@@ -6480,7 +6607,7 @@ QVariant Application::invokePyMethod(PyObjectPtr *object, const QString &method,
     {
         args.push_back(QVariantToPythonValueVariant(variant));
     }
-    return PythonValueVariantToQVariant(PythonSupport::instance()->invokePyMethod(object, method, args));
+    return PythonValueVariantToQVariant(PythonSupport::instance()->invokePyMethod(object, method.toStdString(), args));
 }
 
 bool Application::setPyObjectAttribute(PyObjectPtr *object, const QString &attribute, const QVariant &value)

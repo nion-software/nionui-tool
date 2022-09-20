@@ -5,6 +5,15 @@
 #ifndef PYTHON_SUPPORT_H
 #define PYTHON_SUPPORT_H
 
+#include <algorithm>
+#include <list>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <variant>
+#include <vector>
+
 #pragma push_macro("_DEBUG")
 #undef _DEBUG
 #define PY_SSIZE_T_CLEAN
@@ -87,8 +96,6 @@ public:
         this->py_object = py_object;
     }
 
-    static int metaId();
-
 private:
     PyObject *py_object;
 };
@@ -117,20 +124,7 @@ typedef PyObject *CreateAndAddModuleFn();
 
 class FileSystem;
 
-class PlatformSupport
-{
-public:
-    virtual ~PlatformSupport();
-    virtual void loadLibrary(FileSystem *fs, const std::string &python_home, const std::string &filePath) = 0;
-    virtual void *lookupSymbol(const std::string &symbolName) = 0;
-    virtual bool isValid() const = 0;
-    virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) = 0;
-    virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) = 0;
-    virtual std::string findLandmarkLibrary(FileSystem *fs, const std::string &filePath) = 0;
-    virtual std::string findProgramName(FileSystem *fs, const std::string &python_home) = 0;
-    virtual std::string joinedPathSeparator() = 0;
-    virtual void buildLibraryPaths(FileSystem *fs, const std::string &python_home, const std::string &python_home_new, std::list<std::string> &filePaths) = 0;
-};
+class PlatformSupport;
 
 class PythonSupport
 {
@@ -141,25 +135,25 @@ public:
     static PythonSupport *instance();
 
     // only called once
-    static void initInstance(const std::string &python_home, const std::string &python_library);
+    static void initInstance(FileSystem *fs, const std::string &python_home, const std::string &python_library);
     static void deinitInstance();
 
-    static QString ensurePython(const QString &python_home);
+    static std::string ensurePython(FileSystem *fs, const std::string &python_home);
 
     void initialize(const std::string &python_home, const std::list<std::string> &python_paths, const std::string &python_library);
     void deinitialize();
     void addResourcePath(const std::string &resources_path);
     void imageFromRGBA(PyObject *ndarray_py, ImageInterface *image);
-    void scaledImageFromRGBA(PyObject *ndarray_py, const QSize &destination_size, ImageInterface *image);
+    void scaledImageFromRGBA(PyObject *ndarray_py, unsigned int width, unsigned int height, ImageInterface *image);
     void imageFromArray(PyObject *ndarray_py, float display_limit_low, float display_limit_high, PyObject *lookup_table, ImageInterface *image);
-    void scaledImageFromArray(PyObject *ndarray_py, const QSizeF &destination_size, float context_scaling, float display_limit_low, float display_limit_high, PyObject *lookup_table, ImageInterface *image);
+    void scaledImageFromArray(PyObject *ndarray_py, float width, float height, float context_scaling, float display_limit_low, float display_limit_high, PyObject *lookup_table, ImageInterface *image);
     PyObject *arrayFromImage(const ImageInterface &image);
     void bufferRelease(Py_buffer *buffer);
-    PythonValueVariant invokePyMethod(PyObjectPtr *object, const QString &method, const std::list<PythonValueVariant> &args);
+    PythonValueVariant invokePyMethod(PyObjectPtr *object, const std::string &method, const std::list<PythonValueVariant> &args);
     bool setAttribute(PyObjectPtr *object, const std::string &attribute, const PythonValueVariant &value);
     PythonValueVariant getAttribute(PyObjectPtr *object, const std::string &attribute);
-    void setErrorString(const QString &error_string);
-    PyObject *getPyListFromStrings(const QStringList &strings);
+    void setErrorString(const std::string &error_string);
+    PyObject *getPyListFromStrings(const std::vector<std::string> &strings);
     PyArg_ParseTupleFn parse();
     Py_BuildValueFn build();
     PyObject *getNoneReturnValue();
@@ -174,7 +168,7 @@ public:
 
     bool isValid() const { return m_valid; }
 private:
-    PythonSupport(const std::string &python_home, const std::string &python_library); // ctor hidden
+    PythonSupport(FileSystem *fs, const std::string &python_home, const std::string &python_library); // ctor hidden
     PythonSupport(PythonSupport const&); // copy ctor hidden
     PythonSupport& operator=(PythonSupport const&); // assign op. hidden
     ~PythonSupport(); // dtor hidden
@@ -184,7 +178,10 @@ private:
     PyThreadState *m_initial_state;
 
     // actual python home after following venv
-    QString m_actual_python_home;
+    std::string m_actual_python_home;
+
+    // file system
+    std::unique_ptr<FileSystem> fs;
 
     // platform support
     std::unique_ptr<PlatformSupport> ps;

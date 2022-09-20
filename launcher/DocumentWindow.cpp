@@ -1161,7 +1161,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
                         if (args[10].toInt() != 0)
                             colormap_ndarray_py = QVariantToPyObject(args[10]);
 
-                        PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.size(), context_scaling, args[8].toFloat(), args[9].toFloat(), colormap_ndarray_py, &image);
+                        PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.width(), destination_rect.height(), context_scaling, args[8].toFloat(), args[9].toFloat(), colormap_ndarray_py, &image);
                     }
                 }
 
@@ -1867,7 +1867,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                             }
 
 //                          PythonSupport::instance()->imageFromArray(ndarray_py, low, high, colormap_ndarray_py, &image);
-                            PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.size(), context_scaling, low, high, colormap_ndarray_py, &image);
+                            PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.width(), destination_rect.height(), context_scaling, low, high, colormap_ndarray_py, &image);
                         }
                     }
                     else
