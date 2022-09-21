@@ -6455,6 +6455,8 @@ bool Application::initialize()
         // try reading the config file
         QDir base_dir(QCoreApplication::applicationDirPath());
         QString config_file_path = base_dir.absoluteFilePath("toolconfig.toml");
+        if (!QFileInfo(config_file_path).exists())
+            config_file_path = base_dir.absoluteFilePath("../Resources/toolconfig.toml");
         QFile config_file(config_file_path);
         if (config_file.open(QIODevice::ReadOnly))
         {
