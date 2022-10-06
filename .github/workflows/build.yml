@@ -21,9 +21,9 @@ jobs:
         python-version: ["3.8", "3.9", "3.10"]
         qt-version: ["6.3.2"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Display Python version
@@ -102,7 +102,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10"]
         qt-version: ["6.3.2"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
@@ -163,9 +163,9 @@ jobs:
         python-version: ["3.8", "3.9", "3.10"]
         qt-version: ["6.3.2"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Display Python version
@@ -227,7 +227,7 @@ jobs:
         os: [ubuntu-20.04, ubuntu-22.04]
         python-version: ["3.8", "3.9", "3.10"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Download Wheel
       uses: actions/download-artifact@v2
       id: download_wheel
@@ -241,7 +241,7 @@ jobs:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: conda_downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Virtual screen
@@ -281,9 +281,8 @@ jobs:
       shell: bash -l {0}
       run: |
         # use conda versions instead of pypi versions. install before anything else.
-        conda update -n base --all -y
         conda update --all -y
-        conda install numpy scipy h5py imageio setuptools -y
+        conda install numpy scipy h5py imageio setuptools pip -y
         conda install -y -c nion ${{ env.tool-package }}
         conda install -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
         pushd nionui_app_test
@@ -296,7 +295,6 @@ jobs:
       shell: bash -l {0}
       run: |
         # use conda versions instead of pypi versions. install before anything else.
-        conda update -n base --all -y
         conda create -n test-env -c conda-forge python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
         conda activate test-env
         conda install -y -c nion -c conda-forge ${{ env.tool-package }}
@@ -317,7 +315,7 @@ jobs:
         os: [macos-10.15]
         python-version: ["3.8", "3.9", "3.10"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Download Wheel
       uses: actions/download-artifact@v2
       id: download_wheel
@@ -349,7 +347,7 @@ jobs:
         echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Set up Python ${{ matrix.python-version }} with official build
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Test system Python installed with official build with virtual environment
@@ -414,7 +412,7 @@ jobs:
         os: [windows-2019]
         python-version: ["3.8", "3.9", "3.10"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Download Wheel
       uses: actions/download-artifact@v2
       id: download_wheel
@@ -428,7 +426,7 @@ jobs:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: conda_downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Test system Python installed with official build with virtual environment
@@ -459,7 +457,6 @@ jobs:
       shell: pwsh
       run: |
         # use conda versions instead of pypi versions. install before anything else.
-        conda update -n base --all -y
         conda update --all -y
         conda install numpy scipy h5py imageio setuptools -y
         conda install -y -c nion ${{ env.tool-package }}
@@ -475,7 +472,6 @@ jobs:
       shell: pwsh
       run: |
         # use conda versions instead of pypi versions. install before anything else.
-        conda update -n base --all -y
         conda create -n test-env -c conda-forge python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
         conda activate test-env
         conda install -y -c nion -c conda-forge ${{ env.tool-package }}
