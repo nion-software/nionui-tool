@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.17 (2022-10-06)
+-------------------
+- Improve bitmap drawing on high DPI devices.
+
 0.4.16 (2022-09-14)
 -------------------
 - Fix buffer overflow in python path.
