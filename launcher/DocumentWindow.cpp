@@ -1753,6 +1753,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
 
                 int image_id = read_uint32(commands, command_index);
 
+                // std::cout << "display scaling " << display_scaling << " devicePixelRatio " << devicePixelRatio << std::endl;
+
                 float arg4 = read_float(commands, command_index) * display_scaling;
                 float arg5 = read_float(commands, command_index) * display_scaling;
                 float arg6 = read_float(commands, command_index) * display_scaling;
@@ -1766,7 +1768,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                 }
                 else
                 {
-                    // QTime timer;
+                    // QElapsedTimer timer;
                     // timer.start();
 
                     QImageInterface image;
@@ -1774,6 +1776,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                     QRectF destination_rect(QPointF(arg4, arg5), QSizeF(arg6, arg7));
                     float context_scaling = qMin(context_scaling_x, context_scaling_y);
                     QSize destination_size((destination_rect.size() * context_scaling).toSize());
+                    QSize device_destination_size = destination_size * devicePixelRatio;
 
                     QString image_key = QString::number(image_id);
 
@@ -1789,15 +1792,16 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                             // image = PythonSupport::instance()->scaledImageFromRGBA(ndarray_py, destination_size);
                             PythonSupport::instance()->imageFromRGBA(ndarray_py, &image);
                         }
+                        // std::cout << "Using cached image" << std::endl;
                     }
                     else
                         qDebug() << "missing " << image_key;
 
                     if (!image.image.isNull())
                     {
-                        if (destination_size.width() < width * 0.75 || destination_size.height() < height * 0.75)
+                        if (device_destination_size.width() < width * 0.75 || device_destination_size.height() < height * 0.75)
                         {
-                            image.image = image.image.scaled(destination_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                            image.image = image.image.scaled(device_destination_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                         }
                         painter->drawImage(destination_rect, image.image);
                         if (image_cache)
@@ -1807,7 +1811,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                         }
                     }
 
-                    // qDebug() << "Elapsed: " << timer.elapsed() << "ms " << width << "x" << height << " ; " << image.width() << "x" << image.height() << " ; " << destination_size.width() << "x" << destination_size.height();
+                    // std::cout << "Elapsed: " << timer.elapsed() << "ms " << width << "x" << height << " ; " << image.width() << "x" << image.height() << " ; " << destination_size.width() << "x" << destination_size.height() << std::endl;
                 }
 
                 break;
@@ -1846,6 +1850,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
 
                     QRectF destination_rect(QPointF(arg4, arg5), QSizeF(arg6, arg7));
                     float context_scaling = qMin(context_scaling_x, context_scaling_y);
+                    QSize destination_size((destination_rect.size()* context_scaling).toSize());
+                    QSize device_destination_size = destination_size * devicePixelRatio;
 
                     QString image_key = QString::number(image_id);
 
@@ -1867,7 +1873,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                             }
 
 //                          PythonSupport::instance()->imageFromArray(ndarray_py, low, high, colormap_ndarray_py, &image);
-                            PythonSupport::instance()->scaledImageFromArray(ndarray_py, destination_rect.width(), destination_rect.height(), context_scaling, low, high, colormap_ndarray_py, &image);
+                            PythonSupport::instance()->scaledImageFromArray(ndarray_py, device_destination_size.width(), device_destination_size.height(), context_scaling, low, high, colormap_ndarray_py, &image);
                         }
                     }
                     else
