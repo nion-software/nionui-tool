@@ -331,6 +331,7 @@ jobs:
     - name: Test system Python installed with brew with virtual environment
       shell: bash
       run: |
+        brew update
         brew install python@${{ matrix.python-version }} || true
         SYSTEM_PYTHON_EXE=/usr/local/bin/python${{ matrix.python-version }}
         $SYSTEM_PYTHON_EXE -m venv test_venv
