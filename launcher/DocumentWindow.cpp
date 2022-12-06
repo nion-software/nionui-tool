@@ -241,6 +241,22 @@ DockWidget::DockWidget(const QString &title, QWidget *parent)
 {
 }
 
+void DockWidget::closeEvent(QCloseEvent *event)
+{
+    QDockWidget::closeEvent(event);
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+    app->dispatchPyMethod(m_py_object, "willClose", QVariantList());
+}
+
+void DockWidget::hideEvent(QHideEvent *event)
+{
+    QDockWidget::hideEvent(event);
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+    app->dispatchPyMethod(m_py_object, "willHide", QVariantList());
+}
+
 void DockWidget::resizeEvent(QResizeEvent *event)
 {
     QDockWidget::resizeEvent(event);
@@ -249,6 +265,14 @@ void DockWidget::resizeEvent(QResizeEvent *event)
 
     Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
     app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << int(event->size().width() / display_scaling) << int(event->size().height()) / display_scaling);
+}
+
+void DockWidget::showEvent(QShowEvent *event)
+{
+    QDockWidget::showEvent(event);
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+    app->dispatchPyMethod(m_py_object, "willShow", QVariantList());
 }
 
 void DockWidget::focusInEvent(QFocusEvent *event)

@@ -101,7 +101,10 @@ public:
     virtual void focusOutEvent(QFocusEvent *event) override;
 
 protected:
+    virtual void closeEvent(QCloseEvent *event) override;
+    virtual void hideEvent(QHideEvent *event) override;
     virtual void resizeEvent(QResizeEvent *event) override;
+    virtual void showEvent(QShowEvent *event) override;
 
 private:
     QVariant m_py_object;
