@@ -139,8 +139,8 @@ if sys.platform == "linux":
 data_files = package_files(dir_path, dest, dest_drop)
 
 def long_description():
-    with open('README.rst', 'rb') as fi:
-        result = fi.read().decode('utf-8')
+    with open('README.rst', 'r') as fi:
+        result = fi.read()
     return result
 
 setuptools.setup(
