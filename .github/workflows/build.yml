@@ -14,6 +14,7 @@ env:
 jobs:
   build_linux:
     runs-on: ${{ matrix.os }}
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -83,16 +84,6 @@ jobs:
         python -c "import sys; print(sys.executable)"
         conda install conda-build -y
         conda build --python ${{ matrix.python-version }} ./.github/workflows/recipe
-    - name: Publish package to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
-      if: matrix.python-version == '3.8'
-      with:
-        skip_existing: true
-        user: __token__
-#        password: ${{ secrets.pypi_password }}
-        password: ${{ secrets.TEST_PYPI_PASSWORD }}
-        repository_url: https://test.pypi.org/legacy/
     - name: Upload Wheel
       uses: actions/upload-artifact@v2
       with:
@@ -104,8 +95,8 @@ jobs:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: /usr/share/miniconda/envs/test/conda-bld/linux-64/*.tar.bz2
   build_macos:
-    if: false
     runs-on: ${{ matrix.os }}
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -166,7 +157,6 @@ jobs:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
         path: /usr/local/miniconda/envs/test/conda-bld/osx-64/*.tar.bz2
   build_win:
-    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -421,7 +411,6 @@ jobs:
   test_win:
     needs: build_win
     runs-on: ${{ matrix.os }}
-    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -500,3 +489,31 @@ jobs:
         conda list
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
+      if: matrix.python-version == '3.8'
+      with:
+        skip_existing: true
+        user: __token__
+        packages_dir: ${{steps.download_wheel.outputs.download-path}}
+#        password: ${{ secrets.pypi_password }}
+        password: ${{ secrets.TEST_PYPI_PASSWORD }}
+        repository_url: https://test.pypi.org/legacy/
+    - name: Set up Miniconda for conda-build
+      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
+      if: matrix.python-version == '3.8'
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        auto-update-conda: true
+        python-version: '3.10'
+    - name: Build/publish anaconda package
+      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
+      if: matrix.python-version == '3.8'
+      shell: pwsh
+      run: |
+        conda info
+        conda install anaconda-client -y
+        $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
+        Write-Output ${{steps.download_conda.outputs.download-path}}\$filename
+        anaconda upload --user nion ${{steps.download_conda.outputs.download-path}}\$filename
