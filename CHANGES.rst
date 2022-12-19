@@ -1,6 +1,12 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.18 (2022-12-18)
+-------------------
+- Add support for text browser with markdown support.
+- Add more support methods for tool panels.
+- Preliminary Python 3.11 support.
+
 0.4.17 (2022-10-06)
 -------------------
 - Improve bitmap drawing on high DPI devices.
