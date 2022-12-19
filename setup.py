@@ -138,6 +138,11 @@ if sys.platform == "linux":
 
 data_files = package_files(dir_path, dest, dest_drop)
 
+def long_description():
+    with open('README.rst', 'rb') as fi:
+        result = fi.read().decode('utf-8')
+    return result
+
 setuptools.setup(
     name=f"{tool_id}-tool",
     version=version,
@@ -147,6 +152,7 @@ setuptools.setup(
     author='Nion Software Team',
     author_email='software@nion.com',
     description='Python command line access to Nion UI Launcher',
+    long_description=long_description(),
     entry_points={
         'console_scripts': [
             f"{tool_id}-tool=nion.{tool_id}_tool.command:main",
