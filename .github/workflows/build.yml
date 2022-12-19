@@ -306,6 +306,21 @@ jobs:
         conda list
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
+      with:
+        skip_existing: true
+        user: __token__
+        packages_dir: ${{steps.download_wheel.outputs.download-path}}
+        password: ${{ secrets.PYPI_PASSWORD }}
+    - name: Build/publish anaconda package
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+      shell: bash -l {0}
+      run: |
+        conda info
+        conda install anaconda-client -y
+        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
   test_macos:
     needs: build_macos
     runs-on: ${{ matrix.os }}
@@ -404,6 +419,21 @@ jobs:
         conda list
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
+    - name: Publish package to PyPI
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
+      shell: pwsh
+      run: |
+        conda info
+        pip install twine
+        twine --version
+        twine upload --repository-url https://test.pypi.org/legacy/ --username __token__ --password ${{ secrets.TEST_PYPI_PASSWORD }} --non-interactive --skip-existing --verbose ${{steps.download_wheel.outputs.download-path}}/*.whl
+    - name: Build/publish anaconda package
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+      shell: bash -l {0}
+      run: |
+        conda info
+        conda install anaconda-client -y
+        # anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
   test_win:
     needs: build_win
     runs-on: ${{ matrix.os }}
@@ -485,3 +515,20 @@ jobs:
         conda list
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
+    - name: Publish package to PyPI
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
+      shell: pwsh
+      run: |
+        conda info
+        pip install twine
+        twine --version
+        twine upload --username __token__ --password ${{ secrets.PYPI_PASSWORD }} --non-interactive --skip-existing --verbose ${{steps.download_wheel.outputs.download-path}}\*.whl
+    - name: Build/publish anaconda package
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+      shell: pwsh
+      run: |
+        conda info
+        conda install anaconda-client -y
+        $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
+        Write-Output ${{steps.download_conda.outputs.download-path}}\$filename
+        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}\$filename
