@@ -162,7 +162,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8"]
         qt-version: ["6.4.1"]
     steps:
     - uses: actions/checkout@v3
@@ -507,7 +507,7 @@ jobs:
         conda info
         pip install twine
         twine --version
-        twine upload --repository-url https://test.pypi.org/legacy/ --username nion --password ${{ secrets.TEST_PYPI_PASSWORD }} --non-interactive --skip-existing --verbose ${{steps.download_wheel.outputs.download-path}}\*.whl
+        twine upload --repository-url https://test.pypi.org/legacy/ --username __token__ --password ${{ secrets.TEST_PYPI_PASSWORD }} --non-interactive --skip-existing --verbose ${{steps.download_wheel.outputs.download-path}}\*.whl
     - name: Build/publish anaconda package
       # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
       if: matrix.python-version == '3.8'
