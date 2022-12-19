@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04]
-        python-version: ["3.8"]
+        python-version: ["3.8", "3.9", "3.10"]
         qt-version: ["6.4.1"]
     steps:
     - uses: actions/checkout@v3
@@ -96,12 +96,11 @@ jobs:
         path: /usr/share/miniconda/envs/test/conda-bld/linux-64/*.tar.bz2
   build_macos:
     runs-on: ${{ matrix.os }}
-    if: false
     strategy:
       fail-fast: false
       matrix:
         os: [macos-10.15]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8"]
         qt-version: ["6.4.1"]
     steps:
     - uses: actions/checkout@v3
@@ -158,11 +157,12 @@ jobs:
         path: /usr/local/miniconda/envs/test/conda-bld/osx-64/*.tar.bz2
   build_win:
     runs-on: ${{ matrix.os }}
+    if: false
     strategy:
       fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: ["3.8"]
+        python-version: ["3.8", "3.9", "3.10"]
         qt-version: ["6.4.1"]
     steps:
     - uses: actions/checkout@v3
@@ -309,15 +309,29 @@ jobs:
         conda list
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
+      with:
+        skip_existing: true
+        user: __token__
+        packages_dir: ${{steps.download_wheel.outputs.download-path}}
+        password: ${{ secrets.PYPI_PASSWORD }}
+    - name: Build/publish anaconda package
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+      shell: bash -l {0}
+      run: |
+        conda info
+        conda install anaconda-client -y
+        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
   test_macos:
     needs: build_macos
     runs-on: ${{ matrix.os }}
-    if: false
     strategy:
       fail-fast: false
       matrix:
         os: [macos-10.15]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8"]
     steps:
     - uses: actions/checkout@v3
     - name: Download Wheel
@@ -408,9 +422,25 @@ jobs:
         conda list
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
+    - name: Publish package to PyPI
+#      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
+      shell: pwsh
+      run: |
+        conda info
+        pip install twine
+        twine --version
+        twine upload --repository-url https://test.pypi.org/legacy/ --username __token__ --password ${{ secrets.TEST_PYPI_PASSWORD }} --non-interactive --skip-existing --verbose ${{steps.download_wheel.outputs.download-path}}/*.whl
+    - name: Build/publish anaconda package
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+      shell: bash -l {0}
+      run: |
+        conda info
+        conda install anaconda-client -y
+        # anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
   test_win:
     needs: build_win
     runs-on: ${{ matrix.os }}
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -489,32 +519,20 @@ jobs:
         conda list
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
-#    - name: Publish package to PyPI
-#      uses: pypa/gh-action-pypi-publish@release/v1
-#      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
-#      if: matrix.python-version == '3.8'
-#      with:
-#        skip_existing: true
-#        user: __token__
-#        packages_dir: ${{steps.download_wheel.outputs.download-path}}
-##        password: ${{ secrets.pypi_password }}
-#        password: ${{ secrets.TEST_PYPI_PASSWORD }}
-#        repository_url: https://test.pypi.org/legacy/
     - name: Publish package to PyPI
-      if: matrix.python-version == '3.8'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
       shell: pwsh
       run: |
         conda info
         pip install twine
         twine --version
-        twine upload --repository-url https://test.pypi.org/legacy/ --username __token__ --password ${{ secrets.TEST_PYPI_PASSWORD }} --non-interactive --skip-existing --verbose ${{steps.download_wheel.outputs.download-path}}\*.whl
+        twine upload --username __token__ --password ${{ secrets.PYPI_PASSWORD }} --non-interactive --skip-existing --verbose ${{steps.download_wheel.outputs.download-path}}\*.whl
     - name: Build/publish anaconda package
-      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
-      if: matrix.python-version == '3.8'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
       shell: pwsh
       run: |
         conda info
         conda install anaconda-client -y
         $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
         Write-Output ${{steps.download_conda.outputs.download-path}}\$filename
-        anaconda upload --user nion ${{steps.download_conda.outputs.download-path}}\$filename
+        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}\$filename
