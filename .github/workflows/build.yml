@@ -44,7 +44,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install install wheel
         python -m pip install install packaging
-        python -m pip install install numpy==1.21.5
+        python -m pip install install "numpy>=1.23,<1.24"
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON"
@@ -123,7 +123,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install install packaging
-        python -m pip install install numpy==1.21.5
+        python -m pip install install "numpy>=1.23,<1.24"
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON"
@@ -185,7 +185,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install packaging
-        pip install numpy==1.21.5
+        pip install "numpy>=1.23,<1.24"
         pushd launcher
         $PYTHON_EXEC = python -c "import sys; print(sys.executable, end='')"
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON_EXEC"
