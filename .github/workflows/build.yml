@@ -83,6 +83,16 @@ jobs:
         python -c "import sys; print(sys.executable)"
         conda install conda-build -y
         conda build --python ${{ matrix.python-version }} ./.github/workflows/recipe
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
+      if: true
+      with:
+        skip_existing: true
+        user: __token__
+#        password: ${{ secrets.pypi_password }}
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        repository_url: https://test.pypi.org/legacy/
     - name: Upload Wheel
       uses: actions/upload-artifact@v2
       with:
