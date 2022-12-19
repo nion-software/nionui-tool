@@ -19,8 +19,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04]
-        python-version: ["3.8", "3.9", "3.10"]
-        qt-version: ["6.4.1"]
+        python-version: ["3.9", "3.10", "3.11"]
+        qt-version: ["6.4.3"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -100,8 +100,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-10.15]
-        python-version: ["3.8", "3.9", "3.10"]
-        qt-version: ["6.4.1"]
+        python-version: ["3.9", "3.10", "3.11"]
+        qt-version: ["6.4.3"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -161,8 +161,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: ["3.8", "3.9", "3.10"]
-        qt-version: ["6.4.1"]
+        python-version: ["3.9", "3.10", "3.11"]
+        qt-version: ["6.4.3"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -226,7 +226,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11"]
     steps:
     - uses: actions/checkout@v3
     - name: Download Wheel
@@ -329,7 +329,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-10.15]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11"]
     steps:
     - uses: actions/checkout@v3
     - name: Download Wheel
@@ -442,7 +442,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11"]
     steps:
     - uses: actions/checkout@v3
     - name: Download Wheel
