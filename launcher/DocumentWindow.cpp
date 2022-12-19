@@ -488,6 +488,81 @@ void PyLineEdit::keyPressEvent(QKeyEvent *key_event)
     QLineEdit::keyPressEvent(key_event);
 }
 
+PyTextBrowser::PyTextBrowser()
+{
+    setOpenExternalLinks(true);
+}
+
+void PyTextBrowser::keyPressEvent(QKeyEvent *key_event)
+{
+    if (key_event->type() == QEvent::KeyPress)
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        if (key_event->key() == Qt::Key_Escape)
+        {
+            if (m_py_object.isValid())
+            {
+                if (app->dispatchPyMethod(m_py_object, "escapePressed", QVariantList()).toBool())
+                {
+                    key_event->accept();
+                    return;
+                }
+            }
+        }
+        else if (key_event->key() == Qt::Key_Return || key_event->key() == Qt::Key_Enter)
+        {
+            if (m_py_object.isValid())
+            {
+                if (app->dispatchPyMethod(m_py_object, "returnPressed", QVariantList()).toBool())
+                {
+                    key_event->accept();
+                    return;
+                }
+            }
+        }
+        else
+        {
+            if (m_py_object.isValid())
+            {
+                Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+                if (app->dispatchPyMethod(m_py_object, "keyPressed", QVariantList() << key_event->text() << key_event->key() << (int)key_event->modifiers()).toBool())
+                {
+                    key_event->accept();
+                    return;
+                }
+            }
+        }
+    }
+
+    QTextEdit::keyPressEvent(key_event);
+}
+
+void PyTextBrowser::focusInEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        app->dispatchPyMethod(m_py_object, "focusIn", QVariantList());
+    }
+
+    QTextEdit::focusInEvent(event);
+}
+
+void PyTextBrowser::focusOutEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        app->dispatchPyMethod(m_py_object, "focusOut", QVariantList());
+    }
+
+    QTextEdit::focusOutEvent(event);
+}
+
 PyTextEdit::PyTextEdit()
 {
     setAcceptRichText(false);
@@ -3104,6 +3179,11 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
     {
         PyLineEdit *line_edit = new PyLineEdit();
         return line_edit;
+    }
+    else if (intrinsic_id == "textbrowser")
+    {
+        PyTextBrowser *text_browser = new PyTextBrowser();
+        return text_browser;
     }
     else if (intrinsic_id == "textedit")
     {

@@ -34,6 +34,7 @@
 #include <QtWidgets/QScrollArea>
 #include <QtWidgets/QStyledItemDelegate>
 #include <QtWidgets/QTabWidget>
+#include <QtWidgets/QTextBrowser>
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QTreeView>
 
@@ -375,6 +376,22 @@ private Q_SLOTS:
     void cursorPositionChanged();
     void selectionChanged();
     void textChanged();
+
+private:
+    QVariant m_py_object;
+};
+
+class PyTextBrowser : public QTextBrowser
+{
+    Q_OBJECT
+public:
+    PyTextBrowser();
+
+    void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
+
+    virtual void focusInEvent(QFocusEvent *event) override;
+    virtual void focusOutEvent(QFocusEvent *event) override;
+    virtual void keyPressEvent(QKeyEvent *event) override;
 
 private:
     QVariant m_py_object;

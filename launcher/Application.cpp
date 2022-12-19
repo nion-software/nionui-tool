@@ -4354,13 +4354,13 @@ static PyObject *TabWidget_connect(PyObject * /*self*/, PyObject *args)
     if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
         return NULL;
 
-    PyTabWidget *text_edit = Unwrap<PyTabWidget>(obj0);
-    if (text_edit == NULL)
+    PyTabWidget *tab_widget = Unwrap<PyTabWidget>(obj0);
+    if (tab_widget == NULL)
         return NULL;
 
     QVariant py_object = PyObjectToQVariant(obj1);
 
-    text_edit->setPyObject(py_object);
+    tab_widget->setPyObject(py_object);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4378,6 +4378,152 @@ static PyObject *TabWidget_setCurrentIndex(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     container->setCurrentIndex(index);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextBrowser_connect(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    PyObject *obj1 = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &obj1))
+        return NULL;
+
+    PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
+    if (text_browser == NULL)
+        return NULL;
+
+    QVariant py_object = PyObjectToQVariant(obj1);
+
+    text_browser->setPyObject(py_object);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextBrowser_setMarkdown(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    Py_UNICODE *text_u = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+        return NULL;
+
+    PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
+    if (text_browser == NULL)
+        return NULL;
+
+    text_browser->setMarkdown(Py_UNICODE_to_QString(text_u));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextBrowser_setText(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    Py_UNICODE *text_u = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+        return NULL;
+
+    PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
+    if (text_browser == NULL)
+        return NULL;
+
+    text_browser->setText(Py_UNICODE_to_QString(text_u));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextBrowser_setTextBackgroundColor(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    int r, g, b;
+
+    if (!PythonSupport::instance()->parse()(args, "Oiii", &obj0, &r, &g, &b))
+        return NULL;
+
+    PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
+    if (text_browser == NULL)
+        return NULL;
+
+    QPalette palette = text_browser->palette();
+    palette.setColor(QPalette::Base, QColor(r, g, b));
+    text_browser->setPalette(palette);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextBrowser_setTextColor(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    int r, g, b;
+
+    if (!PythonSupport::instance()->parse()(args, "Oiii", &obj0, &r, &g, &b))
+        return NULL;
+
+    PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
+    if (text_browser == NULL)
+        return NULL;
+
+    text_browser->setTextColor(QColor(r, g, b));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextBrowser_setTextFont(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    char *font_c = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Oz", &obj0, &font_c))
+        return NULL;
+
+    PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
+    if (text_browser == NULL)
+        return NULL;
+
+    float display_scaling = GetDisplayScaling();
+
+    QFont font = ParseFontString(font_c, display_scaling);
+
+    text_browser->setFont(font);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -6115,15 +6261,18 @@ static PyMethodDef Methods[] = {
     {"Action_setChecked", Action_setChecked, METH_VARARGS, "Action_setChecked."},
     {"Action_setEnabled", Action_setEnabled, METH_VARARGS, "Action_setEnabled."},
     {"Action_setTitle", Action_setTitle, METH_VARARGS, "Action_setTitle."},
+
     {"Application_close", Application_close, METH_VARARGS, "Application_close."},
     {"Application_getKeyboardModifiers", Application_getKeyboardModifiers, METH_VARARGS, "Application_getKeyboardModifiers."},
     {"Application_setQuitOnLastWindowClosed", Application_setQuitOnLastWindowClosed, METH_VARARGS, "Application_setQuitOnLastWindowClosed."},
+
     {"ButtonGroup_addButton", ButtonGroup_addButton, METH_VARARGS, "ButtonGroup_addButton."},
     {"ButtonGroup_connect", ButtonGroup_connect, METH_VARARGS, "ButtonGroup_connect."},
     {"ButtonGroup_checkedButton", ButtonGroup_checkedButton, METH_VARARGS, "ButtonGroup_checkedButton."},
     {"ButtonGroup_create", ButtonGroup_create, METH_VARARGS, "ButtonGroup_create."},
     {"ButtonGroup_destroy", ButtonGroup_destroy, METH_VARARGS, "ButtonGroup_destroy."},
     {"ButtonGroup_removeButton", ButtonGroup_removeButton, METH_VARARGS, "ButtonGroup_removeButton."},
+
     {"Canvas_connect", Canvas_connect, METH_VARARGS, "Canvas_connect."},
     {"Canvas_draw", Canvas_draw, METH_VARARGS, "Canvas_draw."},
     {"Canvas_draw_binary", Canvas_draw_binary, METH_VARARGS, "Canvas_draw."},
@@ -6132,22 +6281,27 @@ static PyMethodDef Methods[] = {
     {"Canvas_releaseMouse", Canvas_releaseMouse, METH_VARARGS, "Canvas_releaseMouse."},
     {"Canvas_removeSection", Canvas_removeSection, METH_VARARGS, "Canvas_removeSection."},
     {"Canvas_setCursorShape", Canvas_setCursorShape, METH_VARARGS, "Canvas_setCursorShape."},
+
     {"CheckBox_connect", CheckBox_connect, METH_VARARGS, "CheckBox_connect."},
     {"CheckBox_getCheckState", CheckBox_getCheckState, METH_VARARGS, "CheckBox_getCheckState."},
     {"CheckBox_getIsTristate", CheckBox_getIsTristate, METH_VARARGS, "CheckBox_getIsTristate."},
     {"CheckBox_setCheckState", CheckBox_setCheckState, METH_VARARGS, "CheckBox_setCheckState."},
+
     {"Clipboard_clear", Clipboard_clear, METH_VARARGS, "Clipboard_clear."},
     {"Clipboard_mimeData", Clipboard_mimeData, METH_VARARGS, "Clipboard_mimeData."},
     {"Clipboard_setMimeData", Clipboard_setMimeData, METH_VARARGS, "Clipboard_setMimeData."},
     {"Clipboard_setText", Clipboard_setText, METH_VARARGS, "Clipboard_setText."},
     {"Clipboard_text", Clipboard_text, METH_VARARGS, "Clipboard_text."},
+
     {"CheckBox_setText", CheckBox_setText, METH_VARARGS, "CheckBox_setText."},
     {"CheckBox_setIsTristate", CheckBox_setIsTristate, METH_VARARGS, "CheckBox_setIsTristate."},
+
     {"ComboBox_addItem", ComboBox_addItem, METH_VARARGS, "ComboBox_addItem."},
     {"ComboBox_connect", ComboBox_connect, METH_VARARGS, "ComboBox_connect."},
     {"ComboBox_getCurrentText", ComboBox_getCurrentText, METH_VARARGS, "ComboBox_getCurrentText."},
     {"ComboBox_removeAllItems", ComboBox_removeAllItems, METH_VARARGS, "ComboBox_removeAllItems."},
     {"ComboBox_setCurrentText", ComboBox_setCurrentText, METH_VARARGS, "ComboBox_setCurrentText."},
+
     {"Core_getFontMetrics", Core_getFontMetrics, METH_VARARGS, "Core_getFontMetrics."},
     {"Core_getLocation", Core_getLocation, METH_VARARGS, "Core_getLocation."},
     {"Core_getQtVersion", Core_getQtVersion, METH_VARARGS, "Core_getQtVersion."},
@@ -6159,8 +6313,10 @@ static PyMethodDef Methods[] = {
     {"Core_truncateToWidth", Core_truncateToWidth, METH_VARARGS, "Core_truncateToWidth."},
     {"Core_URLToPath", Core_URLToPath, METH_VARARGS, "Core_URLToPath."},
     {"Core_writeBinaryToImage", Core_writeBinaryToImage, METH_VARARGS, "Core_writeBinaryToImage."},
+
     {"DockWidget_connect", DockWidget_connect, METH_VARARGS, "DockWidget_connect."},
     {"DockWidget_getToggleAction", DockWidget_getToggleAction, METH_VARARGS, "DockWidget_getToggleAction."},
+
     {"DocumentWindow_activate", DocumentWindow_activate, METH_VARARGS, "DocumentWindow_activate."},
     {"DocumentWindow_addDockWidget", DocumentWindow_addDockWidget, METH_VARARGS, "DocumentWindow_addDockWidget."},
     {"DocumentWindow_addMenu", DocumentWindow_addMenu, METH_VARARGS, "DocumentWindow_addMenu."},
@@ -6184,14 +6340,18 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_setWindowStyle", DocumentWindow_setWindowStyle, METH_VARARGS, "DocumentWindow_setWindowStyle."},
     {"DocumentWindow_show", DocumentWindow_show, METH_VARARGS, "DocumentWindow_show."},
     {"DocumentWindow_tabifyDockWidgets", DocumentWindow_tabifyDockWidgets, METH_VARARGS, "DocumentWindow_tabifyDockWidgets."},
+
     {"Drag_connect", Drag_connect, METH_VARARGS, "Drag_connect."},
     {"Drag_create", Drag_create, METH_VARARGS, "Drag_create."},
     {"Drag_exec", Drag_exec, METH_VARARGS, "Drag_exec."},
     {"Drag_setThumbnail", Drag_setThumbnail, METH_VARARGS, "Drag_setThumbnail."},
+
     {"DrawingContext_drawCommands", DrawingContext_drawCommands, METH_VARARGS, "DrawingContext_drawCommands."},
     {"DrawingContext_paintRGBA", DrawingContext_paintRGBA, METH_VARARGS, "DrawingContext_paintRGBA."},
     {"DrawingContext_paintRGBA_binary", DrawingContext_paintRGBA_binary, METH_VARARGS, "DrawingContext_paintRGBA_binary."},
+
     {"GroupBoxWidget_setTitle", GroupBoxWidget_setTitle, METH_VARARGS, "GroupBoxWidget_setTitle."},
+
     {"ItemModel_beginInsertRows", ItemModel_beginInsertRows, METH_VARARGS, "ItemModel beginInsertRows."},
     {"ItemModel_beginRemoveRows", ItemModel_beginRemoveRows, METH_VARARGS, "ItemModel beginRemoveRows."},
     {"ItemModel_connect", ItemModel_connect, METH_VARARGS, "ItemModel_connect."},
@@ -6200,10 +6360,12 @@ static PyMethodDef Methods[] = {
     {"ItemModel_destroy", ItemModel_destroy, METH_VARARGS, "ItemModel destroy."},
     {"ItemModel_endInsertRow", ItemModel_endInsertRow, METH_VARARGS, "ItemModel endInsertRows."},
     {"ItemModel_endRemoveRow", ItemModel_endRemoveRow, METH_VARARGS, "ItemModel endRemoveRows."},
+
     {"Label_setText", Label_setText, METH_VARARGS, "Label_setText."},
     {"Label_setTextColor", Label_setTextColor, METH_VARARGS, "Label_setTextColor."},
     {"Label_setTextFont", Label_setTextFont, METH_VARARGS, "Label_setTextFont."},
     {"Label_setWordWrap", Label_setWordWrap, METH_VARARGS, "Label_setWordWrap."},
+
     {"LineEdit_connect", LineEdit_connect, METH_VARARGS, "LineEdit_connect."},
     {"LineEdit_getEditable", LineEdit_getEditable, METH_VARARGS, "LineEdit_getEditable."},
     {"LineEdit_getPlaceholderText", LineEdit_getPlaceholderText, METH_VARARGS, "LineEdit_getPlaceholderText."},
@@ -6214,6 +6376,7 @@ static PyMethodDef Methods[] = {
     {"LineEdit_setEditable", LineEdit_setEditable, METH_VARARGS, "LineEdit_setEditable."},
     {"LineEdit_setPlaceholderText", LineEdit_setPlaceholderText, METH_VARARGS, "LineEdit_setPlaceholderText."},
     {"LineEdit_setText", LineEdit_setText, METH_VARARGS, "LineEdit_setText."},
+
     {"Menu_addAction", Menu_addAction, METH_VARARGS, "Menu_addAction."},
     {"Menu_addMenu", Menu_addMenu, METH_VARARGS, "Menu_addMenu."},
     {"Menu_addSeparator", Menu_addSeparator, METH_VARARGS, "Menu_addSeparator."},
@@ -6224,45 +6387,63 @@ static PyMethodDef Methods[] = {
     {"Menu_insertSeparator", Menu_insertSeparator, METH_VARARGS, "Menu_insertSeparator."},
     {"Menu_popup", Menu_popup, METH_VARARGS, "Menu_popup."},
     {"Menu_removeAction", Menu_removeAction, METH_VARARGS, "Menu_removeAction."},
+
     {"MimeData_create", MimeData_create, METH_VARARGS, "MimeData_create."},
     {"MimeData_dataAsString", MimeData_dataAsString, METH_VARARGS, "MimeData_dataAsString."},
     {"MimeData_formats", MimeData_formats, METH_VARARGS, "MimeData_formats."},
     {"MimeData_setDataAsString", MimeData_setDataAsString, METH_VARARGS, "MimeData_setDataAsString."},
+
     {"PushButton_connect", PushButton_connect, METH_VARARGS, "PushButton_connect."},
     {"PushButton_setIcon", PushButton_setIcon, METH_VARARGS, "PushButton_setIcon."},
     {"PushButton_setText", PushButton_setText, METH_VARARGS, "PushButton_setText."},
+
     {"RadioButton_connect", RadioButton_connect, METH_VARARGS, "RadioButton_connect."},
     {"RadioButton_getChecked", RadioButton_getChecked, METH_VARARGS, "RadioButton_getChecked."},
     {"RadioButton_setChecked", RadioButton_setChecked, METH_VARARGS, "RadioButton_setChecked."},
     {"RadioButton_setIcon", RadioButton_setIcon, METH_VARARGS, "RadioButton_setIcon."},
     {"RadioButton_setText", RadioButton_setText, METH_VARARGS, "RadioButton_setText."},
+
     {"ScrollArea_connect", ScrollArea_connect, METH_VARARGS, "ScrollArea_connect."},
     {"ScrollArea_info", ScrollArea_info, METH_VARARGS, "ScrollArea_info."},
     {"ScrollArea_setHorizontal", ScrollArea_setHorizontal, METH_VARARGS, "ScrollArea_setHorizontal."},
     {"ScrollArea_setScrollbarPolicies", ScrollArea_setScrollbarPolicies, METH_VARARGS, "ScrollArea_setScrollbarPolicies."},
     {"ScrollArea_setVertical", ScrollArea_setVertical, METH_VARARGS, "ScrollArea_setVertical."},
     {"ScrollArea_setWidget", ScrollArea_setWidget, METH_VARARGS, "ScrollArea_setWidget."},
+
     {"Settings_getString", Settings_getString, METH_VARARGS, "Settings_getString."},
     {"Settings_remove", Settings_remove, METH_VARARGS, "Settings_remove."},
     {"Settings_setString", Settings_setString, METH_VARARGS, "Settings_setString."},
+
     {"Slider_connect", Slider_connect, METH_VARARGS, "Slider_connect."},
     {"Slider_getValue", Slider_getValue, METH_VARARGS, "Slider_getValue."},
     {"Slider_setMaximum", Slider_setMaximum, METH_VARARGS, "Slider_setMaximum."},
     {"Slider_setMinimum", Slider_setMinimum, METH_VARARGS, "Slider_setMinimum."},
     {"Slider_setValue", Slider_setValue, METH_VARARGS, "Slider_setValue."},
+
     {"Splitter_restoreState", Splitter_restoreState, METH_VARARGS, "Splitter_restoreState"},
     {"Splitter_setOrientation", Splitter_setOrientation, METH_VARARGS, "Splitter_setOrientation"},
     {"Splitter_saveState", Splitter_saveState, METH_VARARGS, "Splitter_saveState"},
     {"Splitter_setSizes", Splitter_setSizes, METH_VARARGS, "Splitter_setSizes"},
+
     {"StackWidget_addWidget", StackWidget_addWidget, METH_VARARGS, "StackWidget_addWidget"},
     {"StackWidget_insertWidget", StackWidget_insertWidget, METH_VARARGS, "StackWidget_insertWidget"},
     {"StackWidget_removeWidget", StackWidget_removeWidget, METH_VARARGS, "StackWidget_removeWidget"},
     {"StackWidget_setCurrentIndex", StackWidget_setCurrentIndex, METH_VARARGS, "StackWidget_setCurrentIndex"},
+
     {"StyledDelegate_connect", StyledDelegate_connect, METH_VARARGS, "StyledDelegate_connect."},
     {"StyledDelegate_create", StyledDelegate_create, METH_VARARGS, "StyledDelegate_create."},
+
     {"TabWidget_addTab", TabWidget_addTab, METH_VARARGS, "TabWidget_addTab."},
     {"TabWidget_connect", TabWidget_connect, METH_VARARGS, "TabWidget_connect."},
     {"TabWidget_setCurrentIndex", TabWidget_setCurrentIndex, METH_VARARGS, "TabWidget_setCurrentIndex"},
+
+    {"TextBrowser_connect", TextBrowser_connect, METH_VARARGS, "TextBrowser_connect."},
+    {"TextBrowser_setMarkdown", TextBrowser_setMarkdown, METH_VARARGS, "TextBrowser_setMarkdown."},
+    {"TextBrowser_setText", TextBrowser_setText, METH_VARARGS, "TextBrowser_setText."},
+    {"TextBrowser_setTextBackgroundColor", TextBrowser_setTextBackgroundColor, METH_VARARGS, "TextBrowser_setTextBackgroundColor."},
+    {"TextBrowser_setTextColor", TextBrowser_setTextColor, METH_VARARGS, "TextBrowser_setTextColor."},
+    {"TextBrowser_setTextFont", TextBrowser_setTextFont, METH_VARARGS, "TextBrowser_setTextFont."},
+
     {"TextEdit_clearSelection", TextEdit_clearSelection, METH_VARARGS, "TextEdit_clearSelection."},
     {"TextEdit_appendText", TextEdit_appendText, METH_VARARGS, "TextEdit_appendText."},
     {"TextEdit_connect", TextEdit_connect, METH_VARARGS, "TextEdit_connect."},
@@ -6283,8 +6464,10 @@ static PyMethodDef Methods[] = {
     {"TextEdit_setTextColor", TextEdit_setTextColor, METH_VARARGS, "TextEdit_setTextColor."},
     {"TextEdit_setTextFont", TextEdit_setTextFont, METH_VARARGS, "TextEdit_setTextFont."},
     {"TextEdit_setWordWrapMode", TextEdit_setWordWrapMode, METH_VARARGS, "TextEdit_setWordWrapMode."},
+
     {"ToolTip_hide", ToolTip_hide, METH_VARARGS, "ToolTip_hide."},
     {"ToolTip_show", ToolTip_show, METH_VARARGS, "ToolTip_show."},
+
     {"TreeWidget_connect", TreeWidget_connect, METH_VARARGS, "TreeWidget_connect."},
     {"TreeWidget_resizeToContent", TreeWidget_resizeToContent, METH_VARARGS, "TreeWidget_resizeToContent."},
     {"TreeWidget_setCurrentRow", TreeWidget_setCurrentRow, METH_VARARGS, "TreeWidget_setCurrentRow."},
@@ -6292,6 +6475,7 @@ static PyMethodDef Methods[] = {
     {"TreeWidget_setModel", TreeWidget_setModel, METH_VARARGS, "TreeWidget_setModel."},
     {"TreeWidget_setSelectedIndexes", TreeWidget_setSelectedIndexes, METH_VARARGS, "TreeWidget_setSelectedIndexes."},
     {"TreeWidget_setSelectionMode", TreeWidget_setSelectionMode, METH_VARARGS, "TreeWidget_setSelectionMode."},
+
     {"Widget_addOverlay", Widget_addOverlay, METH_VARARGS, "Widget_addOverlay."},
     {"Widget_addSpacing", Widget_addSpacing, METH_VARARGS, "Widget_addSpacing."},
     {"Widget_addStretch", Widget_addStretch, METH_VARARGS, "Widget_addStretch."},
@@ -6324,6 +6508,7 @@ static PyMethodDef Methods[] = {
     {"Widget_ungrabGesture", Widget_ungrabGesture, METH_VARARGS, "Widget_ungrabGesture."},
     {"Widget_widgetByIndex", Widget_widgetByIndex, METH_VARARGS, "Widget_widgetByIndex."},
     {"Widget_widgetCount", Widget_widgetCount, METH_VARARGS, "Widget_widgetCount."},
+
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
