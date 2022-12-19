@@ -392,6 +392,10 @@ public:
     virtual void focusInEvent(QFocusEvent *event) override;
     virtual void focusOutEvent(QFocusEvent *event) override;
     virtual void keyPressEvent(QKeyEvent *event) override;
+    virtual QVariant loadResource(int type, const QUrl &name) override;
+
+private Q_SLOTS:
+    void anchorClicked(const QUrl &link);
 
 private:
     QVariant m_py_object;

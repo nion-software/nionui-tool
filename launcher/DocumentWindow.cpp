@@ -490,7 +490,37 @@ void PyLineEdit::keyPressEvent(QKeyEvent *key_event)
 
 PyTextBrowser::PyTextBrowser()
 {
-    setOpenExternalLinks(true);
+    // links are handled by Python and the anchorClicked function.
+    setOpenLinks(false);
+    setOpenExternalLinks(false);
+    connect(this, SIGNAL(anchorClicked(QUrl)), this, SLOT(anchorClicked(QUrl)));
+}
+
+QVariant PyTextBrowser::loadResource(int type, const QUrl &name)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+
+        if (type == QTextDocument::ImageResource)
+        {
+            auto result = app->dispatchPyMethod(m_py_object, "loadImageResource", QVariantList() << name);
+            if (result.isValid())
+            {
+                PyObjectPtr image_object(QVariantToPyObject(result));
+
+                QImageInterface image;
+                PythonSupport::instance()->imageFromRGBA(image_object, &image);
+
+                if (!image.image.isNull())
+                {
+                    return image.image;
+                }
+            }
+
+        }
+    }
+    return QTextBrowser::QTextEdit::loadResource(type, name);
 }
 
 void PyTextBrowser::keyPressEvent(QKeyEvent *key_event)
@@ -561,6 +591,15 @@ void PyTextBrowser::focusOutEvent(QFocusEvent *event)
     }
 
     QTextEdit::focusOutEvent(event);
+}
+
+void PyTextBrowser::anchorClicked(const QUrl &link)
+{
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        app->dispatchPyMethod(m_py_object, "anchorClicked", QVariantList() << link);
+    }
 }
 
 PyTextEdit::PyTextEdit()

@@ -129,6 +129,9 @@ PythonValueVariant QVariantToPythonValueVariant(const QVariant &value)
         case QMetaType::ULongLong:
             return PythonValueVariant{static_cast<long long>(*((qint64*)data))};
 
+        case QMetaType::QUrl:
+            return PythonValueVariant{value.toUrl().toString().toStdString()};
+
         case QMetaType::QVariantMap:
         {
             std::map<std::string, PythonValueVariant> map;
@@ -4407,6 +4410,52 @@ static PyObject *TextBrowser_connect(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *TextBrowser_scrollToAnchor(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    Py_UNICODE *anchor_u = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &anchor_u))
+        return NULL;
+
+    PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
+    if (text_browser == NULL)
+        return NULL;
+
+    text_browser->scrollToAnchor(Py_UNICODE_to_QString(anchor_u));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *TextBrowser_setHtml(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    Py_UNICODE *text_u = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+        return NULL;
+
+    PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
+    if (text_browser == NULL)
+        return NULL;
+
+    text_browser->setHtml(Py_UNICODE_to_QString(text_u));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *TextBrowser_setMarkdown(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -6438,6 +6487,8 @@ static PyMethodDef Methods[] = {
     {"TabWidget_setCurrentIndex", TabWidget_setCurrentIndex, METH_VARARGS, "TabWidget_setCurrentIndex"},
 
     {"TextBrowser_connect", TextBrowser_connect, METH_VARARGS, "TextBrowser_connect."},
+    {"TextBrowser_scrollToAnchor", TextBrowser_scrollToAnchor, METH_VARARGS, "TextBrowser_scrollToAnchor."},
+    {"TextBrowser_setHtml", TextBrowser_setHtml, METH_VARARGS, "TextBrowser_setHtml."},
     {"TextBrowser_setMarkdown", TextBrowser_setMarkdown, METH_VARARGS, "TextBrowser_setMarkdown."},
     {"TextBrowser_setText", TextBrowser_setText, METH_VARARGS, "TextBrowser_setText."},
     {"TextBrowser_setTextBackgroundColor", TextBrowser_setTextBackgroundColor, METH_VARARGS, "TextBrowser_setTextBackgroundColor."},
