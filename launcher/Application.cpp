@@ -47,13 +47,6 @@
 
 #include "LauncherConfig.h"
 
-#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-namespace Qt
-{
-    static auto endl = ::endl;
-}
-#endif
-
 template <typename T>
 inline T *Unwrap(PyObject *py_object)
 {
@@ -1437,10 +1430,8 @@ QFont ParseFontString(const QString &font_string, float display_scaling = 1.0)
                 font.setCapitalization(QFont::SmallCaps);
             else if (font_part == "bold")
                 font.setWeight(QFont::Bold);
-#if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
             else if (font_part == "medium")
                 font.setWeight(QFont::Medium);
-#endif
             else if (font_part == "system")
                 font.setStyleHint(QFont::System);
             else if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toInt() > 0)
@@ -1535,11 +1526,7 @@ static PyObject *Core_getFontMetrics(PyObject * /*self*/, PyObject *args)
 
     QVariantList result;
 
-#if QT_VERSION >= QT_VERSION_CHECK(5,11,0)
     result << font_metrics.horizontalAdvance(text) / display_scaling;
-#else
-    result << font_metrics.width(text) / display_scaling;
-#endif
     result << font_metrics.height() / display_scaling;
     result << font_metrics.ascent() / display_scaling;
     result << font_metrics.descent() / display_scaling;
@@ -1565,21 +1552,13 @@ static PyObject *Core_getLocation(PyObject * /*self*/, PyObject *args)
 
     QStandardPaths::StandardLocation location = QStandardPaths::DocumentsLocation;
     if (location_str == "data")
-#if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
         location = QStandardPaths::AppDataLocation;
-#else
-        location = QStandardPaths::DataLocation;
-#endif
     else if (location_str == "documents")
         location = QStandardPaths::DocumentsLocation;
     else if (location_str == "temporary")
         location = QStandardPaths::TempLocation;
     else if (location_str == "configuration")
-#if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
         location = QStandardPaths::AppConfigLocation;
-#else
-        location = QStandardPaths::ConfigLocation;
-#endif
     QDir dir(QStandardPaths::writableLocation(location));
     QString data_location;
     data_location = dir.absolutePath();
