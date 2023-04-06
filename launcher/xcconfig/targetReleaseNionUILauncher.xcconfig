@@ -1,5 +1,4 @@
-// set the base Qt version. use an alias to point 5.15 to 5.15.x.
-QTDIR = $(HOME)/Developer/Qt/6.3.0/macos
+QTDIR = $(HOME)/Developer/Qt/6.5.0/macos
 
 ARCHS = $(ARCHS_STANDARD)
 
@@ -26,7 +25,7 @@ GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp
 
 DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
 
-MACOSX_DEPLOYMENT_TARGET = 10.14
+MACOSX_DEPLOYMENT_TARGET = 11.0
 
 CODE_SIGN_IDENTITY = Developer ID Application: Nion, Inc.
 

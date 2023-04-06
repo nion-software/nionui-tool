@@ -184,7 +184,7 @@ endif()
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
     set(APP_EXECUTABLE "Nion UI Launcher")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.14)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET 11.0)
     set(MACOSX_BUNDLE_BUNDLE_NAME ${APP_EXECUTABLE})
     set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.nion.ui.launcher")
     set(MACOSX_BUNDLE_ICON_FILE "MacIcon.icns")
