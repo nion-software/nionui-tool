@@ -2552,16 +2552,13 @@ void PyCanvas::paintEvent(QPaintEvent *event)
         }
     }
 
-    QMap<QDateTime, QDateTime> known_dts = m_known_dts;
-    m_known_dts.clear();
+    QDateTime utc = QDateTime::currentDateTimeUtc();
 
     Q_FOREACH(const RenderedTimeStamp &rendered_timestamp, rendered_timestamps)
     {
         painter.save();
         painter.setRenderHints(DEFAULT_RENDER_HINTS);
         QDateTime dt = rendered_timestamp.dateTime;
-        QDateTime utc = known_dts.contains(dt) ? known_dts[dt] : QDateTime::currentDateTimeUtc();
-        m_known_dts[dt] = utc;
         qint64 millisecondsDiff = dt.msecsTo(utc);
         qint64 latencyAverage = 0;
         if (rendered_timestamp.section_id > 0)

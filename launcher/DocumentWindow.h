@@ -614,13 +614,14 @@ public:
     QRectOptional renderSection(QSharedPointer<CanvasSection> section);
     void wakeRenderer();
 
+    QElapsedTimer total_timer;
+
 private Q_SLOTS:
     void renderingFinished();
     void repaintRect(const QRect &rect);
 
 private:
     QVariant m_py_object;
-    QMap<QDateTime, QDateTime> m_known_dts;
     QMutex m_commands_mutex;
     QList<CanvasDrawingCommand> m_commands;
     QMap<int, QSharedPointer<CanvasSection> > m_sections;
