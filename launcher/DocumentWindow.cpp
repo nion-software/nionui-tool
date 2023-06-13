@@ -2560,7 +2560,10 @@ void PyCanvas::paintEvent(QPaintEvent *event)
         painter.setRenderHints(DEFAULT_RENDER_HINTS);
         QDateTime dt = rendered_timestamp.dateTime;
         qint64 millisecondsDiff = dt.msecsTo(utc);
+        qint64 latencyMin = 1000;
         qint64 latencyAverage = 0;
+        qint64 latencyMax = 0;
+        double latencyStdDev = 0;
         if (rendered_timestamp.section_id > 0)
         {
             QSharedPointer<CanvasSection> section;
@@ -2573,12 +2576,25 @@ void PyCanvas::paintEvent(QPaintEvent *event)
             if (section->latencies.size() > 100)
                 section->latencies.dequeue();
             Q_FOREACH(quint64 latency, section->latencies)
+            {
                 latencyAverage += latency;
-            latencyAverage /= section->latencies.size();
+                if (latency < latencyMin)
+                    latencyMin = latency;
+                if (latency > latencyMax)
+                    latencyMax = latency;
+            }
+            double latencyAverageF = (double)latencyAverage / section->latencies.size();
+            latencyAverage = (qint64)latencyAverageF;
+            double sumSquares = 0;
+            Q_FOREACH(quint64 latency, section->latencies)
+            {
+                sumSquares += (latency - latencyAverageF) * (latency - latencyAverageF);
+            }
+            latencyStdDev = sqrt(sumSquares / section->latencies.size() );
         }
-        QString text = "Latency " + QString::number(millisecondsDiff);
+        QString text = "Latency " + QString::number(millisecondsDiff).rightJustified(4);
         if (latencyAverage > 0)
-            text += " [" + QString::number(latencyAverage) + "]";
+            text += " [" + QString::number(latencyMin).rightJustified(3) + "/" + QString::number(latencyAverage).rightJustified(3) + "/" + QString::number(latencyMax).rightJustified(3) + "/" + QString::number(latencyStdDev, 'f', 1).rightJustified(4) + "]";
         QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
         QFontMetrics fm(text_font);
         int text_width = fm.horizontalAdvance(text);
