@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.19 (2023-06-13)
+-------------------
+- Python 3.11 support. Drop Python 3.8 support.
+
 0.4.18 (2022-12-18)
 -------------------
 - Add support for text browser with markdown support.
