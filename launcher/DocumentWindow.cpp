@@ -2594,7 +2594,7 @@ void PyCanvas::paintEvent(QPaintEvent *event)
         }
         QString text = "Latency " + QString::number(millisecondsDiff).rightJustified(4);
         if (latencyAverage > 0)
-            text += " [" + QString::number(latencyMin).rightJustified(3) + "/" + QString::number(latencyAverage).rightJustified(3) + "/" + QString::number(latencyMax).rightJustified(3) + "/" + QString::number(latencyStdDev, 'f', 1).rightJustified(4) + "]";
+            text += ":" + QString::number(latencyAverage).rightJustified(3) + " ± " + QString::number(latencyStdDev, 'f', 1).rightJustified(4) + " [" + QString::number(latencyMin).rightJustified(3) + ":" + QString::number(latencyMax).rightJustified(3) + " ]";
         QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
         QFontMetrics fm(text_font);
         int text_width = fm.horizontalAdvance(text);
