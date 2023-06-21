@@ -158,9 +158,6 @@ setuptools.setup(
             f"{tool_id}-tool=nion.{tool_id}_tool.command:main",
         ],
     },
-    install_requires=[
-        "setuptools",  # for pkg_resources
-        ],
     data_files=data_files,
     distclass=BinaryDistribution,
     cmdclass={'bdist_wheel': bdist_wheel},
