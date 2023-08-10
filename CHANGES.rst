@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.20 (2023-08-10)
+-------------------
+- Minor improvements. Enable universal binary support on macOS.
+
 0.4.19 (2023-06-13)
 -------------------
 - Python 3.11 support. Drop Python 3.8 support.
