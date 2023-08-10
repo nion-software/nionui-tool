@@ -83,7 +83,7 @@ jobs:
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
         conda install conda-build -y
-        conda build --python ${{ matrix.python-version }} ./.github/workflows/recipe
+        conda build --quiet --python ${{ matrix.python-version }} ./.github/workflows/recipe
     - name: Upload Wheel
       uses: actions/upload-artifact@v2
       with:
@@ -144,7 +144,7 @@ jobs:
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
         conda install conda-build -y
-        conda build --python ${{ matrix.python-version }} ./.github/workflows/recipe
+        conda build --quiet --python ${{ matrix.python-version }} ./.github/workflows/recipe
     - name: Upload Wheel
       uses: actions/upload-artifact@v2
       with:
@@ -208,7 +208,7 @@ jobs:
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
         conda install conda-build -y
-        conda build --python ${{ matrix.python-version }} ./.github/workflows/recipe
+        conda build --quiet --python ${{ matrix.python-version }} ./.github/workflows/recipe
     - name: Upload Wheel
       uses: actions/upload-artifact@v2
       with:
