@@ -116,7 +116,7 @@ dir_path = None
 dest_drop = None
 
 if sys.platform == "darwin":
-    platform = "macosx_11_0_x86_64" if platform_module.processor() != "arm" else "macosx_11_0_arm64"
+    platform = "macosx_10_11_intel" if platform_module.processor() != "arm" else "macosx_11_0_arm64"
     python_version = "cp39.cp310.cp311"
     abi = "abi3"
     dest = "bin"
