@@ -428,13 +428,13 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0' && matrix.python-version == '3.9'
-      shell: pwsh
-      run: |
-        conda info
-        pip install twine
-        twine --version
-        twine upload --username __token__ --password ${{ secrets.PYPI_PASSWORD }} --non-interactive --skip-existing --verbose ${{steps.download_wheel.outputs.download-path}}/*.whl
+      with:
+        skip_existing: true
+        user: __token__
+        packages_dir: ${{steps.download_wheel.outputs.download-path}}
+        password: ${{ secrets.PYPI_PASSWORD }}
     - name: Build/publish anaconda package
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0'
       shell: bash -l {0}
@@ -527,13 +527,13 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019' && matrix.python-version == '3.9'
-      shell: pwsh
-      run: |
-        conda info
-        pip install twine
-        twine --version
-        twine upload --username __token__ --password ${{ secrets.PYPI_PASSWORD }} --non-interactive --skip-existing --verbose ${{steps.download_wheel.outputs.download-path}}\*.whl
+      with:
+        skip_existing: true
+        user: __token__
+        packages_dir: ${{steps.download_wheel.outputs.download-path}}
+        password: ${{ secrets.PYPI_PASSWORD }}
     - name: Build/publish anaconda package
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019'
       shell: pwsh
