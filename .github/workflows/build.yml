@@ -101,7 +101,13 @@ jobs:
       matrix:
         os: [macos-11.0]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
+        architecture: [x86_64]
         qt-version: ["6.6.0"]
+        include:
+            - os: macos-latest-xlarge
+              python-version: "3.12"
+              architecture: arm64
+              qt-version: "6.6.0"
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -121,7 +127,13 @@ jobs:
         target: 'desktop'
     - name: Build
       shell: bash
+      env:
+        MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+        MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        MACOS_DEVELOPER_TEAM_ID: ${{ secrets.MACOS_DEVELOPER_TEAM_ID }}
       run: |
+        APPNAME="Nion UI Launcher"
         python -m pip install --upgrade pip
         python -m pip install install packaging
         python -m pip install install "numpy>=1.26,<1.27"
@@ -129,15 +141,51 @@ jobs:
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON"
         cmake --build . --config Release
+        pushd build
+        echo -n "$MACOS_CERTIFICATE" | base64 -d > certificate.p12
+        echo "Create keychain"
+        security create-keychain -p "$MACOS_KEYCHAIN_PASSWORD" build.keychain
+        echo "Set default keychain"
+        security default-keychain -s build.keychain
+        echo "Unlock keychain"
+        security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" build.keychain
+        echo "Import certificate (disabled)"
+        security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+        echo "Find identity"
+        security find-identity -v
+        echo "Set key partition list (avoids dialog)"
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_KEYCHAIN_PASSWORD" build.keychain
+        echo "Code sign"
+        # remove files that will not be signed and have can be regenerated
+        find "$APPNAME.app" -name "__pycache__" -exec rm -rf {} \; -prune
+        find "$APPNAME.app" -name "*.pyc" -exec rm -rf {} \; -prune
+        # sign files from the inside out. first ensure that dylibs are executable. then find all executable files
+        # and sign them. then sign apps within frameworks. then sign frameworks. then sign the app itself.
+        codesign --remove-signature --deep --force "$APPNAME.app/Contents/MacOS/$APPNAME"
+        find "$APPNAME.app" -name "*.dylib" -exec chmod +x {} \;
+        find "$APPNAME.app" -type f -perm +111 -and -not -name "*.py" -exec /usr/bin/codesign -s "$MACOS_DEVELOPER_TEAM_ID" {} --options runtime --timestamp --deep --force --verbose \;
+        find "$APPNAME.app/Contents/Frameworks" -name "*.app" -exec /usr/bin/codesign -s "$MACOS_DEVELOPER_TEAM_ID" {} --options runtime --timestamp --deep --force --verbose \;
+        find "$APPNAME.app" -name "*.framework" -exec /usr/bin/codesign -s "$MACOS_DEVELOPER_TEAM_ID" {} --options runtime --timestamp --deep --force --verbose \;
+        /usr/bin/codesign -s "$MACOS_DEVELOPER_TEAM_ID" "$APPNAME.app" --entitlements ../entitlements.xml --options runtime --timestamp --deep --force --verbose
+        rm certificate.p12
+        popd
         mkdir -p build/Release
         mv build/*.app build/Release
+        tar -czf "build/Release/$APPNAME.app.tar.gz" "build/Release/$APPNAME.app"
         popd
         python setup.py bdist_wheel
+    - name: Upload Wheel
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ env.tool-id }}-macos-whl-${{ matrix.architecture }}-${{ matrix.python-version }}
+        path: dist/*.whl
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
-        python-version: 3.11
+        python-version: "3.11"
+        miniconda-version: "latest"
+        architecture: ${{ matrix.architecture }}
     - name: Build Conda Package
       shell: bash -l {0}
       run: |
@@ -145,16 +193,12 @@ jobs:
         python -c "import sys; print(sys.executable)"
         conda install -q conda-build -y
         conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
-    - name: Upload Wheel
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ env.tool-id }}-macos-whl-${{ matrix.python-version }}
-        path: dist/*.whl
+        echo "CONDA_PREFIX=$CONDA_PREFIX" >> "$GITHUB_ENV"
     - name: Upload Conda Package
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
-        path: /usr/local/miniconda/envs/test/conda-bld/osx-64/*.tar.bz2
+        name: ${{ env.tool-id }}-macos-conda-${{ matrix.architecture }}-${{ matrix.python-version }}
+        path: ${{ env.CONDA_PREFIX }}/conda-bld/osx-*/*.tar.bz2
   build_win:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -325,19 +369,26 @@ jobs:
       matrix:
         os: [macos-11.0]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
+        architecture: [x86_64]
+        qt-version: ["6.6.0"]
+        include:
+            - os: macos-latest-xlarge
+              python-version: "3.12"
+              architecture: arm64
+              qt-version: "6.6.0"
     steps:
     - uses: actions/checkout@v3
     - name: Download Wheel
       uses: actions/download-artifact@v3
       id: download_wheel
       with:
-        name: ${{ env.tool-id }}-macos-whl-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-macos-whl-${{ matrix.architecture }}-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
       uses: actions/download-artifact@v3
       id: download_conda
       with:
-        name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
+        name: ${{ env.tool-id }}-macos-conda-${{ matrix.architecture }}-${{ matrix.python-version }}
         path: conda_downloads
     - name: Test system Python installed with brew with virtual environment
       shell: bash
@@ -387,6 +438,8 @@ jobs:
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
+        miniconda-version: "latest"
+        architecture: ${{ matrix.architecture }}
     - name: Test Conda
       shell: bash -l {0}
       run: |
@@ -394,7 +447,7 @@ jobs:
         # use nomkl until anaconda gets its act together
         conda install -q nomkl numpy scipy h5py imageio setuptools -y
         conda install -q -y -c nion ${{ env.tool-package }}
-        conda install -q -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        conda install -q -y ${{steps.download_conda.outputs.download-path}}/*/*.tar.bz2
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -410,7 +463,7 @@ jobs:
         conda create -n test-env -c conda-forge -q python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
         conda activate test-env
         conda install -q -y -c nion -c conda-forge ${{ env.tool-package }}
-        conda install -q -y -c conda-forge ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        conda install -q -y -c conda-forge ${{steps.download_conda.outputs.download-path}}/*/*.tar.bz2
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -425,7 +478,7 @@ jobs:
       run: |
         conda info
         conda install -q anaconda-client -y
-        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*/*.tar.bz2
   test_win:
     needs: build_win
     runs-on: ${{ matrix.os }}
