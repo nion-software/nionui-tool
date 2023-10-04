@@ -89,6 +89,8 @@ typedef int (*PyType_IsSubtypeFn)(PyTypeObject *a, PyTypeObject *b);
 typedef char* (*PyUnicode_AsUTF8Fn)(PyObject *unicode);
 typedef PyObject* (*PyUnicode_DecodeUTF16Fn)(const char *s, Py_ssize_t size, const char *errors, int *byteorder);
 typedef PyObject *(*PyUnicode_FromStringFn)(const char *u);
+typedef wchar_t *(*PyUnicode_AsWideCharStringFn)(PyObject *unicode, Py_ssize_t *size);
+typedef void (*PyMem_FreeFn)(void *p);
 typedef PyObject* (*Py_CompileStringExFlagsFn)(const char *str, const char *filename, int start, PyCompilerFlags *flags, int optimize);
 typedef void (*Py_InitializeFn)();
 typedef void (*Py_FinalizeFn)();
@@ -158,6 +160,8 @@ static PyType_IsSubtypeFn fType_IsSubtype = 0;
 static PyUnicode_AsUTF8Fn fUnicode_AsUTF8 = 0;
 static PyUnicode_DecodeUTF16Fn fUnicode_DecodeUTF16 = 0;
 static PyUnicode_FromStringFn fUnicode_FromString = 0;
+static PyUnicode_AsWideCharStringFn fUnicode_AsWideCharString = 0;
+static PyMem_FreeFn fMem_Free = 0;
 static Py_CompileStringExFlagsFn fCompileStringExFlags = 0;
 static Py_InitializeFn fInitialize = 0;
 static Py_FinalizeFn fFinalize = 0;
@@ -733,6 +737,20 @@ PyObject* DPyUnicode_FromString(const char *u)
     if (fUnicode_FromString == 0)
         fUnicode_FromString = (PyUnicode_FromStringFn)LOOKUP_SYMBOL(pylib, "PyUnicode_FromString");
     return fUnicode_FromString(u);
+}
+
+wchar_t *DPyUnicode_AsWideCharString(PyObject *unicode, Py_ssize_t *size)
+{
+    if (fUnicode_AsWideCharString == 0)
+        fUnicode_AsWideCharString = (PyUnicode_AsWideCharStringFn)LOOKUP_SYMBOL(pylib, "PyUnicode_AsWideCharString");
+    return fUnicode_AsWideCharString(unicode, size);
+}
+
+void DPyMem_Free(void *p)
+{
+    if (fMem_Free == 0)
+        fMem_Free = (PyMem_FreeFn)LOOKUP_SYMBOL(pylib, "PyMem_Free");
+    fMem_Free(p);
 }
 
 PyObject* DPy_CompileStringExFlags(const char *str, const char *filename, int start, PyCompilerFlags *flags, int optimize)

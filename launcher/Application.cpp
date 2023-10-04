@@ -419,7 +419,11 @@ QList<T> reversed( const QList<T> & in ) {
     return result;
 }
 
-#define Py_UNICODE_to_QString(x) QString::fromWCharArray(x)
+QString PyObjectToQString(PyObject *o)
+{
+    PythonWChar ws(o);
+    return (ws.s() != nullptr) ? QString::fromWCharArray(ws.s(), ws.size()) : QString();
+}
 
 //----
 
@@ -458,10 +462,10 @@ static PyObject *Action_create(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *title_u = NULL;
+    PyObject *title_u = NULL;
     char *key_sequence_c = NULL;
     char *role_c = NULL;
-    if (!PythonSupport::instance()->parse()(args, "Ouzz", &obj0, &title_u, &key_sequence_c, &role_c))
+    if (!PythonSupport::instance()->parse()(args, "OOzz", &obj0, &title_u, &key_sequence_c, &role_c))
         return NULL;
 
     DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
@@ -469,7 +473,7 @@ static PyObject *Action_create(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     PyAction *action = new PyAction(document_window);
-    action->setText(Py_UNICODE_to_QString(title_u));
+    action->setText(PyObjectToQString(title_u));
 
     if (key_sequence_c)
     {
@@ -631,15 +635,15 @@ static PyObject *Action_setTitle(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *title_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &title_u))
+    PyObject *title_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &title_u))
         return NULL;
 
     QAction *action = Unwrap<QAction>(obj0);
     if (action == NULL)
         return NULL;
 
-    action->setText(Py_UNICODE_to_QString(title_u));
+    action->setText(PyObjectToQString(title_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -1193,16 +1197,16 @@ static PyObject *CheckBox_setText(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyCheckBox *check_box = Unwrap<PyCheckBox>(obj0);
     if (check_box == NULL)
         return NULL;
 
-    check_box->setText(Py_UNICODE_to_QString(text_u));
+    check_box->setText(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -1268,14 +1272,14 @@ static PyObject *Clipboard_setText(PyObject * /*self*/, PyObject *args)
         return NULL;
     }
 
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "u", &text_u))
+    if (!PythonSupport::instance()->parse()(args, "O", &text_u))
         return NULL;
 
     QClipboard *clipboard = QApplication::clipboard();
 
-    clipboard->setText(Py_UNICODE_to_QString(text_u));
+    clipboard->setText(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -1304,16 +1308,16 @@ static PyObject *ComboBox_addItem(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyComboBox *combobox = Unwrap<PyComboBox>(obj0);
     if (combobox == NULL)
         return NULL;
 
-    combobox->addItem(Py_UNICODE_to_QString(text_u));
+    combobox->addItem(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -1397,16 +1401,16 @@ static PyObject *ComboBox_setCurrentText(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
-    return NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
+        return NULL;
 
     PyComboBox *combobox = Unwrap<PyComboBox>(obj0);
     if (combobox == NULL)
     return NULL;
 
-    combobox->setCurrentText(Py_UNICODE_to_QString(text_u));
+    combobox->setCurrentText(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -1569,11 +1573,11 @@ static PyObject *Core_getLocation(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Core_out(PyObject * /*self*/, PyObject *args)
 {
-    Py_UNICODE *output_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "u", &output_u))
+    PyObject *output_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &output_u))
         return NULL;
 
-    QString output = Py_UNICODE_to_QString(output_u);
+    QString output = PyObjectToQString(output_u);
 
     {
         Python_ThreadAllow thread_allow;
@@ -1594,11 +1598,11 @@ static PyObject *Core_out(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Core_pathToURL(PyObject * /*self*/, PyObject *args)
 {
-    Py_UNICODE *path_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "u", &path_u))
+    PyObject *path_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &path_u))
         return NULL;
 
-    QUrl url = QUrl::fromLocalFile(Py_UNICODE_to_QString(path_u));
+    QUrl url = QUrl::fromLocalFile(PyObjectToQString(path_u));
     QString url_string = url.toString();
 
     return PythonSupport::instance()->build()("s", url_string.toUtf8().data());
@@ -1606,12 +1610,12 @@ static PyObject *Core_pathToURL(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Core_readImageToBinary(PyObject * /*self*/, PyObject *args)
 {
-    Py_UNICODE *filename_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "u", &filename_u))
+    PyObject *filename_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &filename_u))
         return NULL;
 
     // Read the image
-    QImageReader reader(Py_UNICODE_to_QString(filename_u));
+    QImageReader reader(PyObjectToQString(filename_u));
     if (reader.canRead())
     {
         Python_ThreadAllow thread_allow;
@@ -1632,15 +1636,15 @@ static PyObject *Core_readImageToBinary(PyObject * /*self*/, PyObject *args)
 
 static PyObject *Core_setApplicationInfo(PyObject * /*self*/, PyObject *args)
 {
-    Py_UNICODE *application_name_u = NULL;
-    Py_UNICODE *organization_name_u = NULL;
-    Py_UNICODE *organization_domain_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "uuu", &application_name_u, &organization_name_u, &organization_domain_u))
+    PyObject *application_name_u = NULL;
+    PyObject *organization_name_u = NULL;
+    PyObject *organization_domain_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OOO", &application_name_u, &organization_name_u, &organization_domain_u))
         return NULL;
 
-    QApplication::setApplicationName(Py_UNICODE_to_QString(application_name_u));
-    QApplication::setOrganizationName(Py_UNICODE_to_QString(organization_name_u));
-    QApplication::setOrganizationDomain(Py_UNICODE_to_QString(organization_domain_u));
+    QApplication::setApplicationName(PyObjectToQString(application_name_u));
+    QApplication::setOrganizationName(PyObjectToQString(organization_name_u));
+    QApplication::setOrganizationDomain(PyObjectToQString(organization_domain_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -1699,9 +1703,9 @@ static PyObject *Core_writeBinaryToImage(PyObject * /*self*/, PyObject *args)
     int w = 0;
     int h = 0;
     PyObject *obj0 = NULL;
-    Py_UNICODE *filename_u = NULL;
+    PyObject *filename_u = NULL;
     char *format_c = NULL;
-    if (!PythonSupport::instance()->parse()(args, "iiOus", &w, &h, &obj0, &filename_u, &format_c))
+    if (!PythonSupport::instance()->parse()(args, "iiOOs", &w, &h, &obj0, &filename_u, &format_c))
         return NULL;
 
     QImageInterface image;
@@ -1711,7 +1715,7 @@ static PyObject *Core_writeBinaryToImage(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     // Write the image
-    QImageWriter writer(Py_UNICODE_to_QString(filename_u), format_c);
+    QImageWriter writer(PyObjectToQString(filename_u), format_c);
 
     if (writer.canWrite())
         writer.write(image.image);
@@ -1795,10 +1799,10 @@ static PyObject *DocumentWindow_addDockWidget(PyObject * /*self*/, PyObject *arg
     PyObject *obj0 = NULL;
     PyObject *obj1 = NULL;
     char *identifier_c = NULL;
-    Py_UNICODE *title_u = NULL;
+    PyObject *title_u = NULL;
     PyObject *obj2 = NULL;
     char *position_c = NULL;
-    if (!PythonSupport::instance()->parse()(args, "OOsuOs", &obj0, &obj1, &identifier_c, &title_u, &obj2, &position_c))
+    if (!PythonSupport::instance()->parse()(args, "OOsOOs", &obj0, &obj1, &identifier_c, &title_u, &obj2, &position_c))
         return NULL;
 
     // Grab the document window
@@ -1829,7 +1833,7 @@ static PyObject *DocumentWindow_addDockWidget(PyObject * /*self*/, PyObject *arg
         allowed_positions_mask |= mapping[allowed_position];
     }
 
-    DockWidget *dock_widget = new DockWidget(Py_UNICODE_to_QString(title_u));
+    DockWidget *dock_widget = new DockWidget(PyObjectToQString(title_u));
     dock_widget->setAllowedAreas(allowed_positions_mask);
     dock_widget->setWidget(widget);
     dock_widget->setObjectName(identifier_c);
@@ -1847,8 +1851,8 @@ static PyObject *DocumentWindow_addMenu(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *title_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &title_u))
+    PyObject *title_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &title_u))
         return NULL;
 
     DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
@@ -1856,7 +1860,7 @@ static PyObject *DocumentWindow_addMenu(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     PyMenu *menu = new PyMenu();
-    menu->setTitle(Py_UNICODE_to_QString(title_u));
+    menu->setTitle(PyObjectToQString(title_u));
 
     document_window->menuBar()->addMenu(menu);
 
@@ -1920,13 +1924,13 @@ static PyObject *DocumentWindow_create(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *parent_window_obj = NULL;
-    Py_UNICODE *title_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "OZ", &parent_window_obj, &title_u))
+    PyObject *title_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &parent_window_obj, &title_u))
         return NULL;
 
     DocumentWindow *parent_window = Unwrap<DocumentWindow>(parent_window_obj);
 
-    QString title = title_u ? Py_UNICODE_to_QString(title_u) : QString();
+    QString title = title_u ? PyObjectToQString(title_u) : QString();
 
     DocumentWindow *document_window = new DocumentWindow(title, parent_window);
 
@@ -2012,24 +2016,24 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
     }
     PyObject *obj0 = NULL;
     char *mode_c = NULL;
-    Py_UNICODE *caption_u = NULL;
-    Py_UNICODE *dir_u = NULL;
-    Py_UNICODE *filter_u = NULL;
-    Py_UNICODE *selected_filter_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "Osuuuu", &obj0, &mode_c, &caption_u, &dir_u, &filter_u, &selected_filter_u))
+    PyObject *caption_u = NULL;
+    PyObject *dir_u = NULL;
+    PyObject *filter_u = NULL;
+    PyObject *selected_filter_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OsOOOO", &obj0, &mode_c, &caption_u, &dir_u, &filter_u, &selected_filter_u))
         return NULL;
 
     DocumentWindow *document_window = PythonSupport::instance()->isNone(obj0) ? NULL : Unwrap<DocumentWindow>(obj0);
 
     if (strcmp(mode_c, "save")==0)
     {
-		QString selected_filter = Py_UNICODE_to_QString(selected_filter_u);
+		QString selected_filter = PyObjectToQString(selected_filter_u);
         QDir selected_dir;
 
         QString ret;
         {
             Python_ThreadAllow thread_allow;
-            ret = GetSaveFileName(document_window, Py_UNICODE_to_QString(caption_u), Py_UNICODE_to_QString(dir_u), Py_UNICODE_to_QString(filter_u), &selected_filter, &selected_dir);
+            ret = GetSaveFileName(document_window, PyObjectToQString(caption_u), PyObjectToQString(dir_u), PyObjectToQString(filter_u), &selected_filter, &selected_dir);
         }
         QVariantList result;
         result << ret;
@@ -2040,13 +2044,13 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
     }
     else if (strcmp(mode_c, "load")==0)
     {
-		QString selected_filter = Py_UNICODE_to_QString(selected_filter_u);
+		QString selected_filter = PyObjectToQString(selected_filter_u);
         QDir selected_dir;
 
         QString ret;
         {
             Python_ThreadAllow thread_allow;
-            ret = GetOpenFileName(document_window, Py_UNICODE_to_QString(caption_u), Py_UNICODE_to_QString(dir_u), Py_UNICODE_to_QString(filter_u), &selected_filter, &selected_dir);
+            ret = GetOpenFileName(document_window, PyObjectToQString(caption_u), PyObjectToQString(dir_u), PyObjectToQString(filter_u), &selected_filter, &selected_dir);
         }
 
         QVariantList result;
@@ -2059,11 +2063,11 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
     else if (strcmp(mode_c, "directory") == 0)
     {
         QDir selected_dir;
-        QDir::setCurrent(Py_UNICODE_to_QString(dir_u));
+        QDir::setCurrent(PyObjectToQString(dir_u));
         QString directory;
         {
             Python_ThreadAllow thread_allow;
-            directory = GetExistingDirectory(document_window, Py_UNICODE_to_QString(caption_u), Py_UNICODE_to_QString(dir_u), &selected_dir);
+            directory = GetExistingDirectory(document_window, PyObjectToQString(caption_u), PyObjectToQString(dir_u), &selected_dir);
         }
 
         QVariantList result;
@@ -2075,13 +2079,13 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
     }
     else if (strcmp(mode_c, "loadmany") == 0)
     {
-		QString selected_filter = Py_UNICODE_to_QString(selected_filter_u);
+		QString selected_filter = PyObjectToQString(selected_filter_u);
         QDir selected_dir;
 
         QStringList file_names;
         {
             Python_ThreadAllow thread_allow;
-            file_names = GetOpenFileNames(document_window, Py_UNICODE_to_QString(caption_u), Py_UNICODE_to_QString(dir_u), Py_UNICODE_to_QString(filter_u), &selected_filter, &selected_dir);
+            file_names = GetOpenFileNames(document_window, PyObjectToQString(caption_u), PyObjectToQString(dir_u), PyObjectToQString(filter_u), &selected_filter, &selected_dir);
         }
 
         QVariantList result;
@@ -2149,9 +2153,9 @@ static PyObject *DocumentWindow_insertMenu(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *title_u = NULL;
+    PyObject *title_u = NULL;
     PyObject *obj1 = NULL;
-    if (!PythonSupport::instance()->parse()(args, "OuO", &obj0, &title_u, &obj1))
+    if (!PythonSupport::instance()->parse()(args, "OOO", &obj0, &title_u, &obj1))
         return NULL;
 
     DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
@@ -2163,7 +2167,7 @@ static PyObject *DocumentWindow_insertMenu(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     PyMenu *menu = new PyMenu();
-    menu->setTitle(Py_UNICODE_to_QString(title_u));
+    menu->setTitle(PyObjectToQString(title_u));
 
     document_window->menuBar()->insertMenu(before_menu->menuAction(), menu);
 
@@ -2335,8 +2339,8 @@ static PyObject *DocumentWindow_setTitle(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *title_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &title_u))
+    PyObject *title_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &title_u))
         return NULL;
 
     // Grab the document window
@@ -2344,7 +2348,7 @@ static PyObject *DocumentWindow_setTitle(PyObject * /*self*/, PyObject *args)
     if (document_window == NULL)
         return NULL;
 
-    document_window->setWindowTitle(Py_UNICODE_to_QString(title_u));
+    document_window->setWindowTitle(PyObjectToQString(title_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -2358,8 +2362,8 @@ static PyObject *DocumentWindow_setWindowFilePath(PyObject * /*self*/, PyObject 
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *title_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &title_u))
+    PyObject *title_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &title_u))
         return NULL;
 
     // Grab the document window
@@ -2367,7 +2371,7 @@ static PyObject *DocumentWindow_setWindowFilePath(PyObject * /*self*/, PyObject 
     if (document_window == NULL)
         return NULL;
 
-    document_window->setWindowFilePath(Py_UNICODE_to_QString(title_u));
+    document_window->setWindowFilePath(PyObjectToQString(title_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -2736,8 +2740,8 @@ static PyObject *GroupBoxWidget_setTitle(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *title_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &title_u))
+    PyObject *title_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &title_u))
         return NULL;
 
     // Grab the document window
@@ -2745,7 +2749,7 @@ static PyObject *GroupBoxWidget_setTitle(PyObject * /*self*/, PyObject *args)
     if (group_box == NULL)
         return NULL;
 
-    group_box->setTitle(Py_UNICODE_to_QString(title_u));
+    group_box->setTitle(PyObjectToQString(title_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -2938,16 +2942,16 @@ static PyObject *Label_setText(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     QLabel *label = Unwrap<QLabel>(obj0);
     if (label == NULL)
         return NULL;
 
-    QString text = Py_UNICODE_to_QString(text_u);
+    QString text = PyObjectToQString(text_u);
     if (text.length() > 0)
         label->setText(text);
     else
@@ -3216,16 +3220,16 @@ static PyObject *LineEdit_setPlaceholderText(PyObject * /*self*/, PyObject *args
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyLineEdit *line_edit = Unwrap<PyLineEdit>(obj0);
     if (line_edit == NULL)
         return NULL;
 
-    line_edit->setPlaceholderText(Py_UNICODE_to_QString(text_u));
+    line_edit->setPlaceholderText(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -3239,16 +3243,16 @@ static PyObject *LineEdit_setText(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyLineEdit *line_edit = Unwrap<PyLineEdit>(obj0);
     if (line_edit == NULL)
         return NULL;
 
-    line_edit->setText(Py_UNICODE_to_QString(text_u));
+    line_edit->setText(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -3288,9 +3292,9 @@ static PyObject *Menu_addMenu(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *title_u = NULL;
+    PyObject *title_u = NULL;
     PyObject *obj1 = NULL;
-    if (!PythonSupport::instance()->parse()(args, "OuO", &obj0, &title_u, &obj1))
+    if (!PythonSupport::instance()->parse()(args, "OOO", &obj0, &title_u, &obj1))
         return NULL;
 
     PyMenu *menu = Unwrap<PyMenu>(obj0);
@@ -3301,7 +3305,7 @@ static PyObject *Menu_addMenu(PyObject * /*self*/, PyObject *args)
     if (sub_menu == NULL)
         return NULL;
 
-    sub_menu->setTitle(Py_UNICODE_to_QString(title_u));
+    sub_menu->setTitle(PyObjectToQString(title_u));
 
     menu->addMenu(sub_menu);
 
@@ -3631,16 +3635,16 @@ static PyObject *PushButton_setText(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyPushButton *push_button = Unwrap<PyPushButton>(obj0);
     if (push_button == NULL)
         return NULL;
 
-    push_button->setText(Py_UNICODE_to_QString(text_u));
+    push_button->setText(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -3762,16 +3766,16 @@ static PyObject *RadioButton_setText(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyRadioButton *radio_button = Unwrap<PyRadioButton>(obj0);
     if (radio_button == NULL)
         return NULL;
 
-    radio_button->setText(Py_UNICODE_to_QString(text_u));
+    radio_button->setText(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4303,8 +4307,8 @@ static PyObject *TabWidget_addTab(PyObject * /*self*/, PyObject *args)
 
     PyObject *obj0 = NULL;
     PyObject *obj1 = NULL;
-    Py_UNICODE *label_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "OOu", &obj0, &obj1, &label_u))
+    PyObject *label_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OOO", &obj0, &obj1, &label_u))
         return NULL;
 
     // Grab the container (tab widget)
@@ -4317,7 +4321,7 @@ static PyObject *TabWidget_addTab(PyObject * /*self*/, PyObject *args)
     if (widget == NULL)
         return NULL;
 
-    container->addTab(widget, Py_UNICODE_to_QString(label_u));
+    container->addTab(widget, PyObjectToQString(label_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4398,16 +4402,16 @@ static PyObject *TextBrowser_scrollToAnchor(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *anchor_u = NULL;
+    PyObject *anchor_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &anchor_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &anchor_u))
         return NULL;
 
     PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
     if (text_browser == NULL)
         return NULL;
 
-    text_browser->scrollToAnchor(Py_UNICODE_to_QString(anchor_u));
+    text_browser->scrollToAnchor(PyObjectToQString(anchor_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4421,16 +4425,16 @@ static PyObject *TextBrowser_setHtml(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
     if (text_browser == NULL)
         return NULL;
 
-    text_browser->setHtml(Py_UNICODE_to_QString(text_u));
+    text_browser->setHtml(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4444,16 +4448,16 @@ static PyObject *TextBrowser_setMarkdown(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
     if (text_browser == NULL)
         return NULL;
 
-    text_browser->setMarkdown(Py_UNICODE_to_QString(text_u));
+    text_browser->setMarkdown(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4467,16 +4471,16 @@ static PyObject *TextBrowser_setText(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyTextBrowser *text_browser = Unwrap<PyTextBrowser>(obj0);
     if (text_browser == NULL)
         return NULL;
 
-    text_browser->setText(Py_UNICODE_to_QString(text_u));
+    text_browser->setText(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4565,16 +4569,16 @@ static PyObject *TextEdit_appendText(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
     if (text_edit == NULL)
         return NULL;
 
-    text_edit->append(Py_UNICODE_to_QString(text_u));
+    text_edit->append(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4753,16 +4757,16 @@ static PyObject *TextEdit_insertText(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
     if (text_edit == NULL)
         return NULL;
 
-    text_edit->insertPlainText(Py_UNICODE_to_QString(text_u));
+    text_edit->insertPlainText(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -4911,9 +4915,9 @@ static PyObject *TextEdit_setPlaceholderText(PyObject * /*self*/, PyObject *args
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
@@ -4921,7 +4925,7 @@ static PyObject *TextEdit_setPlaceholderText(PyObject * /*self*/, PyObject *args
         return NULL;
 
 #if !defined(Q_OS_LINUX)
-    text_edit->setPlaceholderText(Py_UNICODE_to_QString(text_u));
+    text_edit->setPlaceholderText(PyObjectToQString(text_u));
 #endif
 
     return PythonSupport::instance()->getNoneReturnValue();
@@ -4961,16 +4965,16 @@ static PyObject *TextEdit_setText(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *text_u = NULL;
+    PyObject *text_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &text_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &text_u))
         return NULL;
 
     PyTextEdit *text_edit = Unwrap<PyTextEdit>(obj0);
     if (text_edit == NULL)
         return NULL;
 
-    text_edit->setText(Py_UNICODE_to_QString(text_u));
+    text_edit->setText(PyObjectToQString(text_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -6049,16 +6053,16 @@ static PyObject *Widget_setToolTip(PyObject * /*self*/, PyObject *args)
     }
 
     PyObject *obj0 = NULL;
-    Py_UNICODE *tool_tip_u = NULL;
+    PyObject *tool_tip_u = NULL;
 
-    if (!PythonSupport::instance()->parse()(args, "Ou", &obj0, &tool_tip_u))
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &tool_tip_u))
         return NULL;
 
     QWidget *widget = Unwrap<QWidget>(obj0);
     if (widget == NULL)
         return NULL;
 
-    widget->setToolTip(Py_UNICODE_to_QString(tool_tip_u));
+    widget->setToolTip(PyObjectToQString(tool_tip_u));
 
     return PythonSupport::instance()->getNoneReturnValue();
 }

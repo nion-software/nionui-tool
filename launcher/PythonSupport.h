@@ -118,6 +118,19 @@ struct PythonValueVariant {
 PythonValueVariant PyObjectToValueVariant(PyObject *py_object);
 PyObject *PythonValueVariantToPyObject(const PythonValueVariant &value_variant);
 
+class PythonWChar
+{
+    wchar_t *_s;
+    Py_ssize_t _size;
+
+public:
+    PythonWChar(PyObject *o);
+    ~PythonWChar();
+
+    wchar_t *s() const { return _s; }
+    Py_ssize_t size() const { return _size; }
+};
+
 class ImageInterface;
 
 typedef PyObject *CreateAndAddModuleFn();

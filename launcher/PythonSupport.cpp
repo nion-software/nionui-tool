@@ -1380,3 +1380,14 @@ void _Py_Dealloc(PyObject* o) { (*(Py_TYPE(o)->tp_dealloc))(o); }
 PyAPI_FUNC(void) _Py_Dealloc(PyObject *o) { (*(Py_TYPE(o)->tp_dealloc))(o); }
 #endif
 #endif
+
+PythonWChar::PythonWChar(PyObject *o) : _s(nullptr)
+{
+    _s = CALL_PY(PyUnicode_AsWideCharString)(o, &_size);
+
+}
+
+PythonWChar::~PythonWChar()
+{
+    CALL_PY(PyMem_Free(_s));
+}

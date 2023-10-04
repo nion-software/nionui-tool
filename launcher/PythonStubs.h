@@ -66,6 +66,8 @@ int DECLARE_PY(PyType_IsSubtype)(PyTypeObject *a, PyTypeObject *b);
 char* DECLARE_PY(PyUnicode_AsUTF8)(PyObject *unicode);
 PyObject* DECLARE_PY(PyUnicode_DecodeUTF16)(const char *s, Py_ssize_t size, const char *errors, int *byteorder);
 PyObject* DECLARE_PY(PyUnicode_FromString)(const char *u);
+wchar_t *DECLARE_PY(PyUnicode_AsWideCharString)(PyObject *unicode, Py_ssize_t *size);
+void DECLARE_PY(PyMem_Free)(void *p);
 PyObject* DECLARE_PY(Py_CompileStringExFlags)(const char *str, const char *filename, int start, PyCompilerFlags *flags, int optimize);
 void DECLARE_PY(Py_Initialize)();
 void DECLARE_PY(Py_Finalize)();
