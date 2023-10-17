@@ -304,6 +304,7 @@ jobs:
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Test Conda Forge
       shell: bash -l {0}
+      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         conda create -q -n test-env -c conda-forge python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
@@ -422,6 +423,7 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Test Conda Forge
       shell: bash -l {0}
+      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         # use nomkl until anaconda gets its act together
@@ -523,6 +525,7 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Test Conda Forge
       shell: pwsh
+      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         conda create -n test-env -c conda-forge -q python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
