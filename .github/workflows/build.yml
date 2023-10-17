@@ -78,6 +78,7 @@ jobs:
         auto-update-conda: true
         python-version: 3.11
     - name: Build Conda Package
+      if: matrix.python-version != '3.12'
       shell: bash -l {0}
       run: |
         python -c "import sys; print(sys.version)"
@@ -91,6 +92,7 @@ jobs:
         path: dist/*.whl
     - name: Upload Conda Package
       uses: actions/upload-artifact@v2
+      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: /usr/share/miniconda/envs/test/conda-bld/linux-64/*.tar.bz2
@@ -139,6 +141,7 @@ jobs:
         auto-update-conda: true
         python-version: 3.11
     - name: Build Conda Package
+      if: matrix.python-version != '3.12'
       shell: bash -l {0}
       run: |
         python -c "import sys; print(sys.version)"
@@ -152,6 +155,7 @@ jobs:
         path: dist/*.whl
     - name: Upload Conda Package
       uses: actions/upload-artifact@v2
+      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
         path: /usr/local/miniconda/envs/test/conda-bld/osx-64/*.tar.bz2
@@ -203,6 +207,7 @@ jobs:
         auto-update-conda: true
         python-version: 3.11
     - name: Build Conda Package
+      if: matrix.python-version != '3.12'
       shell: pwsh
       run: |
         python -c "import sys; print(sys.version)"
@@ -216,6 +221,7 @@ jobs:
         path: dist\*.whl
     - name: Upload Conda Package
       uses: actions/upload-artifact@v2
+      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: C:\Miniconda\envs\test\conda-bld\win-64\*.tar.bz2
@@ -238,6 +244,7 @@ jobs:
     - name: Download Conda
       uses: actions/download-artifact@v2
       id: download_conda
+      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: conda_downloads
@@ -281,6 +288,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Test Conda
       shell: bash -l {0}
+      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         conda update --all -q -y
@@ -319,7 +327,7 @@ jobs:
         packages_dir: ${{steps.download_wheel.outputs.download-path}}
         password: ${{ secrets.PYPI_PASSWORD }}
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04' && matrix.python-version != '3.12'
       shell: bash -l {0}
       run: |
         conda info
@@ -344,6 +352,7 @@ jobs:
     - name: Download Conda
       uses: actions/download-artifact@v2
       id: download_conda
+      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
         path: conda_downloads
@@ -397,6 +406,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Test Conda
       shell: bash -l {0}
+      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         # use nomkl until anaconda gets its act together
@@ -436,7 +446,7 @@ jobs:
         packages_dir: ${{steps.download_wheel.outputs.download-path}}
         password: ${{ secrets.PYPI_PASSWORD }}
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0' && matrix.python-version != '3.12'
       shell: bash -l {0}
       run: |
         conda info
@@ -461,6 +471,7 @@ jobs:
     - name: Download Conda
       uses: actions/download-artifact@v2
       id: download_conda
+      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: conda_downloads
@@ -495,6 +506,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Test Conda
       shell: pwsh
+      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         conda update -q --all -y
@@ -535,7 +547,7 @@ jobs:
         packages_dir: ${{steps.download_wheel.outputs.download-path}}
         password: ${{ secrets.PYPI_PASSWORD }}
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019' && matrix.python-version != '3.12'
       shell: pwsh
       run: |
         conda info
