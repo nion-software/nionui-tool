@@ -1,4 +1,4 @@
-QTDIR = $(HOME)/Developer/Qt/6.5.2/macos
+QTDIR = $(HOME)/Developer/Qt/6.6.0/macos
 
 ARCHS = $(ARCHS_STANDARD)
 

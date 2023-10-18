@@ -20,7 +20,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        qt-version: ["6.5.3"]
+        qt-version: ["6.6.0"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -103,7 +103,7 @@ jobs:
       matrix:
         os: [macos-11.0]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        qt-version: ["6.5.3"]
+        qt-version: ["6.6.0"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -166,7 +166,7 @@ jobs:
       matrix:
         os: [windows-2019]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        qt-version: ["6.5.3"]
+        qt-version: ["6.6.0"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
