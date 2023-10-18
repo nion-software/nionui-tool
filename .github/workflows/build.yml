@@ -86,12 +86,12 @@ jobs:
         conda install -q conda-build -y
         conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
     - name: Upload Wheel
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
         path: dist/*.whl
     - name: Upload Conda Package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
@@ -149,12 +149,12 @@ jobs:
         conda install -q conda-build -y
         conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
     - name: Upload Wheel
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ env.tool-id }}-macos-whl-${{ matrix.python-version }}
         path: dist/*.whl
     - name: Upload Conda Package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
@@ -215,12 +215,12 @@ jobs:
         conda install -q conda-build -y
         conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
     - name: Upload Wheel
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: dist\*.whl
     - name: Upload Conda Package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
@@ -236,13 +236,13 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Download Wheel
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       id: download_wheel
       with:
         name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       id: download_conda
       if: matrix.python-version != '3.12'
       with:
@@ -345,13 +345,13 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Download Wheel
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       id: download_wheel
       with:
         name: ${{ env.tool-id }}-macos-whl-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       id: download_conda
       if: matrix.python-version != '3.12'
       with:
@@ -465,13 +465,13 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Download Wheel
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       id: download_wheel
       with:
         name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       id: download_conda
       if: matrix.python-version != '3.12'
       with:
