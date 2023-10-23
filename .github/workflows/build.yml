@@ -536,33 +536,27 @@ jobs:
         anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}\$filename
   pypi-publish:
     name: Upload release to PyPI
-    needs:
-    - test_linux
-    - test_macos
-    - test_win
+    needs: [test_linux, test_macos, test_win]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     environment:
-      name: pypi
+      name: release
       url: https://pypi.org/p/nionui-tool
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
     - name: Download Linux Wheel
       uses: actions/download-artifact@v3
-      id: download_wheel
       with:
         name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
         path: dist/
     - name: Download macOS Wheel
       uses: actions/download-artifact@v3
-      id: download_wheel
       with:
         name: ${{ env.tool-id }}-macos-whl-${{ matrix.python-version }}
         path: dist/
     - name: Download Windows Wheel
       uses: actions/download-artifact@v3
-      id: download_wheel
       with:
         name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: dist/
