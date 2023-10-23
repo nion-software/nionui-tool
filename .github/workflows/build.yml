@@ -319,14 +319,6 @@ jobs:
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
-    - name: Publish package to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04' && matrix.python-version == '3.9'
-      with:
-        skip_existing: true
-        user: __token__
-        packages_dir: ${{steps.download_wheel.outputs.download-path}}
-        password: ${{ secrets.PYPI_PASSWORD }}
     - name: Build/publish anaconda package
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04' && matrix.python-version != '3.12'
       shell: bash -l {0}
@@ -439,14 +431,6 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
-    - name: Publish package to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0' && matrix.python-version == '3.9'
-      with:
-        skip_existing: true
-        user: __token__
-        packages_dir: ${{steps.download_wheel.outputs.download-path}}
-        password: ${{ secrets.PYPI_PASSWORD }}
     - name: Build/publish anaconda package
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0' && matrix.python-version != '3.12'
       shell: bash -l {0}
@@ -541,14 +525,6 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
-    - name: Publish package to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019' && matrix.python-version == '3.9'
-      with:
-        skip_existing: true
-        user: __token__
-        packages_dir: ${{steps.download_wheel.outputs.download-path}}
-        password: ${{ secrets.PYPI_PASSWORD }}
     - name: Build/publish anaconda package
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019' && matrix.python-version != '3.12'
       shell: pwsh
@@ -558,3 +534,39 @@ jobs:
         $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
         Write-Output ${{steps.download_conda.outputs.download-path}}\$filename
         anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}\$filename
+  pypi-publish:
+    name: Upload release to PyPI
+    needs:
+    - test_linux
+    - test_macos
+    - test_win
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    environment:
+      name: pypi
+      url: https://pypi.org/p/nionui-tool
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+    - name: Download Linux Wheel
+      uses: actions/download-artifact@v3
+      id: download_wheel
+      with:
+        name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
+        path: dist/
+    - name: Download macOS Wheel
+      uses: actions/download-artifact@v3
+      id: download_wheel
+      with:
+        name: ${{ env.tool-id }}-macos-whl-${{ matrix.python-version }}
+        path: dist/
+    - name: Download Windows Wheel
+      uses: actions/download-artifact@v3
+      id: download_wheel
+      with:
+        name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
+        path: dist/
+    - name: Publish package distributions to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      skip-existing: true
+      print-hash: true
