@@ -7,7 +7,7 @@ import sys
 tool_id = "nionui"
 launcher = "NionUILauncher"
 
-version = "0.4.20"
+version = "0.4.21"
 
 
 def package_files(directory, prefix, prefix_drop):

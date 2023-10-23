@@ -1,6 +1,11 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.21 (2023-10-23)
+-------------------
+- Preliminary Python 3.12 support.
+- Update to Qt 6.6.0.
+
 0.4.20 (2023-08-10)
 -------------------
 - Minor improvements. Enable universal binary support on macOS.
