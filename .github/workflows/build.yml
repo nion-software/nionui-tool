@@ -557,9 +557,9 @@ jobs:
       shell: bash
       working-directory: dist/
       run:
-      - ls -R .
-      - find . -type f ! -name '*whl-3.9*' -delete
-      - ls -R .
+        - ls -Rl .
+        - find . -type f ! -name '*whl-3.9*' -delete
+        - ls -Rl .
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       if: False
