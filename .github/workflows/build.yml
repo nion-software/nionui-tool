@@ -545,20 +545,9 @@ jobs:
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
-    - name: Download Linux Wheel
+    - name: Download All Artifacts
       uses: actions/download-artifact@v3
       with:
-        name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
-        path: dist/
-    - name: Download macOS Wheel
-      uses: actions/download-artifact@v3
-      with:
-        name: ${{ env.tool-id }}-macos-whl-${{ matrix.python-version }}
-        path: dist/
-    - name: Download Windows Wheel
-      uses: actions/download-artifact@v3
-      with:
-        name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: dist/
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
