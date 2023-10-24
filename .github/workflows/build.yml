@@ -538,7 +538,7 @@ jobs:
     name: Upload release to PyPI
     needs: [test_linux, test_macos, test_win]
     runs-on: ubuntu-latest
-    # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     environment:
       name: release
       url: https://pypi.org/p/nionui-tool
