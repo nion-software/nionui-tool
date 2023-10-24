@@ -549,6 +549,10 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         path: dist/
+    - name: Remove all the files except the ones to upload to PyPI.
+      shell: bash
+      working-directory: dist/
+      run: find . -type f ! -name '*whl-3.9*' -delete
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
