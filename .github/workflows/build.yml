@@ -19,7 +19,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9"]
+#        python-version: ["3.9", "3.10", "3.11", "3.12"]
         qt-version: ["6.6.0"]
     steps:
     - uses: actions/checkout@v3
@@ -102,7 +103,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-11.0]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10"]
+#        python-version: ["3.9", "3.10", "3.11", "3.12"]
         qt-version: ["6.6.0"]
     steps:
     - uses: actions/checkout@v3
@@ -160,6 +162,7 @@ jobs:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
         path: /usr/local/miniconda/envs/test/conda-bld/osx-64/*.tar.bz2
   build_win:
+    if: False
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -226,6 +229,7 @@ jobs:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: C:\Miniconda\envs\test\conda-bld\win-64\*.tar.bz2
   test_linux:
+    if: False
     needs: build_linux
     runs-on: ${{ matrix.os }}
     strategy:
@@ -327,6 +331,7 @@ jobs:
         conda install anaconda-client -y
         anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
   test_macos:
+    if: False
     needs: build_macos
     runs-on: ${{ matrix.os }}
     strategy:
@@ -439,6 +444,7 @@ jobs:
         conda install -q anaconda-client -y
         anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
   test_win:
+    if: False
     needs: build_win
     runs-on: ${{ matrix.os }}
     strategy:
@@ -538,7 +544,7 @@ jobs:
     name: Upload release to PyPI
     needs: [test_linux, test_macos, test_win]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+#    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     environment:
       name: release
       url: https://pypi.org/p/nionui-tool
@@ -552,8 +558,12 @@ jobs:
     - name: Remove all the files except the ones to upload to PyPI.
       shell: bash
       working-directory: dist/
-      run: find . -type f ! -name '*whl-3.9*' -delete
+      run:
+      - ls -R .
+      - find . -type f ! -name '*whl-3.9*' -delete
+      - ls -R .
     - name: Publish package distributions to PyPI
+      if: False
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         skip-existing: true
