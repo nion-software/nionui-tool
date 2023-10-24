@@ -137,6 +137,7 @@ jobs:
         python setup.py bdist_wheel
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v2
+      if: False
       with:
         auto-update-conda: true
         python-version: 3.11
@@ -155,7 +156,7 @@ jobs:
         path: dist/*.whl
     - name: Upload Conda Package
       uses: actions/upload-artifact@v3
-      if: matrix.python-version != '3.12'
+      if: False
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
         path: /usr/local/miniconda/envs/test/conda-bld/osx-64/*.tar.bz2
@@ -551,14 +552,11 @@ jobs:
     steps:
     - name: Download All Artifacts
       uses: actions/download-artifact@v3
-      with:
-        path: dist
     - name: Remove all the files except the ones to upload to PyPI.
       shell: bash
-      working-directory: dist/
       run: |
-        ls -Rl .
-        find . -type f ! -name '*whl-3.9*' -delete
+        mkdir dist
+        find . -name "*cp39*.whl" -exec cp {} dist \;
         ls -Rl .
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
