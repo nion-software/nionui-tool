@@ -538,7 +538,7 @@ jobs:
     name: Upload release to PyPI
     needs: [test_linux, test_macos, test_win]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+    # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     environment:
       name: release
       url: https://pypi.org/p/nionui-tool
@@ -547,12 +547,12 @@ jobs:
     steps:
     - name: Download All Artifacts
       uses: actions/download-artifact@v3
-      with:
-        path: dist/
     - name: Remove all the files except the ones to upload to PyPI.
       shell: bash
-      working-directory: dist/
-      run: find . -type f ! -name '*whl-3.9*' -delete
+      run: |
+        mkdir dist
+        find . -name "*cp39*.whl" -exec cp {} dist \;
+        ls -Rl .
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
