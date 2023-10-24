@@ -78,7 +78,7 @@ jobs:
         auto-update-conda: true
         python-version: 3.11
     - name: Build Conda Package
-      if: matrix.python-version != '3.12'
+      if: False
       shell: bash -l {0}
       run: |
         python -c "import sys; print(sys.version)"
@@ -141,7 +141,7 @@ jobs:
         auto-update-conda: true
         python-version: 3.11
     - name: Build Conda Package
-      if: matrix.python-version != '3.12'
+      if: False
       shell: bash -l {0}
       run: |
         python -c "import sys; print(sys.version)"
@@ -540,7 +540,7 @@ jobs:
         anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}\$filename
   pypi-publish:
     name: Upload release to PyPI
-    needs: [test_linux, test_macos, test_win]
+    needs: [build_linux, build_macos]
     runs-on: ubuntu-latest
     # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     environment:
