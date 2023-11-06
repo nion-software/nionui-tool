@@ -78,7 +78,6 @@ jobs:
         auto-update-conda: true
         python-version: 3.11
     - name: Build Conda Package
-      if: matrix.python-version != '3.12'
       shell: bash -l {0}
       run: |
         python -c "import sys; print(sys.version)"
@@ -92,7 +91,6 @@ jobs:
         path: dist/*.whl
     - name: Upload Conda Package
       uses: actions/upload-artifact@v3
-      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: /usr/share/miniconda/envs/test/conda-bld/linux-64/*.tar.bz2
@@ -141,7 +139,6 @@ jobs:
         auto-update-conda: true
         python-version: 3.11
     - name: Build Conda Package
-      if: matrix.python-version != '3.12'
       shell: bash -l {0}
       run: |
         python -c "import sys; print(sys.version)"
@@ -155,7 +152,6 @@ jobs:
         path: dist/*.whl
     - name: Upload Conda Package
       uses: actions/upload-artifact@v3
-      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
         path: /usr/local/miniconda/envs/test/conda-bld/osx-64/*.tar.bz2
@@ -207,7 +203,6 @@ jobs:
         auto-update-conda: true
         python-version: 3.11
     - name: Build Conda Package
-      if: matrix.python-version != '3.12'
       shell: pwsh
       run: |
         python -c "import sys; print(sys.version)"
@@ -221,7 +216,6 @@ jobs:
         path: dist\*.whl
     - name: Upload Conda Package
       uses: actions/upload-artifact@v3
-      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: C:\Miniconda\envs\test\conda-bld\win-64\*.tar.bz2
@@ -244,7 +238,6 @@ jobs:
     - name: Download Conda
       uses: actions/download-artifact@v3
       id: download_conda
-      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: conda_downloads
@@ -288,7 +281,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Test Conda
       shell: bash -l {0}
-      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         conda update --all -q -y
@@ -304,7 +296,6 @@ jobs:
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Test Conda Forge
       shell: bash -l {0}
-      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         conda create -q -n test-env -c conda-forge python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
@@ -320,7 +311,7 @@ jobs:
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04' && matrix.python-version != '3.12'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04'
       shell: bash -l {0}
       run: |
         conda info
@@ -345,7 +336,6 @@ jobs:
     - name: Download Conda
       uses: actions/download-artifact@v3
       id: download_conda
-      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.python-version }}
         path: conda_downloads
@@ -399,7 +389,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Test Conda
       shell: bash -l {0}
-      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         # use nomkl until anaconda gets its act together
@@ -415,7 +404,6 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Test Conda Forge
       shell: bash -l {0}
-      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         # use nomkl until anaconda gets its act together
@@ -432,7 +420,7 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0' && matrix.python-version != '3.12'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0'
       shell: bash -l {0}
       run: |
         conda info
@@ -457,7 +445,6 @@ jobs:
     - name: Download Conda
       uses: actions/download-artifact@v3
       id: download_conda
-      if: matrix.python-version != '3.12'
       with:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: conda_downloads
@@ -492,7 +479,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Test Conda
       shell: pwsh
-      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         conda update -q --all -y
@@ -509,7 +495,6 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Test Conda Forge
       shell: pwsh
-      if: matrix.python-version != '3.12'
       run: |
         # use conda versions instead of pypi versions. install before anything else.
         conda create -n test-env -c conda-forge -q python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
@@ -526,7 +511,7 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019' && matrix.python-version != '3.12'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019'
       shell: pwsh
       run: |
         conda info
