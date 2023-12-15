@@ -56,7 +56,13 @@ public:
 
     void initialize();
 
+public Q_SLOTS:
+    void screenChanged(QScreen *screen);
+    void logicalDotsPerInchChanged(qreal dpi);
+    void physicalDotsPerInchChanged(qreal dpi);
+
 protected:
+    virtual void hideEvent(QHideEvent *hide_event) override;
     virtual void showEvent(QShowEvent *show_event) override;
     virtual void changeEvent(QEvent * event) override;
     virtual void resizeEvent(QResizeEvent *event) override;
@@ -78,6 +84,8 @@ private:
 
     bool m_closed;
 
+    QScreen *m_screen;
+
     Application *application() const;
 
     friend class Application;
@@ -96,6 +104,11 @@ public:
     virtual void focusInEvent(QFocusEvent *event) override;
     virtual void focusOutEvent(QFocusEvent *event) override;
 
+public Q_SLOTS:
+    void screenChanged(QScreen *screen);
+    void logicalDotsPerInchChanged(qreal dpi);
+    void physicalDotsPerInchChanged(qreal dpi);
+
 protected:
     virtual void closeEvent(QCloseEvent *event) override;
     virtual void hideEvent(QHideEvent *event) override;
@@ -104,6 +117,7 @@ protected:
 
 private:
     QVariant m_py_object;
+    QScreen *m_screen;
 };
 
 
@@ -520,7 +534,7 @@ public:
     QMutex m_mutex;
     QList<CanvasDrawingCommand> m_commands;
     std::vector<quint32> m_commands_binary;
-    QScreen *m_screen;
+    float m_device_pixel_ratio;
     QRect rect;
     QRect image_rect;
     QSharedPointer<QImage> image;

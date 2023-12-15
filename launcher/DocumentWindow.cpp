@@ -24,6 +24,7 @@
 #include <QtGui/QPainter>
 #include <QtGui/QPainterPath>
 #include <QtGui/QScreen>
+#include <QtGui/QWindow>
 
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
@@ -122,6 +123,23 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
         application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
 }
 
+void DocumentWindow::hideEvent(QHideEvent *hide_event)
+{
+    if (this->windowHandle())
+    {
+        disconnect(this->windowHandle(), SIGNAL(screenChanged(QScreen *)));
+    }
+
+    if (m_screen)
+    {
+        disconnect(m_screen, SIGNAL(logicalDotsPerInchChanged(qreal)));
+        disconnect(m_screen, SIGNAL(physicalDotsPerInchChanged(qreal)));
+        m_screen = nullptr;
+    }
+
+    QMainWindow::hideEvent(hide_event);
+}
+
 void DocumentWindow::showEvent(QShowEvent *show_event)
 {
     QMainWindow::showEvent(show_event);
@@ -132,6 +150,41 @@ void DocumentWindow::showEvent(QShowEvent *show_event)
     setFocus();
 
     application()->closeSplashScreen();
+
+    this->winId(); // force windowHandle() to return a valid QWindow
+    if (this->windowHandle())
+    {
+        connect(this->windowHandle(), SIGNAL(screenChanged(QScreen *)), this, SLOT(screenChanged(QScreen *)));
+        screenChanged(this->windowHandle()->screen());
+    }
+}
+
+void DocumentWindow::logicalDotsPerInchChanged(qreal dpi)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+    app->dispatchPyMethod(m_py_object, "logicalDPIChanged", QVariantList() << dpi);
+}
+
+void DocumentWindow::physicalDotsPerInchChanged(qreal dpi)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+    app->dispatchPyMethod(m_py_object, "physicalDPIChanged", QVariantList() << dpi);
+}
+
+void DocumentWindow::screenChanged(QScreen *screen)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+    app->dispatchPyMethod(m_py_object, "screenChanged", QVariantList());
+
+    m_screen = screen;
+
+    if (m_screen)
+    {
+        connect(m_screen, SIGNAL(logicalDotsPerInchChanged(qreal)), this, SLOT(logicalDotsPerInchChanged(qreal)));
+        connect(m_screen, SIGNAL(physicalDotsPerInchChanged(qreal)), this, SLOT(physicalDotsPerInchChanged(qreal)));
+        logicalDotsPerInchChanged(m_screen->logicalDotsPerInch());
+        physicalDotsPerInchChanged(m_screen->physicalDotsPerInch());
+    }
 }
 
 void DocumentWindow::resizeEvent(QResizeEvent *event)
@@ -229,6 +282,7 @@ void DocumentWindow::keyReleaseEvent(QKeyEvent *event)
 
 DockWidget::DockWidget(const QString &title, QWidget *parent)
     : QDockWidget(title, parent)
+    , m_screen(nullptr)
 {
 }
 
@@ -242,10 +296,34 @@ void DockWidget::closeEvent(QCloseEvent *event)
 
 void DockWidget::hideEvent(QHideEvent *event)
 {
+    if (this->windowHandle())
+    {
+        disconnect(this->windowHandle(), SIGNAL(screenChanged(QScreen *)));
+    }
+
+    if (m_screen)
+    {
+        disconnect(m_screen, SIGNAL(logicalDotsPerInchChanged(qreal)));
+        disconnect(m_screen, SIGNAL(physicalDotsPerInchChanged(qreal)));
+        m_screen = nullptr;
+    }
+
     QDockWidget::hideEvent(event);
 
     Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
     app->dispatchPyMethod(m_py_object, "willHide", QVariantList());
+}
+
+void DockWidget::logicalDotsPerInchChanged(qreal dpi)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+    app->dispatchPyMethod(m_py_object, "logicalDPIChanged", QVariantList() << dpi);
+}
+
+void DockWidget::physicalDotsPerInchChanged(qreal dpi)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+    app->dispatchPyMethod(m_py_object, "physicalDPIChanged", QVariantList() << dpi);
 }
 
 void DockWidget::resizeEvent(QResizeEvent *event)
@@ -258,12 +336,35 @@ void DockWidget::resizeEvent(QResizeEvent *event)
     app->dispatchPyMethod(m_py_object, "sizeChanged", QVariantList() << int(event->size().width() / display_scaling) << int(event->size().height()) / display_scaling);
 }
 
+void DockWidget::screenChanged(QScreen *screen)
+{
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+    app->dispatchPyMethod(m_py_object, "screenChanged", QVariantList());
+
+    m_screen = screen;
+
+    if (m_screen)
+    {
+        connect(m_screen, SIGNAL(logicalDotsPerInchChanged(qreal)), this, SLOT(logicalDotsPerInchChanged(qreal)));
+        connect(m_screen, SIGNAL(physicalDotsPerInchChanged(qreal)), this, SLOT(physicalDotsPerInchChanged(qreal)));
+        logicalDotsPerInchChanged(m_screen->logicalDotsPerInch());
+        physicalDotsPerInchChanged(m_screen->physicalDotsPerInch());
+    }
+}
+
 void DockWidget::showEvent(QShowEvent *event)
 {
     QDockWidget::showEvent(event);
 
     Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
     app->dispatchPyMethod(m_py_object, "willShow", QVariantList());
+
+    this->winId(); // force windowHandle() to return a valid QWindow
+    if (this->windowHandle())
+    {
+        connect(this->windowHandle(), SIGNAL(screenChanged(QScreen *)), this, SLOT(screenChanged(QScreen *)));
+        screenChanged(this->windowHandle()->screen());
+    }
 }
 
 void DockWidget::focusInEvent(QFocusEvent *event)
@@ -2490,7 +2591,7 @@ QRectOptional PyCanvas::renderSection(QSharedPointer<CanvasSection> section)
     }
     if (!commands_binary.empty() && !rect.isEmpty())
     {
-        float devicePixelRatio = section->m_screen ? section->m_screen->devicePixelRatio() : 1.0;  // m_screen may be nullptr in earlier versions of Qt
+        float devicePixelRatio = section->m_device_pixel_ratio;
         // create the buffer image at a resolution suitable for the devicePixelRatio of the section's screen.
         QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(QSize(rect.width() * devicePixelRatio, rect.height() * devicePixelRatio), QImage::Format_ARGB32_Premultiplied));
         image->fill(QColor(0,0,0,0));
@@ -2876,7 +2977,8 @@ void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint3
             QSharedPointer<CanvasSection> new_section(new CanvasSection());
             m_sections[section_id] = new_section;
             section = new_section;
-            section->m_screen = screen();
+            auto screen = this->screen();
+            section->m_device_pixel_ratio = screen ? screen->devicePixelRatio() : 1.0;  // m_screen may be nullptr in earlier versions of Qt
             section->m_section_id = section_id;
             section->rendering = false;
             section->time = 0;
