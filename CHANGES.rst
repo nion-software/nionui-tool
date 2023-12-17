@@ -1,6 +1,11 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.22 (2023-12-17)
+-------------------
+- Fix canvas crash when screen changes.
+- Add support for notifying screen/dpi changes.
+
 0.4.21 (2023-10-23)
 -------------------
 - Preliminary Python 3.12 support.
