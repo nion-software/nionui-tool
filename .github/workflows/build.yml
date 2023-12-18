@@ -508,7 +508,7 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
       shell: bash -l {0}
       run: |
         # make a directory to avoid name conflicts with the channel. argh.
