@@ -73,10 +73,11 @@ jobs:
         printf "[Paths]\nPrefix=.\nPlugins=plugins\n" > launcher/linux/x64/qt.conf
         python setup.py bdist_wheel
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
-        python-version: 3.11
+        python-version: "3.11"
+        miniconda-version: "latest"
     - name: Build Conda Package
       shell: bash -l {0}
       run: |
@@ -84,6 +85,8 @@ jobs:
         python -c "import sys; print(sys.executable)"
         conda install -q conda-build -y
         conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
+        OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
+        mv $OUT_FILE dist
     - name: Upload Wheel
       uses: actions/upload-artifact@v3
       with:
@@ -93,7 +96,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
-        path: /usr/share/miniconda/envs/test/conda-bld/linux-64/*.tar.bz2
+        path: dist/*.tar.bz2
   build_macos:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -175,12 +178,12 @@ jobs:
         popd
         python setup.py bdist_wheel
     - name: Upload Wheel
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ env.tool-id }}-macos-whl-${{ matrix.architecture }}-${{ matrix.python-version }}
         path: dist/*.whl
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
         python-version: "3.11"
@@ -193,12 +196,13 @@ jobs:
         python -c "import sys; print(sys.executable)"
         conda install -q conda-build -y
         conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
-        echo "CONDA_PREFIX=$CONDA_PREFIX" >> "$GITHUB_ENV"
+        OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
+        mv $OUT_FILE dist
     - name: Upload Conda Package
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.architecture }}-${{ matrix.python-version }}
-        path: ${{ env.CONDA_PREFIX }}/conda-bld/osx-*/*.tar.bz2
+        path: dist/*.tar.bz2
   build_win:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -242,27 +246,30 @@ jobs:
         popd
         python setup.py bdist_wheel
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
-        python-version: 3.11
+        python-version: "3.11"
+        miniconda-version: "latest"
     - name: Build Conda Package
-      shell: pwsh
+      shell: bash -l {0}
       run: |
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
         conda install -q conda-build -y
         conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
+        OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
+        mv $OUT_FILE dist
     - name: Upload Wheel
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
-        path: dist\*.whl
+        path: dist/*.whl
     - name: Upload Conda Package
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
-        path: C:\Miniconda\envs\test\conda-bld\win-64\*.tar.bz2
+        path: dist/*.tar.bz2
   test_linux:
     needs: build_linux
     runs-on: ${{ matrix.os }}
@@ -320,10 +327,13 @@ jobs:
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
+        activate-environment: test-environment
+        miniconda-version: "latest"
         python-version: ${{ matrix.python-version }}
+        auto-activate-base: false
     - name: Test Conda
       shell: bash -l {0}
       run: |
@@ -359,18 +369,28 @@ jobs:
         conda deactivate
     - name: Build/publish anaconda package
       # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04'
+      if: matrix.os == 'ubuntu-20.04'
       shell: bash -l {0}
       run: |
         # make a directory to avoid name conflicts with the channel. argh.
         mkdir conda_build
         pushd conda_build
-        conda update -n base --all -y
-        conda update --all -y
-        conda install conda-build anaconda-client -y
+        echo "conda create anaconda-client env"
+        conda create -n upload-env -q conda-build anaconda-client -y
+        echo "activate"
+        conda activate upload-env
+        echo "conda info"
         conda info
+        echo "conda list"
         conda list
+        echo "directory list"
         ls -Rl ${{steps.download_conda.outputs.download-path}}
-        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        echo "anaconda upload"
+        # anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        echo "deactivate"
+        conda deactivate
+        echo "popd"
+        popd
   test_macos:
     needs: build_macos
     runs-on: ${{ matrix.os }}
@@ -444,12 +464,14 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
-        python-version: ${{ matrix.python-version }}
+        activate-environment: test-environment
         miniconda-version: "latest"
+        python-version: ${{ matrix.python-version }}
         architecture: ${{ matrix.architecture }}
+        auto-activate-base: false
     - name: Test Conda
       shell: bash -l {0}
       run: |
@@ -457,7 +479,9 @@ jobs:
         # use nomkl until anaconda gets its act together
         conda install -q nomkl numpy scipy h5py imageio setuptools -y
         conda install -q -y -c nion ${{ env.tool-package }}
-        conda install -q -y ${{steps.download_conda.outputs.download-path}}/*/*.tar.bz2
+        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.tar.bz2")
+        echo "Installing '$FILENAME'"
+        conda install -q -y -c conda-forge $FILENAME
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -473,7 +497,9 @@ jobs:
         conda create -n test-env -c conda-forge -q python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
         conda activate test-env
         conda install -q -y -c nion -c conda-forge ${{ env.tool-package }}
-        conda install -q -y -c conda-forge ${{steps.download_conda.outputs.download-path}}/*/*.tar.bz2
+        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.tar.bz2")
+        echo "Installing '$FILENAME'"
+        conda install -q -y -c conda-forge $FILENAME
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -483,19 +509,19 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0'
+      #if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0'
       shell: bash -l {0}
       run: |
         # make a directory to avoid name conflicts with the channel. argh.
         mkdir conda_build
         pushd conda_build
-        conda update -n base --all -y
-        conda update --all -y
-        conda install conda-build anaconda-client -y
-        conda info
-        conda list
-        ls -Rl ${{steps.download_conda.outputs.download-path}}
-        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*/*.tar.bz2
+        conda create -n upload-env -q conda-build anaconda-client -y
+        conda activate upload-env
+        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.tar.bz2")
+        echo "Send to Anaconda '$FILENAME'"
+        #anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing $FILENAME
+        conda deactivate
+        popd
   test_win:
     needs: build_win
     runs-on: ${{ matrix.os }}
@@ -543,10 +569,13 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
+        activate-environment: test-environment
+        miniconda-version: "latest"
         python-version: ${{ matrix.python-version }}
+        auto-activate-base: false
     - name: Test Conda
       shell: pwsh
       run: |
@@ -581,19 +610,19 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019'
+      #if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019'
       shell: bash -l {0}
       run: |
         # make a directory to avoid name conflicts with the channel. argh.
         mkdir conda_build
         pushd conda_build
-        conda update -n base --all -y
-        conda update --all -y
-        conda install conda-build anaconda-client -y
-        conda info
-        conda list
-        ls -Rl ${{steps.download_conda.outputs.download-path}}
-        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*/*.tar.bz2
+        conda create -n upload-env -q conda-build anaconda-client -y
+        conda activate upload-env
+        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.tar.bz2")
+        echo "Send to Anaconda '$FILENAME'"
+        #anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing $FILENAME
+        conda deactivate
+        popd
   pypi-publish:
     name: Upload release to PyPI
     needs: [test_linux, test_macos, test_win]
