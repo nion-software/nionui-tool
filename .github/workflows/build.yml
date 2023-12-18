@@ -368,8 +368,7 @@ jobs:
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04'
-      if: matrix.os == 'ubuntu-20.04'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04'
       shell: bash -l {0}
       run: |
         # make a directory to avoid name conflicts with the channel. argh.
@@ -386,7 +385,7 @@ jobs:
         echo "directory list"
         ls -Rl ${{steps.download_conda.outputs.download-path}}
         echo "anaconda upload"
-        # anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
         echo "deactivate"
         conda deactivate
         echo "popd"
@@ -509,7 +508,7 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      #if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0'
       shell: bash -l {0}
       run: |
         # make a directory to avoid name conflicts with the channel. argh.
@@ -519,7 +518,7 @@ jobs:
         conda activate upload-env
         FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.tar.bz2")
         echo "Send to Anaconda '$FILENAME'"
-        #anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing $FILENAME
+        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing $FILENAME
         conda deactivate
         popd
   test_win:
@@ -610,7 +609,7 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      #if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019'
       shell: bash -l {0}
       run: |
         # make a directory to avoid name conflicts with the channel. argh.
@@ -620,7 +619,7 @@ jobs:
         conda activate upload-env
         FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.tar.bz2")
         echo "Send to Anaconda '$FILENAME'"
-        #anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing $FILENAME
+        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing $FILENAME
         conda deactivate
         popd
   pypi-publish:
