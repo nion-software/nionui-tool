@@ -358,11 +358,18 @@ jobs:
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04'
+      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04'
       shell: bash -l {0}
       run: |
+        # make a directory to avoid name conflicts with the channel. argh.
+        mkdir conda_build
+        pushd conda_build
+        conda update -n base --all -y
+        conda update --all -y
+        conda install conda-build anaconda-client -y
         conda info
-        conda install anaconda-client -y
+        conda list
+        ls -Rl ${{steps.download_conda.outputs.download-path}}
         anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
   test_macos:
     needs: build_macos
@@ -476,11 +483,18 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0'
+      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'macos-11.0'
       shell: bash -l {0}
       run: |
+        # make a directory to avoid name conflicts with the channel. argh.
+        mkdir conda_build
+        pushd conda_build
+        conda update -n base --all -y
+        conda update --all -y
+        conda install conda-build anaconda-client -y
         conda info
-        conda install -q anaconda-client -y
+        conda list
+        ls -Rl ${{steps.download_conda.outputs.download-path}}
         anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*/*.tar.bz2
   test_win:
     needs: build_win
@@ -567,14 +581,19 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019'
-      shell: pwsh
+      # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019'
+      shell: bash -l {0}
       run: |
+        # make a directory to avoid name conflicts with the channel. argh.
+        mkdir conda_build
+        pushd conda_build
+        conda update -n base --all -y
+        conda update --all -y
+        conda install conda-build anaconda-client -y
         conda info
-        conda install -q anaconda-client -y
-        $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
-        Write-Output ${{steps.download_conda.outputs.download-path}}\$filename
-        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}\$filename
+        conda list
+        ls -Rl ${{steps.download_conda.outputs.download-path}}
+        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*/*.tar.bz2
   pypi-publish:
     name: Upload release to PyPI
     needs: [test_linux, test_macos, test_win]
