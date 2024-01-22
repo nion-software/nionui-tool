@@ -2025,6 +2025,10 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
 
     DocumentWindow *document_window = PythonSupport::instance()->isNone(obj0) ? NULL : Unwrap<DocumentWindow>(obj0);
 
+    auto caption = PyObjectToQString(caption_u);
+    auto dir = PyObjectToQString(dir_u);
+    auto filter = PyObjectToQString(filter_u);
+
     if (strcmp(mode_c, "save")==0)
     {
 		QString selected_filter = PyObjectToQString(selected_filter_u);
@@ -2033,7 +2037,7 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
         QString ret;
         {
             Python_ThreadAllow thread_allow;
-            ret = GetSaveFileName(document_window, PyObjectToQString(caption_u), PyObjectToQString(dir_u), PyObjectToQString(filter_u), &selected_filter, &selected_dir);
+            ret = GetSaveFileName(document_window, caption, dir, filter, &selected_filter, &selected_dir);
         }
         QVariantList result;
         result << ret;
@@ -2050,7 +2054,7 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
         QString ret;
         {
             Python_ThreadAllow thread_allow;
-            ret = GetOpenFileName(document_window, PyObjectToQString(caption_u), PyObjectToQString(dir_u), PyObjectToQString(filter_u), &selected_filter, &selected_dir);
+            ret = GetOpenFileName(document_window, caption, dir, filter, &selected_filter, &selected_dir);
         }
 
         QVariantList result;
@@ -2063,11 +2067,11 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
     else if (strcmp(mode_c, "directory") == 0)
     {
         QDir selected_dir;
-        QDir::setCurrent(PyObjectToQString(dir_u));
+        QDir::setCurrent(dir);
         QString directory;
         {
             Python_ThreadAllow thread_allow;
-            directory = GetExistingDirectory(document_window, PyObjectToQString(caption_u), PyObjectToQString(dir_u), &selected_dir);
+            directory = GetExistingDirectory(document_window, caption, dir, &selected_dir);
         }
 
         QVariantList result;
@@ -2085,7 +2089,7 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
         QStringList file_names;
         {
             Python_ThreadAllow thread_allow;
-            file_names = GetOpenFileNames(document_window, PyObjectToQString(caption_u), PyObjectToQString(dir_u), PyObjectToQString(filter_u), &selected_filter, &selected_dir);
+            file_names = GetOpenFileNames(document_window, caption, dir, filter, &selected_filter, &selected_dir);
         }
 
         QVariantList result;
