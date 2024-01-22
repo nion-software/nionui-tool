@@ -1983,24 +1983,26 @@ static PyObject *DocumentWindow_getColorDialog(PyObject * /*self*/, PyObject *ar
     DocumentWindow *document_window = PythonSupport::instance()->isNone(obj0) ? NULL : Unwrap<DocumentWindow>(obj0);
 
     QColor color(color_c);
+    QString result(color_c);
 
-    Python_ThreadAllow thread_allow;
-    QColorDialog dialog(color, document_window);
-    dialog.setOption(QColorDialog::ShowAlphaChannel, show_alpha);
-    if (dialog.exec() == QDialog::Accepted) {
-        QString result;
-        if (dialog.selectedColor().alpha() != 255)
-        {
-            int alpha = dialog.selectedColor().alpha();
-            result = "#" + QString("%1").arg(alpha, 2, 16, QLatin1Char('0')) + dialog.selectedColor().name().mid(1);
+    {
+        Python_ThreadAllow thread_allow;
+        QColorDialog dialog(color, document_window);
+        dialog.setOption(QColorDialog::ShowAlphaChannel, show_alpha);
+        if (dialog.exec() == QDialog::Accepted) {
+            if (dialog.selectedColor().alpha() != 255)
+            {
+                int alpha = dialog.selectedColor().alpha();
+                result = "#" + QString("%1").arg(alpha, 2, 16, QLatin1Char('0')) + dialog.selectedColor().name().mid(1);
+            }
+            else
+            {
+                result = dialog.selectedColor().name();
+            }
         }
-        else
-        {
-            result = dialog.selectedColor().name();
-        }
-        return PythonSupport::instance()->build()("s", result.toUtf8().data());
     }
-    return PythonSupport::instance()->build()("s", QString(color_c).toUtf8().data());
+
+    return PythonSupport::instance()->build()("s", result.toUtf8().data());
 }
 
 static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
