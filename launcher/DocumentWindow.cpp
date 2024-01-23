@@ -24,6 +24,7 @@
 #include <QtGui/QPainter>
 #include <QtGui/QPainterPath>
 #include <QtGui/QScreen>
+#include <QtGui/QStyleHints>
 #include <QtGui/QWindow>
 
 #include <QtWidgets/QCheckBox>
@@ -99,6 +100,9 @@ DocumentWindow::DocumentWindow(const QString &title, QWidget *parent)
 
     // Set sizing for widgets.
     setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+
+    connect(application()->styleHints(), SIGNAL(colorSchemeChanged(Qt::ColorScheme)), this, SLOT(colorSchemeChanged(Qt::ColorScheme)));
+
 
     cleanDocument();
 }
@@ -185,6 +189,26 @@ void DocumentWindow::screenChanged(QScreen *screen)
         logicalDotsPerInchChanged(m_screen->logicalDotsPerInch());
         physicalDotsPerInchChanged(m_screen->physicalDotsPerInch());
     }
+}
+
+void DocumentWindow::colorSchemeChanged(Qt::ColorScheme colorScheme)
+{
+    QString color_scheme;
+    switch (colorScheme)
+    {
+        case Qt::ColorScheme::Light:
+            color_scheme = "light";
+            break;
+        case Qt::ColorScheme::Dark:
+            color_scheme = "dark";
+            break;
+        default:
+            color_scheme = "unknown";
+            break;
+    }
+
+    Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+    app->dispatchPyMethod(m_py_object, "colorSchemeChanged", QVariantList() << color_scheme);
 }
 
 void DocumentWindow::resizeEvent(QResizeEvent *event)

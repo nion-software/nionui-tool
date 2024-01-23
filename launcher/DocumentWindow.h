@@ -60,6 +60,7 @@ public Q_SLOTS:
     void screenChanged(QScreen *screen);
     void logicalDotsPerInchChanged(qreal dpi);
     void physicalDotsPerInchChanged(qreal dpi);
+    void colorSchemeChanged(Qt::ColorScheme colorScheme);
 
 protected:
     virtual void hideEvent(QHideEvent *hide_event) override;

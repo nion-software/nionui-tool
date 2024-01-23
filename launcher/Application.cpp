@@ -29,6 +29,7 @@
 #include <QtGui/QPainter>
 #include <QtGui/QPixmap>
 #include <QtGui/QScreen>
+#include <QtGui/QStyleHints>
 #include <QtGui/QWindow>
 
 #include <QtWidgets/QColorDialog>
@@ -2003,6 +2004,37 @@ static PyObject *DocumentWindow_getColorDialog(PyObject * /*self*/, PyObject *ar
     }
 
     return PythonSupport::instance()->build()("s", result.toUtf8().data());
+}
+
+static PyObject *DocumentWindow_getColorScheme(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+//    DocumentWindow *document_window = PythonSupport::instance()->isNone(obj0) ? NULL : Unwrap<DocumentWindow>(obj0);
+
+    QString color_scheme;
+    switch (Application::instance()->styleHints()->colorScheme())
+    {
+        case Qt::ColorScheme::Light:
+            color_scheme = "light";
+            break;
+        case Qt::ColorScheme::Dark:
+            color_scheme = "dark";
+            break;
+        default:
+            color_scheme = "unknown";
+            break;
+    }
+
+    return PythonSupport::instance()->build()("s", color_scheme.toUtf8().data());
 }
 
 static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
@@ -6363,6 +6395,7 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_create", DocumentWindow_create, METH_VARARGS, "DocumentWindow_create."},
     {"DocumentWindow_getDisplayScaling", DocumentWindow_getDisplayScaling, METH_VARARGS, "DocumentWindow_getDisplayScaling."},
     {"DocumentWindow_getColorDialog", DocumentWindow_getColorDialog, METH_VARARGS, "DocumentWindow_getColorDialog."},
+    {"DocumentWindow_getColorScheme", DocumentWindow_getColorScheme, METH_VARARGS, "DocumentWindow_getColorScheme."},
     {"DocumentWindow_getFilePath", DocumentWindow_getFilePath, METH_VARARGS, "DocumentWindow_getFilePath."},
     {"DocumentWindow_getScreenSize", DocumentWindow_getScreenSize, METH_VARARGS, "DocumentWindow_getScreenSize."},
     {"DocumentWindow_getScreenDPIInfo", DocumentWindow_getScreenDPIInfo , METH_VARARGS, "DocumentWindow_getScreenDPIInfo"},
