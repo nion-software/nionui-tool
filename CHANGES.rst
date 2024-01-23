@@ -1,6 +1,11 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.23 (2024-01-22)
+-------------------
+- Add support for responding to color scheme changes (light/dark mode).
+- Fix issue with file dialogs crashing.
+
 0.4.22 (2023-12-17)
 -------------------
 - Fix canvas crash when screen changes.
