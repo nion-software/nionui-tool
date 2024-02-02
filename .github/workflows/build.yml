@@ -419,6 +419,10 @@ jobs:
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.architecture }}-${{ matrix.python-version }}
         path: conda_downloads
+    - name: Set up Python ${{ matrix.python-version }} with official build
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
     - name: Test system Python installed with brew with virtual environment
       shell: bash
       run: |
@@ -439,10 +443,6 @@ jobs:
         echo "Running test..."
         ${{ env.tool-exe }} nionui_app.test_ack
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
-    - name: Set up Python ${{ matrix.python-version }} with official build
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
     - name: Test system Python installed with official build with virtual environment
       shell: bash
       run: |
