@@ -20,7 +20,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        qt-version: ["6.6.1"]
+        qt-version: ["6.6.2"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -88,12 +88,12 @@ jobs:
         OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
         mv $OUT_FILE dist
     - name: Upload Wheel
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
         path: dist/*.whl
     - name: Upload Conda Package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: dist/*.tar.bz2
@@ -105,14 +105,14 @@ jobs:
         os: [macos-11.0]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         architecture: [x86_64]
-        qt-version: ["6.6.1"]
+        qt-version: ["6.6.2"]
         include:
             - os: macos-14
               python-version: "3.12"
               architecture: arm64
-              qt-version: "6.6.1"
+              qt-version: "6.6.2"
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -178,7 +178,7 @@ jobs:
         popd
         python setup.py bdist_wheel
     - name: Upload Wheel
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-macos-whl-${{ matrix.architecture }}-${{ matrix.python-version }}
         path: dist/*.whl
@@ -199,7 +199,7 @@ jobs:
         OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
         mv $OUT_FILE dist
     - name: Upload Conda Package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.architecture }}-${{ matrix.python-version }}
         path: dist/*.tar.bz2
@@ -210,9 +210,9 @@ jobs:
       matrix:
         os: [windows-2019]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        qt-version: ["6.6.1"]
+        qt-version: ["6.6.2"]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -261,12 +261,12 @@ jobs:
         OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
         mv $OUT_FILE dist
     - name: Upload Wheel
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: dist/*.whl
     - name: Upload Conda Package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: dist/*.tar.bz2
@@ -279,15 +279,15 @@ jobs:
         os: [ubuntu-20.04, ubuntu-22.04]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Download Wheel
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       id: download_wheel
       with:
         name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       id: download_conda
       with:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
@@ -399,22 +399,22 @@ jobs:
         os: [macos-11.0]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         architecture: [x86_64]
-        qt-version: ["6.6.1"]
+        qt-version: ["6.6.2"]
         include:
             - os: macos-14
               python-version: "3.12"
               architecture: arm64
-              qt-version: "6.6.1"
+              qt-version: "6.6.2"
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Download Wheel
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       id: download_wheel
       with:
         name: ${{ env.tool-id }}-macos-whl-${{ matrix.architecture }}-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       id: download_conda
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.architecture }}-${{ matrix.python-version }}
@@ -530,15 +530,15 @@ jobs:
         os: [windows-2019]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Download Wheel
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       id: download_wheel
       with:
         name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       id: download_conda
       with:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
@@ -634,7 +634,7 @@ jobs:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
     - name: Download All Artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
     - name: Remove all the files except the ones to upload to PyPI.
       shell: bash
       run: |
