@@ -20,7 +20,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        qt-version: ["6.6.2"]
+        qt-version: ["6.7.0"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -38,7 +38,7 @@ jobs:
         version: ${{ matrix.qt-version }}
         host: 'linux'
         target: 'desktop'
-        arch: 'gcc_64'
+        arch: 'linux_gcc_64'
     - name: Build
       shell: bash
       run: |
@@ -59,15 +59,15 @@ jobs:
         cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libQt6OpenGL.so.6 launcher/linux/x64
         cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libQt6Widgets.so.6 launcher/linux/x64
         cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libQt6XcbQpa.so.6 launcher/linux/x64
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libicui18n.so.56 launcher/linux/x64
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libicudata.so.56 launcher/linux/x64
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libicuuc.so.56 launcher/linux/x64
+        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libicui18n.so.73 launcher/linux/x64
+        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libicudata.so.73 launcher/linux/x64
+        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libicuuc.so.73 launcher/linux/x64
         mkdir -p launcher/linux/x64/plugins/platforms
         mkdir -p launcher/linux/x64/plugins/imageformats
         cp ../Qt/${{ matrix.qt-version }}/gcc_64/plugins/platforms/libqxcb.so launcher/linux/x64/plugins/platforms
         cp ../Qt/${{ matrix.qt-version }}/gcc_64/plugins/imageformats/libq* launcher/linux/x64/plugins/imageformats
         rm launcher/linux/x64/plugins/imageformats/libqsvg.so
-        chrpath -r "\$ORIGIN" launcher/linux/x64/libicu*.so.56
+        chrpath -r "\$ORIGIN" launcher/linux/x64/libicu*.so.73
         chrpath -r "\$ORIGIN/../.." launcher/linux/x64/plugins/platforms/libqxcb.so
         chrpath -r "\$ORIGIN/../.." launcher/linux/x64/plugins/imageformats/*.so
         printf "[Paths]\nPrefix=.\nPlugins=plugins\n" > launcher/linux/x64/qt.conf
@@ -105,12 +105,12 @@ jobs:
         os: [macos-11.0]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         architecture: [x86_64]
-        qt-version: ["6.6.2"]
+        qt-version: ["6.7.0"]
         include:
             - os: macos-14
               python-version: "3.12"
               architecture: arm64
-              qt-version: "6.6.2"
+              qt-version: "6.7.0"
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -210,7 +210,7 @@ jobs:
       matrix:
         os: [windows-2019]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        qt-version: ["6.6.2"]
+        qt-version: ["6.7.0"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -399,12 +399,12 @@ jobs:
         os: [macos-11.0]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         architecture: [x86_64]
-        qt-version: ["6.6.2"]
+        qt-version: ["6.7.0"]
         include:
             - os: macos-14
               python-version: "3.12"
               architecture: arm64
-              qt-version: "6.6.2"
+              qt-version: "6.7.0"
     steps:
     - uses: actions/checkout@v4
     - name: Download Wheel
