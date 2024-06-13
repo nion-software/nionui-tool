@@ -19,7 +19,7 @@ option(USE_CONSOLE "Enable console" ON)
 set(APP_NAME "NionUILauncher")
 
 # app version
-set(APP_VERSION "0.4.23")
+set(APP_VERSION "0.4.24")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build)
 
