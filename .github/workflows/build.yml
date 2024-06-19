@@ -20,7 +20,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        qt-version: ["6.7.1"]
+        qt-version: ["6.7.2"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -105,12 +105,12 @@ jobs:
         os: [macos-12]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         architecture: [x86_64]
-        qt-version: ["6.7.1"]
+        qt-version: ["6.7.2"]
         include:
             - os: macos-14
               python-version: "3.12"
               architecture: arm64
-              qt-version: "6.7.1"
+              qt-version: "6.7.2"
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -210,7 +210,7 @@ jobs:
       matrix:
         os: [windows-2019]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        qt-version: ["6.7.1"]
+        qt-version: ["6.7.2"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -399,12 +399,12 @@ jobs:
         os: [macos-12]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         architecture: [x86_64]
-        qt-version: ["6.7.1"]
+        qt-version: ["6.7.2"]
         include:
             - os: macos-14
               python-version: "3.12"
               architecture: arm64
-              qt-version: "6.7.1"
+              qt-version: "6.7.2"
     steps:
     - uses: actions/checkout@v4
     - name: Download Wheel
