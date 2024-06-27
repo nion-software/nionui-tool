@@ -411,6 +411,40 @@ Qt::ScrollBarPolicy ParseScrollBarPolicy(const QString &policy_str)
         return Qt::ScrollBarAsNeeded;
 }
 
+Qt::Alignment ParseAlignment(const char *alignment_c)
+{
+    // Alignment
+    Qt::Alignment alignment = Qt::Alignment(0);
+    if (alignment_c)
+    {
+        if (strcmp(alignment_c, "left") == 0)
+            alignment = Qt::AlignLeft;
+        else if (strcmp(alignment_c, "right") == 0)
+            alignment = Qt::AlignRight;
+        else if (strcmp(alignment_c, "hcenter") == 0)
+            alignment = Qt::AlignHCenter;
+        else if (strcmp(alignment_c, "justify") == 0)
+            alignment = Qt::AlignJustify;
+        else if (strcmp(alignment_c, "top") == 0)
+            alignment = Qt::AlignTop;
+        else if (strcmp(alignment_c, "bottom") == 0)
+            alignment = Qt::AlignBottom;
+        else if (strcmp(alignment_c, "vcenter") == 0)
+            alignment = Qt::AlignVCenter;
+        else if (strcmp(alignment_c, "baseline") == 0)
+            alignment = Qt::AlignBaseline;
+        else if (strcmp(alignment_c, "center") == 0)
+            alignment = Qt::AlignCenter;
+        else if (strcmp(alignment_c, "absolute") == 0)
+            alignment = Qt::AlignAbsolute;
+        else if (strcmp(alignment_c, "leading") == 0)
+            alignment = Qt::AlignLeading;
+        else if (strcmp(alignment_c, "trailing") == 0)
+            alignment = Qt::AlignTrailing;
+    }
+    return alignment;
+}
+
 #define LOG_EXCEPTION(ctx) qDebug() << "EXCEPTION";
 
 template <typename T>
@@ -2967,6 +3001,58 @@ static PyObject *ItemModel_endRemoveRow(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     py_item_model->endRemoveRowsInParent();
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *Label_setTextAlignmentHorizontal(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    char *alignment_c = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Oz", &obj0, &alignment_c))
+        return NULL;
+
+    QLabel *label = Unwrap<QLabel>(obj0);
+    if (label == NULL)
+        return NULL;
+
+    // Alignment
+    Qt::Alignment alignment = ParseAlignment(alignment_c);
+
+    label->setAlignment((label->alignment() & ~Qt::AlignHorizontal_Mask) | alignment);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
+static PyObject *Label_setTextAlignmentVertical(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    char *alignment_c = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "Oz", &obj0, &alignment_c))
+        return NULL;
+
+    QLabel *label = Unwrap<QLabel>(obj0);
+    if (label == NULL)
+        return NULL;
+
+    // Alignment
+    Qt::Alignment alignment = ParseAlignment(alignment_c);
+
+    label->setAlignment((label->alignment() & ~Qt::AlignVertical_Mask) | alignment);
 
     return PythonSupport::instance()->getNoneReturnValue();
 }
@@ -5767,26 +5853,7 @@ static PyObject *Widget_insertWidget(PyObject * /*self*/, PyObject *args)
         return NULL;
 
     // Alignment
-    Qt::Alignment alignment = Qt::Alignment(0);
-    if (alignment_c)
-    {
-        if (strcmp(alignment_c, "left") == 0)
-            alignment = Qt::AlignLeft;
-        else if (strcmp(alignment_c, "right") == 0)
-            alignment = Qt::AlignRight;
-        else if (strcmp(alignment_c, "hcenter") == 0)
-            alignment = Qt::AlignHCenter;
-        else if (strcmp(alignment_c, "justify") == 0)
-            alignment = Qt::AlignJustify;
-        else if (strcmp(alignment_c, "top") == 0)
-            alignment = Qt::AlignTop;
-        else if (strcmp(alignment_c, "bottom") == 0)
-            alignment = Qt::AlignBottom;
-        else if (strcmp(alignment_c, "vcenter") == 0)
-            alignment = Qt::AlignVCenter;
-        else if (strcmp(alignment_c, "center") == 0)
-            alignment = Qt::AlignCenter;
-    }
+    Qt::Alignment alignment = ParseAlignment(alignment_c);
 
     // Stretch hardcoded to 0
     int stretch = 0;
@@ -6432,6 +6499,8 @@ static PyMethodDef Methods[] = {
     {"ItemModel_endInsertRow", ItemModel_endInsertRow, METH_VARARGS, "ItemModel endInsertRows."},
     {"ItemModel_endRemoveRow", ItemModel_endRemoveRow, METH_VARARGS, "ItemModel endRemoveRows."},
 
+    {"Label_setTextAlignmentHorizontal", Label_setTextAlignmentHorizontal, METH_VARARGS, "Label_setTextAlignmentHorizontal."},
+    {"Label_setTextAlignmentVertical", Label_setTextAlignmentVertical, METH_VARARGS, "Label_setTextAlignmentVertical."},
     {"Label_setText", Label_setText, METH_VARARGS, "Label_setText."},
     {"Label_setTextColor", Label_setTextColor, METH_VARARGS, "Label_setTextColor."},
     {"Label_setTextFont", Label_setTextFont, METH_VARARGS, "Label_setTextFont."},
