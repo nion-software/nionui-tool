@@ -547,6 +547,7 @@ public:
     quint64 time;
     QMutex latenciesMutex;
     QQueue<qint64> latencies;
+    bool record_latency;
 };
 
 struct QRectOptional

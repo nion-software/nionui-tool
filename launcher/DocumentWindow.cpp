@@ -2637,6 +2637,7 @@ QRectOptional PyCanvas::renderSection(QSharedPointer<CanvasSection> section)
             transform = transform * QTransform::fromScale(1/devicePixelRatio, 1/devicePixelRatio);
             section->m_rendered_timestamps.append(RenderedTimeStamp(transform, r.dateTime, r.section_id));
         }
+        section->record_latency = true;
         return QRectOptional(rect);
     }
     return QRectOptional();
@@ -2689,6 +2690,7 @@ void PyCanvas::paintEvent(QPaintEvent *event)
         qint64 latencyAverage = 0;
         qint64 latencyMax = 0;
         double latencyStdDev = 0;
+        QString latencyListString;
         if (rendered_timestamp.section_id > 0)
         {
             QSharedPointer<CanvasSection> section;
@@ -2697,10 +2699,23 @@ void PyCanvas::paintEvent(QPaintEvent *event)
                 section = m_sections[rendered_timestamp.section_id];
             }
             QMutexLocker locker(&section->latenciesMutex);
-            section->latencies.enqueue(millisecondsDiff);
-            if (section->latencies.size() > 100)
-                section->latencies.dequeue();
-            Q_FOREACH(quint64 latency, section->latencies)
+            if (section->record_latency)
+            {
+                section->latencies.enqueue(millisecondsDiff);
+                while (section->latencies.size() > 40)
+                    section->latencies.dequeue();
+                section->record_latency = false;
+            }
+            auto latencies(section->latencies);
+            std::sort(latencies.begin(), latencies.end());
+            int discard = latencies.size() / 10;
+            while (discard > 0)
+            {
+                if (latencies.size())
+                    latencies.pop_front();
+                discard -= 1;
+            }
+            Q_FOREACH(quint64 latency, latencies)
             {
                 latencyAverage += latency;
                 if (latency < latencyMin)
@@ -2708,18 +2723,19 @@ void PyCanvas::paintEvent(QPaintEvent *event)
                 if (latency > latencyMax)
                     latencyMax = latency;
             }
-            double latencyAverageF = (double)latencyAverage / section->latencies.size();
+            double latencyAverageF = (double)latencyAverage / latencies.size();
             latencyAverage = (qint64)latencyAverageF;
             double sumSquares = 0;
-            Q_FOREACH(quint64 latency, section->latencies)
+            Q_FOREACH(quint64 latency, latencies)
             {
                 sumSquares += (latency - latencyAverageF) * (latency - latencyAverageF);
+                latencyListString += " " + QString::number(latency);
             }
-            latencyStdDev = sqrt(sumSquares / section->latencies.size() );
+            latencyStdDev = sqrt(sumSquares / latencies.size() );
         }
         QString text = "Latency " + QString::number(millisecondsDiff).rightJustified(4);
         if (latencyAverage > 0)
-            text += ":" + QString::number(latencyAverage).rightJustified(3) + " ± " + QString::number(latencyStdDev, 'f', 1).rightJustified(4) + " [" + QString::number(latencyMin).rightJustified(3) + ":" + QString::number(latencyMax).rightJustified(3) + " ]";
+            text += ":" + QString::number(latencyAverage).rightJustified(3) + " ± " + QString::number(latencyStdDev, 'f', 1).rightJustified(4) + " [" + QString::number(latencyMin).rightJustified(3) + ":" + QString::number(latencyMax).rightJustified(3) + " ] ";
         QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
         QFontMetrics fm(text_font);
         int text_width = fm.horizontalAdvance(text);
@@ -3006,6 +3022,7 @@ void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint3
             section->m_section_id = section_id;
             section->rendering = false;
             section->time = 0;
+            section->record_latency = false;
         }
     }
 
