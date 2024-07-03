@@ -295,16 +295,18 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
 struct RenderedTimeStamp
 {
-    RenderedTimeStamp(const QTransform &transform, const QDateTime &dateTime, int section_id) : transform(transform), dateTime(dateTime), section_id(section_id) { }
+    RenderedTimeStamp(const QTransform &transform, const QDateTime &dateTime, int section_id, qint64 millisecondsDiff = 0, const QString text = QString()) : transform(transform), dateTime(dateTime), section_id(section_id), millisecondsDiff(millisecondsDiff), text(text) { }
 
     QTransform transform;
     QDateTime dateTime;
+    qint64 millisecondsDiff;
+    QString text;
     int section_id;
 };
 
 typedef QList<RenderedTimeStamp> RenderedTimeStamps;
 
-RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, LayerCache *layer_cache, float display_scaling = 0.0, int section_id = 0, float devicePixelRatio = 1.0);
+RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, PaintImageCache *image_cache, LayerCache *layer_cache, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling = 0.0, int section_id = 0, float devicePixelRatio = 1.0);
 
 class PyStyledItemDelegate : public QStyledItemDelegate
 {
@@ -548,6 +550,7 @@ public:
     QMutex latenciesMutex;
     QQueue<qint64> latencies;
     bool record_latency;
+    RenderedTimeStamps last_rendered_timestamps;
 };
 
 struct QRectOptional
