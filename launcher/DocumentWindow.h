@@ -295,11 +295,11 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
 struct RenderedTimeStamp
 {
-    RenderedTimeStamp(const QTransform &transform, const QDateTime &dateTime, int section_id, qint64 millisecondsDiff = 0, const QString text = QString()) : transform(transform), dateTime(dateTime), section_id(section_id), millisecondsDiff(millisecondsDiff), text(text) { }
+    RenderedTimeStamp(const QTransform &transform, const int64_t &time_stamp_ns, int section_id, int64_t elapsed_ns = 0, const QString text = QString()) : transform(transform), time_stamp_ns(time_stamp_ns), section_id(section_id), elapsed_ns(elapsed_ns), text(text) { }
 
     QTransform transform;
-    QDateTime dateTime;
-    qint64 millisecondsDiff;
+    int64_t time_stamp_ns;
+    int64_t elapsed_ns;
     QString text;
     int section_id;
 };
@@ -548,7 +548,7 @@ public:
     bool rendering;
     quint64 time;
     QMutex latenciesMutex;
-    QQueue<qint64> latencies;
+    QQueue<int64_t> latencies_ns;
     bool record_latency;
     RenderedTimeStamps last_rendered_timestamps;
 };

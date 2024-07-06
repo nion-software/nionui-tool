@@ -4,6 +4,16 @@
 
 #include <stdint.h>
 
+#if defined(__APPLE__)
+#include <mach/mach_time.h> /* mach_absolute_time */
+#endif
+#if defined(_WIN32) || defined(_WIN64)
+#include <chrono>
+#endif
+#if defined(__linux__)
+#include <time.h>
+#endif
+
 #include <QtCore/QtGlobal>
 #include <QtCore/QAbstractListModel>
 #include <QtCore/QDateTime>
@@ -2338,27 +2348,26 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
             case 0x74696d65: // time, message
             {
                 QString text = read_string(commands, command_index);
-                QDateTime date_time;
-                qint64 millisecondsDiff = 0;
+                int64_t timestamp_ns = 0;
+                int64_t elapsed_ns = 0;
                 if (text.length() > 4)
                 {
                     // calculate new date time
-                    date_time = QDateTime::fromString(text, Qt::ISODateWithMs);
+                    timestamp_ns = text.toULongLong();
                 }
                 else
                 {
-                    // use existing date time, millisecondsDiff
+                    // use existing date time, elapsedDuration
                     Q_FOREACH(const RenderedTimeStamp &rendered_timestamp, lastRenderedTimestamps)
                     {
                         if (rendered_timestamp.section_id == section_id)
                         {
-                            date_time = rendered_timestamp.dateTime;
-                            millisecondsDiff = rendered_timestamp.millisecondsDiff;
+                            timestamp_ns = rendered_timestamp.time_stamp_ns;
+                            elapsed_ns = rendered_timestamp.elapsed_ns;
                             text = rendered_timestamp.text;
                         }
                     }
                 }
-                date_time.setTimeSpec(Qt::UTC);
                 painter->save();
                 QPointF text_pos(12, 12);
                 QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
@@ -2380,7 +2389,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
                 {
                     transform = QTransform::fromScale(1/transform_scaling, 1/transform_scaling) * p->transform() * transform;
                 }
-                rendered_timestamps.append(RenderedTimeStamp(transform, date_time, section_id, millisecondsDiff, text));
+                rendered_timestamps.append(RenderedTimeStamp(transform, timestamp_ns, section_id, elapsed_ns, text));
                 break;
             }
             case 0x62676c79: // begin layer
@@ -2656,7 +2665,7 @@ QRectOptional PyCanvas::renderSection(QSharedPointer<CanvasSection> section)
             QTransform transform = r.transform;
             transform.translate(rect.left(), rect.top());
             transform = transform * QTransform::fromScale(1/devicePixelRatio, 1/devicePixelRatio);
-            section->m_rendered_timestamps.append(RenderedTimeStamp(transform, r.dateTime, r.section_id));
+            section->m_rendered_timestamps.append(RenderedTimeStamp(transform, r.time_stamp_ns, r.section_id));
         }
         section->record_latency = true;
         return QRectOptional(rect);
@@ -2689,15 +2698,26 @@ void PyCanvas::paintEvent(QPaintEvent *event)
             QMutexLocker locker(&section->m_mutex);
             image = section->image;
             image_rect = section->image_rect;
-            QDateTime utc = QDateTime::currentDateTimeUtc();
+
+#if defined(__APPLE__)
+            int64_t current_time_ns = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+#endif
+#if defined(_WIN32) || defined(_WIN64)
+            auto current_time_point = std::chrono::high_resolution_clock::now();
+            int64_t current_time_ns = current_time_point.time_since_epoch().count();
+#endif
+#if defined(__linux__)
+            struct timespec ts;
+            clock_gettime(CLOCK_MONOTONIC, &ts);
+            int64_t current_time_ns = static_cast<int64_t>(ts.tv_nsec);
+#endif
 
             for (RenderedTimeStamps::iterator i = section->m_rendered_timestamps.begin(); i != section->m_rendered_timestamps.end(); ++i)
             {
                 RenderedTimeStamp &rendered_timestamp = *i;
-                if (!rendered_timestamp.millisecondsDiff)
+                if (!rendered_timestamp.elapsed_ns)
                 {
-                    QDateTime dt = rendered_timestamp.dateTime;
-                    rendered_timestamp.millisecondsDiff = dt.msecsTo(utc);
+                    rendered_timestamp.elapsed_ns = current_time_ns - rendered_timestamp.time_stamp_ns;
                 }
             }
             rendered_timestamps.append(section->m_rendered_timestamps);
@@ -2714,10 +2734,10 @@ void PyCanvas::paintEvent(QPaintEvent *event)
     {
         painter.save();
         painter.setRenderHints(DEFAULT_RENDER_HINTS);
-        qint64 latencyMin = 1000;
-        qint64 latencyAverage = 0;
-        qint64 latencyMax = 0;
-        double latencyStdDev = 0;
+        int64_t latency_min_ns = 1000000000;
+        int64_t latency_avg_ns = 0;
+        int64_t latency_max_ns = 0;
+        double latency_std_ns = 0;
         QString latencyListString;
         if (rendered_timestamp.section_id > 0)
         {
@@ -2729,41 +2749,41 @@ void PyCanvas::paintEvent(QPaintEvent *event)
             QMutexLocker locker(&section->latenciesMutex);
             if (section->record_latency)
             {
-                section->latencies.enqueue(rendered_timestamp.millisecondsDiff);
-                while (section->latencies.size() > 40)
-                    section->latencies.dequeue();
+                section->latencies_ns.enqueue(rendered_timestamp.elapsed_ns);
+                while (section->latencies_ns.size() > 40)
+                    section->latencies_ns.dequeue();
                 section->record_latency = false;
             }
-            auto latencies(section->latencies);
-            std::sort(latencies.begin(), latencies.end());
-            int discard = latencies.size() / 10;
+            auto latencies_ns(section->latencies_ns);
+            std::sort(latencies_ns.begin(), latencies_ns.end());
+            int discard = latencies_ns.size() / 10;
             while (discard > 0)
             {
-                if (latencies.size())
-                    latencies.pop_front();
+                if (latencies_ns.size())
+                    latencies_ns.pop_front();
                 discard -= 1;
             }
-            Q_FOREACH(quint64 latency, latencies)
+            Q_FOREACH(quint64 latency_ns, latencies_ns)
             {
-                latencyAverage += latency;
-                if (latency < latencyMin)
-                    latencyMin = latency;
-                if (latency > latencyMax)
-                    latencyMax = latency;
+                latency_avg_ns += latency_ns;
+                if (latency_ns < latency_min_ns)
+                    latency_min_ns = latency_ns;
+                if (latency_ns > latency_max_ns)
+                    latency_max_ns = latency_ns;
             }
-            double latencyAverageF = (double)latencyAverage / latencies.size();
-            latencyAverage = (qint64)latencyAverageF;
+            double latencyAverageF = (double)latency_avg_ns / latencies_ns.size();
+            latency_avg_ns = (int64_t)latencyAverageF;
             double sumSquares = 0;
-            Q_FOREACH(quint64 latency, latencies)
+            Q_FOREACH(quint64 latency_ns, latencies_ns)
             {
-                sumSquares += (latency - latencyAverageF) * (latency - latencyAverageF);
-                latencyListString += " " + QString::number(latency);
+                sumSquares += (latency_ns - latencyAverageF) * (latency_ns - latencyAverageF);
+                latencyListString += " " + QString::number(qRound(latency_ns / 1e6));
             }
-            latencyStdDev = sqrt(sumSquares / latencies.size() );
+            latency_std_ns = sqrt(sumSquares / latencies_ns.size() );
         }
-        QString text = "Latency " + QString::number(rendered_timestamp.millisecondsDiff).rightJustified(4);
-        if (latencyAverage > 0)
-            text += ":" + QString::number(latencyAverage).rightJustified(3) + " ± " + QString::number(latencyStdDev, 'f', 1).rightJustified(4) + " [" + QString::number(latencyMin).rightJustified(3) + ":" + QString::number(latencyMax).rightJustified(3) + " ] ";
+        QString text = "Latency " + QString::number(static_cast<int>(qRound(rendered_timestamp.elapsed_ns / 1e6))).rightJustified(4);
+        if (latency_avg_ns > 0)
+            text += ":" + QString::number(qRound(latency_avg_ns / 1e6)).rightJustified(3) + " ± " + QString::number(latency_std_ns / 1e6, 'f', 1).rightJustified(4) + " [" + QString::number(qRound(latency_min_ns / 1e6)).rightJustified(3) + ":" + QString::number(qRound(latency_max_ns / 1e6)).rightJustified(3) + " ] ";
         QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
         QFontMetrics fm(text_font);
         int text_width = fm.horizontalAdvance(text);
