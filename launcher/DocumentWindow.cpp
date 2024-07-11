@@ -500,6 +500,28 @@ void PyComboBox::currentTextChanged(const QString &currentText)
     }
 }
 
+void PyComboBox::wheelEvent(QWheelEvent* event)
+{
+    if (this->isExpanded())
+    {
+        //If we are expanded, treat as normal
+        QComboBox::wheelEvent(event);
+    }
+    else
+    {
+        //If we are not expanded, discard
+        event->ignore();
+    }
+}
+
+bool PyComboBox::isExpanded()
+{
+    auto view = this->view();
+    if (view == nullptr) 
+        return false; //It can't be expanded if it doesn't exist.
+    return view->isVisible();
+}
+
 PySlider::PySlider()
 {
     setOrientation(Qt::Horizontal);
