@@ -489,6 +489,8 @@ void PyCheckBox::stateChanged(int state)
 PyComboBox::PyComboBox()
 {
     connect(this, SIGNAL(currentTextChanged(QString)), this, SLOT(currentTextChanged(QString)));
+
+    expanded = false; //Explicit initiation of starting collapsed
 }
 
 void PyComboBox::currentTextChanged(const QString &currentText)
@@ -498,6 +500,32 @@ void PyComboBox::currentTextChanged(const QString &currentText)
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
         app->dispatchPyMethod(m_py_object, "currentTextChanged", QVariantList() << currentText);
     }
+}
+
+void PyComboBox::wheelEvent(QWheelEvent* event)
+{
+    if (this->expanded)
+    {
+        //If we are expanded, treat as normal
+        QComboBox::wheelEvent(event);
+    }
+    else
+    {
+        //If we are not expanded, discard
+        event->ignore();
+    }
+}
+
+void PyComboBox::showPopup()
+{
+    QComboBox::showPopup();
+    expanded = true;
+}
+
+void PyComboBox::hidePopup()
+{
+    QComboBox::hidePopup();
+    expanded = false;
 }
 
 PySlider::PySlider()

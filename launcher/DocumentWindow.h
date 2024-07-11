@@ -15,6 +15,7 @@
 #include <QtCore/QWaitCondition>
 #include <QtGui/QAction>
 #include <QtGui/QDrag>
+#include <QtGui/QWheelEvent>
 #include <QtWidgets/QButtonGroup>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
@@ -439,8 +440,14 @@ public:
 private Q_SLOTS:
     void currentTextChanged(const QString &currentText);
 
+protected:
+    void wheelEvent(QWheelEvent* event) override;
+    void showPopup() override;
+    void hidePopup() override;
+
 private:
     QVariant m_py_object;
+    bool expanded;
 };
 
 class PySlider : public QSlider
