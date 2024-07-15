@@ -16,6 +16,7 @@
 #include <QtGui/QAction>
 #include <QtGui/QDrag>
 #include <QtGui/QWheelEvent>
+#include <QtWidgets/QAbstractItemView>
 #include <QtWidgets/QButtonGroup>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
@@ -442,12 +443,10 @@ private Q_SLOTS:
 
 protected:
     void wheelEvent(QWheelEvent* event) override;
-    void showPopup() override;
-    void hidePopup() override;
 
 private:
     QVariant m_py_object;
-    bool expanded;
+    bool isExpanded();
 };
 
 class PySlider : public QSlider
