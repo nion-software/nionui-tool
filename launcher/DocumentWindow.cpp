@@ -443,7 +443,6 @@ void PyPushButton::clicked()
 
 PyRadioButton::PyRadioButton()
 {
-    setAutoExclusive(false);
     connect(this, SIGNAL(clicked()), this, SLOT(clicked()));
 }
 

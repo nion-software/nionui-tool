@@ -1,6 +1,13 @@
 Changelog (nionui-tool)
 =======================
 
+0.4.25 (UNRELEASED)
+-------------------
+- Re-enable radio button auto-exclusive to fix deselectable radio button issue. See nionui#76.
+- Disable scroll wheel support in combo box to prevent inspector scrolling issues.
+- Improve latency display (requires Python 3.12 to work properly).
+- Add text alignment functions.
+
 0.4.24 (2024-06-12)
 -------------------
 - Update Qt to 6.7.1

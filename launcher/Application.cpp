@@ -3818,6 +3818,32 @@ static PyObject *RadioButton_getChecked(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->build()("b", radio_button->isChecked());
 }
 
+// NOTE: this should not be used unless fall back to old behavior is needed after
+// discovering a bug. This was the default from May 25 2021 to July 19 2024, but reverted
+// after nionui issue 76.
+static PyObject *RadioButton_setAutoExclusive(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    bool enabled = false;
+
+    if (!PythonSupport::instance()->parse()(args, "Ob", &obj0, &enabled))
+        return NULL;
+
+    PyRadioButton *radio_button = Unwrap<PyRadioButton>(obj0);
+    if (radio_button == NULL)
+        return NULL;
+
+    radio_button->setAutoExclusive(enabled);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *RadioButton_setChecked(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -6540,6 +6566,7 @@ static PyMethodDef Methods[] = {
     {"RadioButton_connect", RadioButton_connect, METH_VARARGS, "RadioButton_connect."},
     {"RadioButton_getChecked", RadioButton_getChecked, METH_VARARGS, "RadioButton_getChecked."},
     {"RadioButton_setChecked", RadioButton_setChecked, METH_VARARGS, "RadioButton_setChecked."},
+    {"RadioButton_setAutoExclusive", RadioButton_setAutoExclusive, METH_VARARGS, "RadioButton_setAutoExclusive."},
     {"RadioButton_setIcon", RadioButton_setIcon, METH_VARARGS, "RadioButton_setIcon."},
     {"RadioButton_setText", RadioButton_setText, METH_VARARGS, "RadioButton_setText."},
 
