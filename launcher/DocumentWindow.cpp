@@ -2899,8 +2899,10 @@ void PyCanvas::mouseReleaseEvent(QMouseEvent *event)
         float display_scaling = GetDisplayScaling();
 
         Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
-        app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << int(event->position().x() / display_scaling) << int(event->position().y() / display_scaling) << (int)event->modifiers());
+        QVariant result = app->dispatchPyMethod(m_py_object, "mouseReleased", QVariantList() << int(event->position().x() / display_scaling) << int(event->position().y() / display_scaling) << (int)event->modifiers());
         m_pressed = false;
+        if (result.toBool())
+            event->accept();
 
         if ((event->pos() - m_last_pos).manhattanLength() < 6 * display_scaling)
         {
