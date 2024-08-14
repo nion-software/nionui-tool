@@ -45,7 +45,6 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install wheel
         python -m pip install packaging
-        python -m pip install "numpy>=1.26,<1.27"
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON"
@@ -139,7 +138,6 @@ jobs:
         APPNAME="Nion UI Launcher"
         python -m pip install --upgrade pip
         python -m pip install packaging
-        python -m pip install "numpy>=1.26,<1.27"
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON"
@@ -234,7 +232,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install packaging
-        pip install "numpy>=1.26,<1.27"
         pushd launcher
         $PYTHON_EXEC = python -c "import sys; print(sys.executable, end='')"
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON_EXEC"

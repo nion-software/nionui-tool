@@ -1643,32 +1643,6 @@ static PyObject *Core_pathToURL(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->build()("s", url_string.toUtf8().data());
 }
 
-static PyObject *Core_readImageToBinary(PyObject * /*self*/, PyObject *args)
-{
-    PyObject *filename_u = NULL;
-    if (!PythonSupport::instance()->parse()(args, "O", &filename_u))
-        return NULL;
-
-    // Read the image
-    QImageReader reader(PyObjectToQString(filename_u));
-    if (reader.canRead())
-    {
-        Python_ThreadAllow thread_allow;
-
-        QImageInterface image;
-        image.image = reader.read();
-
-        if (image.image.format() != QImage::Format_ARGB32_Premultiplied)
-            image.image = image.image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
-
-        thread_allow.release();
-
-        return PythonSupport::instance()->arrayFromImage(image);
-    }
-
-    return PythonSupport::instance()->getNoneReturnValue();
-}
-
 static PyObject *Core_setApplicationInfo(PyObject * /*self*/, PyObject *args)
 {
     PyObject *application_name_u = NULL;
@@ -2728,79 +2702,97 @@ static PyObject *DrawingContext_drawCommands(PyObject * /*self*/, PyObject *args
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
-static PyObject *DrawingContext_paintRGBA(PyObject * /*self*/, PyObject *args)
+static PyObject *DrawingContext_paintRGBAToImage(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
-    int width = 0;
-    int height = 0;
-    if (!PythonSupport::instance()->parse()(args, "Oii", &obj0, &width, &height))
+    PyObject *arrayObject = NULL;
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &arrayObject))
         return NULL;
 
     QVariantList raw_commands = PyObjectToQVariant(obj0).toList();
 
-    Python_ThreadAllow thread_allow;
+    int width = 0;
+    int height = 0;
 
-    QImageInterface image;
-    image.create(width, height, ImageFormat::Format_ARGB32);
-    image.image.fill(QColor(0,0,0,0));
+    PythonSupport::instance()->shapeFromImage(arrayObject, width, height);
 
+    if (width > 0 && height > 0)
     {
-        QPainter painter(&image.image);
-        PaintImageCache image_cache;
-        QList<CanvasDrawingCommand> drawing_commands;
-        Q_FOREACH(const QVariant &raw_command_variant, raw_commands)
+        Python_ThreadAllow thread_allow;
+
+        QImageInterface image;
+        image.create(width, height, ImageFormat::Format_ARGB32);
+        image.image.fill(QColor(0,0,0,0));
+
         {
-            QVariantList raw_command = raw_command_variant.toList();
-            CanvasDrawingCommand drawing_command;
-            drawing_command.command = raw_command[0].toString();
-            drawing_command.arguments = raw_command.mid(1);
-            drawing_commands.append(drawing_command);
+            QPainter painter(&image.image);
+            PaintImageCache image_cache;
+            QList<CanvasDrawingCommand> drawing_commands;
+            Q_FOREACH(const QVariant &raw_command_variant, raw_commands)
+            {
+                QVariantList raw_command = raw_command_variant.toList();
+                CanvasDrawingCommand drawing_command;
+                drawing_command.command = raw_command[0].toString();
+                drawing_command.arguments = raw_command.mid(1);
+                drawing_commands.append(drawing_command);
+            }
+            PaintCommands(painter, drawing_commands, &image_cache, 1.0);
         }
-        PaintCommands(painter, drawing_commands, &image_cache, 1.0);
+
+        if (image.image.format() != QImage::Format_ARGB32_Premultiplied)
+            image.image = image.image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+
+        thread_allow.release();
+
+        PythonSupport::instance()->arrayFromImage(image, arrayObject);
     }
 
-    if (image.image.format() != QImage::Format_ARGB32_Premultiplied)
-        image.image = image.image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
-
-    thread_allow.release();
-
-    return PythonSupport::instance()->arrayFromImage(image);
+    return PythonSupport::instance()->getNoneReturnValue();
 }
 
-static PyObject *DrawingContext_paintRGBA_binary(PyObject * /*self*/, PyObject *args)
+static PyObject *DrawingContext_paintRGBAToImage_binary(PyObject * /*self*/, PyObject *args)
 {
     Py_buffer buffer;
     PyObject *obj0 = NULL;
-    int width = 0;
-    int height = 0;
-    if (!PythonSupport::instance()->parse()(args, "w*Oii", &buffer, &obj0, &width, &height))
+    PyObject *arrayObject = NULL;
+    if (!PythonSupport::instance()->parse()(args, "w*OO", &buffer, &obj0, &arrayObject))
         return NULL;
 
     QMap<QString, QVariant> imageMap = PyObjectToQVariant(obj0).toMap();
 
-    Python_ThreadAllow thread_allow;
+    int width = 0;
+    int height = 0;
 
-    QImageInterface image;
-    image.create(width, height, ImageFormat::Format_ARGB32);
-    image.image.fill(QColor(0,0,0,0));
+    PythonSupport::instance()->shapeFromImage(arrayObject, width, height);
 
+    if (width > 0 && height > 0)
     {
-        QPainter painter(&image.image);
-        PaintImageCache image_cache;
-        LayerCache layer_cache;
-        std::vector<quint32> commands;
-        commands.assign((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4);
-        PaintBinaryCommands(&painter, commands, imageMap, &image_cache, &layer_cache, RenderedTimeStamps(), 1.0);
+        Python_ThreadAllow thread_allow;
+
+        QImageInterface image;
+        image.create(width, height, ImageFormat::Format_ARGB32);
+        image.image.fill(QColor(0,0,0,0));
+
+        {
+            QPainter painter(&image.image);
+            PaintImageCache image_cache;
+            LayerCache layer_cache;
+            std::vector<quint32> commands;
+            commands.assign((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4);
+            PaintBinaryCommands(&painter, commands, imageMap, &image_cache, &layer_cache, RenderedTimeStamps(), 1.0);
+        }
+
+        if (image.image.format() != QImage::Format_ARGB32_Premultiplied)
+            image.image = image.image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+
+        thread_allow.release();
+
+        PythonSupport::instance()->bufferRelease(&buffer);
+
+        PythonSupport::instance()->arrayFromImage(image, arrayObject);
     }
 
-    if (image.image.format() != QImage::Format_ARGB32_Premultiplied)
-        image.image = image.image.convertToFormat(QImage::Format_ARGB32_Premultiplied);
-
-    thread_allow.release();
-
-    PythonSupport::instance()->bufferRelease(&buffer);
-
-    return PythonSupport::instance()->arrayFromImage(image);
+    return PythonSupport::instance()->getNoneReturnValue();
 }
 
 static PyObject *GroupBoxWidget_setTitle(PyObject * /*self*/, PyObject *args)
@@ -6470,7 +6462,6 @@ static PyMethodDef Methods[] = {
     {"Core_getQtVersion", Core_getQtVersion, METH_VARARGS, "Core_getQtVersion."},
     {"Core_out", Core_out, METH_VARARGS, "Core_out."},
     {"Core_pathToURL", Core_pathToURL, METH_VARARGS, "Core_pathToURL."},
-    {"Core_readImageToBinary", Core_readImageToBinary, METH_VARARGS, "Core_readImageToBinary."},
     {"Core_setApplicationInfo", Core_setApplicationInfo, METH_VARARGS, "Core_setApplicationInfo."},
     {"Core_syncLatencyTimer", Core_syncLatencyTimer, METH_VARARGS, "Core_syncLatencyTimer"},
     {"Core_truncateToWidth", Core_truncateToWidth, METH_VARARGS, "Core_truncateToWidth."},
@@ -6511,8 +6502,8 @@ static PyMethodDef Methods[] = {
     {"Drag_setThumbnail", Drag_setThumbnail, METH_VARARGS, "Drag_setThumbnail."},
 
     {"DrawingContext_drawCommands", DrawingContext_drawCommands, METH_VARARGS, "DrawingContext_drawCommands."},
-    {"DrawingContext_paintRGBA", DrawingContext_paintRGBA, METH_VARARGS, "DrawingContext_paintRGBA."},
-    {"DrawingContext_paintRGBA_binary", DrawingContext_paintRGBA_binary, METH_VARARGS, "DrawingContext_paintRGBA_binary."},
+    {"DrawingContext_paintRGBAToImage", DrawingContext_paintRGBAToImage, METH_VARARGS, "DrawingContext_paintRGBA."},
+    {"DrawingContext_paintRGBAToImage_binary", DrawingContext_paintRGBAToImage_binary, METH_VARARGS, "DrawingContext_paintRGBA_binary."},
 
     {"GroupBoxWidget_setTitle", GroupBoxWidget_setTitle, METH_VARARGS, "GroupBoxWidget_setTitle."},
 

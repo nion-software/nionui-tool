@@ -1,8 +1,9 @@
 Changelog (nionui-tool)
 =======================
 
-0.4.25 (UNRELEASED)
--------------------
+0.5.0 (UNRELEASED)
+------------------
+- Eliminate dependence on NumPy for build.
 - Re-enable radio button auto-exclusive to fix deselectable radio button issue. See nionui#76.
 - Disable scroll wheel support in combo box to prevent inspector scrolling issues.
 - Improve latency display (requires Python 3.12 to work properly).
