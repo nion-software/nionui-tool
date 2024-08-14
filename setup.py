@@ -30,10 +30,8 @@ class BinaryDistribution(setuptools.Distribution):
         return True
 
 
-from distutils.util import get_platform
-from wheel.bdist_wheel import bdist_wheel as bdist_wheel_
+from setuptools.command import bdist_wheel as bdist_wheel_
 from packaging import tags
-from wheel.bdist_wheel import get_platform
 
 
 # the bdist_wheel tools are awful and undocumented
@@ -50,12 +48,12 @@ from wheel.bdist_wheel import get_platform
 
 
 # this class overrides some methods of bdist_wheel to avoid its stricter tag checks.
-class bdist_wheel(bdist_wheel_):
+class bdist_wheel(bdist_wheel_.bdist_wheel):
     def run(self):
-        bdist_wheel_.run(self)
+        super().run()
 
     def finalize_options(self):
-        bdist_wheel_.finalize_options(self)
+        super().finalize_options()
         self.universal = True
         self.plat_name_supplied = True
         global platform, python_version, abi
@@ -75,7 +73,7 @@ class bdist_wheel(bdist_wheel_):
             if self.plat_name and not self.plat_name.startswith("macosx"):
                 plat_name = self.plat_name
             else:
-                plat_name = get_platform(self.bdist_dir)
+                plat_name = bdist_wheel_.get_platform(self.bdist_dir)
 
             if plat_name in ('linux-x86_64', 'linux_x86_64') and sys.maxsize == 2147483647:
                 plat_name = 'linux_i686'
