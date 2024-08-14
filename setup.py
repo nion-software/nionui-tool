@@ -63,44 +63,12 @@ class bdist_wheel(bdist_wheel_.bdist_wheel):
         self.abi_tag = abi
 
     def get_tag(self) -> typing.Tuple[str, str, str]:
-        # bdist sets self.plat_name if unset, we should only use it for purepy
-        # wheels if the user supplied it.
-        if self.plat_name_supplied:
-            plat_name = self.plat_name
-        elif self.root_is_pure:
-            plat_name = 'any'
-        else:
-            # macosx contains system version in platform name so need special handle
-            if self.plat_name and not self.plat_name.startswith("macosx"):
-                plat_name = self.plat_name
-            else:
-                plat_name = bdist_wheel_.get_platform(self.bdist_dir)
-
-            if plat_name in ('linux-x86_64', 'linux_x86_64') and sys.maxsize == 2147483647:
-                plat_name = 'linux_i686'
-            else:
-                plat_name = str()
-
-        plat_name = plat_name.replace('-', '_').replace('.', '_')
-
-        if self.root_is_pure:
-            if self.universal:
-                impl = 'py2.py3'
-            else:
-                impl = self.python_tag
-            tag = (impl, 'none', plat_name)
-        else:
-            impl_name = packaging.tags.interpreter_name()
-            impl_ver = packaging.tags.interpreter_version()
-            impl = impl_name + impl_ver
-            abi_tag = self.abi_tag
-            tag = (impl, abi_tag, plat_name)
-            supported_tags = [(t.interpreter, t.abi, t.platform) for t in packaging.tags.sys_tags()]
-            # XXX switch to this alternate implementation for non-pure:
-            if not self.py_limited_api:
-                assert tag == supported_tags[0], "%s != %s" % (tag, supported_tags[0])
-            # assert tag in supported_tags, "would build wheel with unsupported tag {}".format(tag)
-        return tag
+        # cp310.cp311.cp312-abi3-manylinux1_x86_64.whl
+        # cp310.cp311.cp312-abi3-macosx_10_11_intel.whl
+        # cp310.cp311.cp312-abi3-macosx_11_0_arm64.whl
+        # cp310.cp311.cp312-none-win_amd64.whl
+        tags = super().get_tag()
+        return "cp310.cp311.cp312", tags[1], tags[2]
 
 
 platform = None
