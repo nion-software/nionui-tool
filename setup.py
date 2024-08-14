@@ -31,8 +31,8 @@ class BinaryDistribution(setuptools.Distribution):
         return True
 
 
-from setuptools.command import bdist_wheel as bdist_wheel_
-from packaging import tags
+import setuptools.command.bdist_wheel as bdist_wheel_
+import packaging
 
 
 # the bdist_wheel tools are awful and undocumented
@@ -90,12 +90,12 @@ class bdist_wheel(bdist_wheel_.bdist_wheel):
                 impl = self.python_tag
             tag = (impl, 'none', plat_name)
         else:
-            impl_name = tags.interpreter_name()
-            impl_ver = tags.interpreter_version()
+            impl_name = packaging.tags.interpreter_name()
+            impl_ver = packaging.tags.interpreter_version()
             impl = impl_name + impl_ver
             abi_tag = self.abi_tag
             tag = (impl, abi_tag, plat_name)
-            supported_tags = [(t.interpreter, t.abi, t.platform) for t in tags.sys_tags()]
+            supported_tags = [(t.interpreter, t.abi, t.platform) for t in packaging.tags.sys_tags()]
             # XXX switch to this alternate implementation for non-pure:
             if not self.py_limited_api:
                 assert tag == supported_tags[0], "%s != %s" % (tag, supported_tags[0])
