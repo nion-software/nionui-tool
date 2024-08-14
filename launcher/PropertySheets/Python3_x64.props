@@ -5,7 +5,7 @@
     <PYTHON_EXE>$(PYTHON3_BASE_X64)/python</PYTHON_EXE>
   </PropertyGroup>
   <PropertyGroup>
-    <IncludePath>$(PYTHON3_BASE_X64)\include;$(PYTHON3_BASE_X64)\Lib\site-packages\numpy\core\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(PYTHON3_BASE_X64)\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(PYTHON3_BASE_X64)\libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>

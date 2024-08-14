@@ -72,6 +72,7 @@ typedef PyObject* (*PyModule_GetDictFn)(PyObject *module);
 typedef PyObject* (*PyObject_CallObjectFn)(PyObject *callable_object, PyObject *args);
 typedef PyObject* (*PyObject_GetAttrFn)(PyObject *o, PyObject *attr_name);
 typedef PyObject* (*PyObject_GetAttrStringFn)(PyObject *o, const char *attr_name);
+typedef int (*PyObject_GetBufferFn)(PyObject *o, Py_buffer *view, int flags);
 typedef int (*PyObject_HasAttrStringFn)(PyObject *o, const char *attr_name);
 typedef int (*PyObject_IsTrueFn)(PyObject *o);
 typedef int (*PyObject_SetAttrFn)(PyObject *o, PyObject *attr_name, PyObject *v);
@@ -143,6 +144,7 @@ static PyModule_GetDictFn fModule_GetDict = 0;
 static PyObject_CallObjectFn fObject_CallObject = 0;
 static PyObject_GetAttrFn fObject_GetAttr = 0;
 static PyObject_GetAttrStringFn fObject_GetAttrString = 0;
+static PyObject_GetBufferFn fObject_GetBuffer = 0;
 static PyObject_HasAttrStringFn fObject_HasAttrString = 0;
 static PyObject_IsTrueFn fObject_IsTrue = 0;
 static PyObject_SetAttrFn fObject_SetAttr = 0;
@@ -223,6 +225,7 @@ void deinitialize_pylib()
     fObject_CallObject = 0;
     fObject_GetAttr = 0;
     fObject_GetAttrString = 0;
+    fObject_GetBuffer = 0;
     fObject_HasAttrString = 0;
     fObject_IsTrue = 0;
     fObject_SetAttr = 0;
@@ -372,7 +375,7 @@ PyObject* DPyErr_Format(PyObject *exception, const char *format, ...)
 {
     if (fErr_Format == 0)
         fErr_Format = (PyErr_FormatFn)LOOKUP_SYMBOL(pylib, "PyErr_Format");
-    return 0;  // Numpy. Sheesh.
+    return 0;
 }
 
 PyObject* DPyErr_Occurred()
@@ -618,6 +621,13 @@ PyObject* DPyObject_GetAttrString(PyObject *o, const char *attr_name)
     if (fObject_GetAttrString == 0)
         fObject_GetAttrString = (PyObject_GetAttrStringFn)LOOKUP_SYMBOL(pylib, "PyObject_GetAttrString");
     return fObject_GetAttrString(o, attr_name);
+}
+
+int DPyObject_GetBuffer(PyObject *o, Py_buffer *view, int flags)
+{
+    if (fObject_GetBuffer == 0)
+        fObject_GetBuffer = (PyObject_GetBufferFn)LOOKUP_SYMBOL(pylib, "PyObject_GetBuffer");
+    return fObject_GetBuffer(o, view, flags);
 }
 
 int DPyObject_HasAttrString(PyObject *o, const char *attr_name)

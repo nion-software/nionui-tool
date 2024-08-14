@@ -48,8 +48,9 @@ PyObject* DECLARE_PY(PyModule_Create2)(PyModuleDef *module, int module_api_versi
 PyObject* DECLARE_PY(PyModule_GetDict)(PyObject *module);
 PyObject* DECLARE_PY(PyObject_CallObject)(PyObject *callable_object, PyObject *args);
 PyObject* DECLARE_PY(PyObject_GetAttr)(PyObject *o, PyObject *attr_name);
-int DECLARE_PY(PyObject_HasAttrString)(PyObject *o, const char *attr_name);
 PyObject* DECLARE_PY(PyObject_GetAttrString)(PyObject *o, const char *attr_name);
+int DECLARE_PY(PyObject_GetBuffer)(PyObject *exporter, Py_buffer *view, int flags);
+int DECLARE_PY(PyObject_HasAttrString)(PyObject *o, const char *attr_name);
 int DECLARE_PY(PyObject_IsTrue)(PyObject *o);
 int DECLARE_PY(PyObject_SetAttr)(PyObject *o, PyObject *attr_name, PyObject *v);
 PyObject* DECLARE_PY(PyRun_SimpleString)(const char *str);
