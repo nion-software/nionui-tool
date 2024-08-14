@@ -31,6 +31,78 @@ class BinaryDistribution(setuptools.Distribution):
         return True
 
 
+from setuptools.command import bdist_wheel as bdist_wheel_
+from packaging import tags
+
+
+# the bdist_wheel tools are awful and undocumented
+# much of the techniques in this file were from other libraries and reading the source
+# the wheel code is a separate project from setuptools
+
+# see https://github.com/nion-software/nionui-launcher/releases
+# see https://fredrikaverpil.github.io/2018/03/09/official-pyside2-wheels/
+# see https://pypi.org/project/PySide2/#files
+# see https://github.com/pypa/wheel
+# see https://github.com/pypa/setuptools
+# see https://github.com/pypa/wheel/issues/161
+# see http://code.qt.io/cgit/pyside/pyside-setup.git/tree/build_scripts/wheel_override.py?id=824b7733c0bd8b162b198c67014d7f008fb71b8c
+
+
+# this class overrides some methods of bdist_wheel to avoid its stricter tag checks.
+class bdist_wheel(bdist_wheel_.bdist_wheel):
+    def run(self) -> None:
+        super().run()
+
+    def finalize_options(self) -> None:
+        super().finalize_options()
+        self.universal = True
+        self.plat_name_supplied = True
+        global platform, python_version, abi
+        self.plat_name = platform
+        self.py_limited_api = python_version or str()
+        self.abi_tag = abi
+
+    def get_tag(self) -> typing.Tuple[str, str, str]:
+        # bdist sets self.plat_name if unset, we should only use it for purepy
+        # wheels if the user supplied it.
+        if self.plat_name_supplied:
+            plat_name = self.plat_name
+        elif self.root_is_pure:
+            plat_name = 'any'
+        else:
+            # macosx contains system version in platform name so need special handle
+            if self.plat_name and not self.plat_name.startswith("macosx"):
+                plat_name = self.plat_name
+            else:
+                plat_name = bdist_wheel_.get_platform(self.bdist_dir)
+
+            if plat_name in ('linux-x86_64', 'linux_x86_64') and sys.maxsize == 2147483647:
+                plat_name = 'linux_i686'
+            else:
+                plat_name = str()
+
+        plat_name = plat_name.replace('-', '_').replace('.', '_')
+
+        if self.root_is_pure:
+            if self.universal:
+                impl = 'py2.py3'
+            else:
+                impl = self.python_tag
+            tag = (impl, 'none', plat_name)
+        else:
+            impl_name = tags.interpreter_name()
+            impl_ver = tags.interpreter_version()
+            impl = impl_name + impl_ver
+            abi_tag = self.abi_tag
+            tag = (impl, abi_tag, plat_name)
+            supported_tags = [(t.interpreter, t.abi, t.platform) for t in tags.sys_tags()]
+            # XXX switch to this alternate implementation for non-pure:
+            if not self.py_limited_api:
+                assert tag == supported_tags[0], "%s != %s" % (tag, supported_tags[0])
+            # assert tag in supported_tags, "would build wheel with unsupported tag {}".format(tag)
+        return tag
+
+
 platform = None
 python_version = None
 abi = None
@@ -86,6 +158,7 @@ setuptools.setup(
     },
     data_files=data_files,
     distclass=BinaryDistribution,
+    cmdclass={'bdist_wheel': bdist_wheel},
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
     ],
