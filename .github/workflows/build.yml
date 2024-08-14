@@ -164,7 +164,6 @@ jobs:
         find "$APPNAME.app" -name "*.pyc" -exec rm -rf {} \; -prune
         # sign files from the inside out. first ensure that dylibs are executable. then find all executable files
         # and sign them. then sign apps within frameworks. then sign frameworks. then sign the app itself.
-        codesign --remove-signature --deep --force "$APPNAME.app/Contents/MacOS/$APPNAME"
         find "$APPNAME.app" -name "*.dylib" -exec chmod +x {} \;
         find "$APPNAME.app" -type f -perm +111 -and -not -name "*.py" -exec /usr/bin/codesign -s "$MACOS_DEVELOPER_TEAM_ID" {} --options runtime --timestamp --deep --force --verbose \;
         find "$APPNAME.app/Contents/Frameworks" -name "*.app" -exec /usr/bin/codesign -s "$MACOS_DEVELOPER_TEAM_ID" {} --options runtime --timestamp --deep --force --verbose \;
