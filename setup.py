@@ -1,8 +1,9 @@
 import os
 import pathlib
-import platform as platform_module
+import platform
 import setuptools
 import sys
+import typing
 
 tool_id = "nionui"
 launcher = "NionUILauncher"
@@ -10,30 +11,28 @@ launcher = "NionUILauncher"
 version = "0.5.0"
 
 
-def package_files(directory, prefix, prefix_drop):
+def package_files(directory: str, prefix: str, prefix_drop: int) -> list[typing.Tuple[str, list[str]]]:
     # note: Windows setup does not work with Path
-    prefixes = dict()
+    prefixes = dict[str, list[str]]()
     for (path, directories, filenames) in os.walk(directory):
         for filename in filenames:
             full_path = pathlib.Path(path) / filename
             if not os.path.islink(str(full_path)):
                 dest_path = pathlib.Path(prefix) / pathlib.Path(*pathlib.Path(path).parts[prefix_drop:])
-                prefixes.setdefault(str(dest_path), list()).append(str(pathlib.Path(path) / filename))
+                prefixes.setdefault(str(dest_path), list[str]()).append(str(pathlib.Path(path) / filename))
     return list(prefixes.items())
 
 
 class BinaryDistribution(setuptools.Distribution):
     # force abi+platform in whl
-    def has_data_files(self):
+    def has_data_files(self) -> bool:
         return True
-    def has_ext_modules(self):
+    def has_ext_modules(self) -> bool:
         return True
 
 
-from distutils.util import get_platform
-from wheel.bdist_wheel import bdist_wheel as bdist_wheel_
-from packaging import tags
-from wheel.bdist_wheel import get_abi_tag, get_platform
+import setuptools.command.bdist_wheel as bdist_wheel_
+import packaging
 
 
 # the bdist_wheel tools are awful and undocumented
@@ -50,99 +49,53 @@ from wheel.bdist_wheel import get_abi_tag, get_platform
 
 
 # this class overrides some methods of bdist_wheel to avoid its stricter tag checks.
-class bdist_wheel(bdist_wheel_):
-    def run(self):
-        bdist_wheel_.run(self)
-
-    def finalize_options(self):
-        bdist_wheel_.finalize_options(self)
-        self.universal = True
-        self.plat_name_supplied = True
-        global platform, python_version, abi
-        self.plat_name = platform
-        self.py_limited_api = python_version
-        self.abi_tag = abi
-
-    def get_tag(self):
-        # bdist sets self.plat_name if unset, we should only use it for purepy
-        # wheels if the user supplied it.
-        if self.plat_name_supplied:
-            plat_name = self.plat_name
-        elif self.root_is_pure:
-            plat_name = 'any'
-        else:
-            # macosx contains system version in platform name so need special handle
-            if self.plat_name and not self.plat_name.startswith("macosx"):
-                plat_name = self.plat_name
-            else:
-                plat_name = get_platform(self.bdist_dir)
-
-            if plat_name in ('linux-x86_64', 'linux_x86_64') and sys.maxsize == 2147483647:
-                plat_name = 'linux_i686'
-
-        plat_name = plat_name.replace('-', '_').replace('.', '_')
-
-        if self.root_is_pure:
-            if self.universal:
-                impl = 'py2.py3'
-            else:
-                impl = self.python_tag
-            tag = (impl, 'none', plat_name)
-        else:
-            impl_name = tags.interpreter_name()
-            impl_ver = tags.interpreter_version()
-            impl = impl_name + impl_ver
-            # We don't work on CPython 3.1, 3.0.
-            if self.py_limited_api and (impl_name + impl_ver).startswith('cp3'):
-                impl = self.py_limited_api
-                abi_tag = 'abi3'
-            else:
-                abi_tag = str(get_abi_tag()).lower()
-            abi_tag = self.abi_tag
-            tag = (impl, abi_tag, plat_name)
-            supported_tags = [(t.interpreter, t.abi, t.platform) for t in tags.sys_tags()]
-            # XXX switch to this alternate implementation for non-pure:
-            if not self.py_limited_api:
-                assert tag == supported_tags[0], "%s != %s" % (tag, supported_tags[0])
-            # assert tag in supported_tags, "would build wheel with unsupported tag {}".format(tag)
-        return tag
+class bdist_wheel(bdist_wheel_.bdist_wheel):
+    def get_tag(self) -> typing.Tuple[str, str, str]:
+        # cp310.cp311.cp312-abi3-manylinux1_x86_64.whl
+        # cp310.cp311.cp312-abi3-macosx_11_0_intel.whl
+        # cp310.cp311.cp312-abi3-macosx_11_0_arm64.whl
+        # cp310.cp311.cp312-none-win_amd64.whl
+        global python_tag, abi_tag, platform_tag
+        return python_tag, abi_tag, platform_tag
 
 
-platform = None
-python_version = None
-abi = None
+python_tag = str()
+abi_tag = str()
+platform_tag = str()
 dest = None
 dir_path = None
 dest_drop = None
 
 if sys.platform == "darwin":
-    platform = "macosx_10_11_intel" if platform_module.processor() != "arm" else "macosx_11_0_arm64"
-    python_version = "cp39.cp310.cp311.cp312"
-    abi = "abi3"
+    python_tag = "cp310.cp311.cp312"
+    abi_tag = "abi3"
+    platform_tag = f"macosx_11_0_arm64" if platform.processor() == "arm" else "macosx_11_0_intel"
     dest = "bin"
     dir_path = "launcher/build/Release"
     dest_drop = 3
 if sys.platform == "win32":
-    platform = "win_amd64"
-    python_version = "cp39.cp310.cp311.cp312"
-    abi = "none"
+    python_tag = "cp310.cp311.cp312"
+    abi_tag = "none"
+    platform_tag = "win_amd64"
     dest = f"Scripts/{launcher}"
     dir_path = "launcher/x64/Release"
     dest_drop = 3
 if sys.platform == "linux":
-    platform = "manylinux1_x86_64"
-    python_version = "cp39.cp310.cp311.cp312"
-    abi = "abi3"
+    python_tag = "cp310.cp311.cp312"
+    abi_tag = "abi3"
+    platform_tag = "manylinux1_x86_64"
     dest = f"bin/{launcher}"
     dir_path = "launcher/linux/x64"
     dest_drop = 3
 
 data_files = package_files(dir_path, dest, dest_drop)
 
-def long_description():
+
+def long_description() -> str:
     with open('README.rst', 'r') as fi:
         result = fi.read()
     return result
+
 
 setuptools.setup(
     name=f"{tool_id}-tool",
