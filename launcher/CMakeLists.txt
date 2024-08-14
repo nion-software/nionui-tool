@@ -19,7 +19,7 @@ option(USE_CONSOLE "Enable console" ON)
 set(APP_NAME "NionUILauncher")
 
 # app version
-set(APP_VERSION "0.5.0")
+set(APP_VERSION "0.4.24")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build)
 
@@ -38,7 +38,7 @@ qt_standard_project_setup()
 add_compile_definitions(QT_NO_KEYWORDS)
 
 # set up Python
-find_package (Python3 COMPONENTS Development)
+find_package (Python3 COMPONENTS Development NumPy)
 add_compile_definitions(MS_NO_COREDLL)  # do not allow brain dead library inclusion
 
 # add the executable
@@ -55,6 +55,7 @@ add_executable(${APP_NAME}
 
 # configure include files
 target_include_directories(${APP_NAME} PRIVATE ${Python3_INCLUDE_DIRS})
+target_include_directories(${APP_NAME} PRIVATE ${Python3_NumPy_INCLUDE_DIRS})
 
 # Qt libraries
 target_link_libraries(${APP_NAME} Qt6::Core Qt6::Gui Qt6::Widgets)

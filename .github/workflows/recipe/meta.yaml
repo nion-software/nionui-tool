@@ -6,7 +6,7 @@
 {% set win_exe = "NionUILauncher" %}
 {% set summary = "A native launcher for Nion UI apps." %}
 
-{% set version = "0.5.0" %}
+{% set version = "0.4.24" %}
 
 {% set name_u = name|replace('-', '_') %}
 
@@ -31,6 +31,7 @@ requirements:
     - python
     - pip
     - setuptools
+    - numpy 1.26.*
   run:
     - python
     - setuptools
