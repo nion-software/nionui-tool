@@ -39,14 +39,12 @@ OTHER_CFLAGS = $(OTHER_FLAGS)
 
 OTHER_CPLUSPLUSFLAGS = $(OTHER_CFLAGS) -std=c++17 -stdlib=libc++
 
-// numpy is loaded from one of the paths in sys.path. look there to find it if this folder does not work.
-PYTHON_SEARCH_PATHS = $(PYTHON_INCLUDE) $(PYTHON_NUMPY_INCLUDE)
+PYTHON_SEARCH_PATHS = $(PYTHON_INCLUDE)
 
 HEADER_SEARCH_PATHS = $(HEADER_SEARCH_PATHS_ALL) $(PYTHON_SEARCH_PATHS)
 
 PYTHON_VERSION = python$(PYTHON_VERSION_NUMBER)$(PYTHON_OPTION)
 PYTHON_INCLUDE = $(PYTHONHOME)/include/$(PYTHON_VERSION)
-PYTHON_NUMPY_INCLUDE = $(PYTHONHOME)/lib/python$(PYTHON_VERSION_NUMBER)/site-packages/numpy/core/include
 PYTHON_LDFLAGS =
 
 PYTHONHOME = $(HOME)/miniconda3/envs/py10-arm64-forge

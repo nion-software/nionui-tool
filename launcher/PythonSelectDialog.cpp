@@ -7,7 +7,7 @@
 
 PythonSelectDialog::PythonSelectDialog()
 {
-    QLabel *selectLabel = new QLabel("Please select a Python 3.6 directory with\nNumPy and SciPy installed.");
+    QLabel *selectLabel = new QLabel("Please select a Python directory.");
 
     directoryLabel = new QLabel();
 

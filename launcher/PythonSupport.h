@@ -160,7 +160,8 @@ public:
     void scaledImageFromRGBA(PyObject *ndarray_py, unsigned int width, unsigned int height, ImageInterface *image);
     void imageFromArray(PyObject *ndarray_py, float display_limit_low, float display_limit_high, PyObject *lookup_table, ImageInterface *image);
     void scaledImageFromArray(PyObject *ndarray_py, float width, float height, float context_scaling, float display_limit_low, float display_limit_high, PyObject *lookup_table, ImageInterface *image);
-    PyObject *arrayFromImage(const ImageInterface &image);
+    void arrayFromImage(const ImageInterface &image, PyObject *target);
+    void shapeFromImage(PyObject *image, int &width, int &height);
     void bufferRelease(Py_buffer *buffer);
     PythonValueVariant invokePyMethod(PyObjectPtr *object, const std::string &method, const std::list<PythonValueVariant> &args);
     bool setAttribute(PyObjectPtr *object, const std::string &attribute, const PythonValueVariant &value);
