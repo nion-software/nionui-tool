@@ -50,45 +50,37 @@ import packaging
 
 # this class overrides some methods of bdist_wheel to avoid its stricter tag checks.
 class bdist_wheel(bdist_wheel_.bdist_wheel):
-    def run(self) -> None:
-        super().run()
-
-    # def finalize_options(self) -> None:
-    #     super().finalize_options()
-    #     self.universal = True
-    #     self.plat_name_supplied = True
-    #     global platform, python_version, abi
-    #     self.plat_name = platform
-    #     self.abi_tag = abi
-
     def get_tag(self) -> typing.Tuple[str, str, str]:
         # cp310.cp311.cp312-abi3-manylinux1_x86_64.whl
         # cp310.cp311.cp312-abi3-macosx_10_11_intel.whl
         # cp310.cp311.cp312-abi3-macosx_11_0_arm64.whl
         # cp310.cp311.cp312-none-win_amd64.whl
-        global python_tag
+        global python_tag, abi_tag
         tags = super().get_tag()
-        print(f"{tags=}")
-        return python_tag, tags[0], tags[2]
+        return python_tag, abi_tag, tags[2]
 
 
 python_tag = str()
+abi_tag = str()
 dest = None
 dir_path = None
 dest_drop = None
 
 if sys.platform == "darwin":
     python_tag = "cp310.cp311.cp312"
+    abi_tag = "abi3"
     dest = "bin"
     dir_path = "launcher/build/Release"
     dest_drop = 3
 if sys.platform == "win32":
     python_tag = "cp310.cp311.cp312"
+    abi_tag = "none"
     dest = f"Scripts/{launcher}"
     dir_path = "launcher/x64/Release"
     dest_drop = 3
 if sys.platform == "linux":
     python_tag = "cp310.cp311.cp312"
+    abi_tag = "abi3"
     dest = f"bin/{launcher}"
     dir_path = "launcher/linux/x64"
     dest_drop = 3
