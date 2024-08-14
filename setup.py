@@ -66,28 +66,29 @@ class bdist_wheel(bdist_wheel_.bdist_wheel):
         # cp310.cp311.cp312-abi3-macosx_10_11_intel.whl
         # cp310.cp311.cp312-abi3-macosx_11_0_arm64.whl
         # cp310.cp311.cp312-none-win_amd64.whl
-        global python_version
+        global python_tag
         tags = super().get_tag()
-        return python_version, tags[1], tags[2]
+        print(f"{tags=}")
+        return python_tag, tags[0], tags[2]
 
 
-python_version = str()
+python_tag = str()
 dest = None
 dir_path = None
 dest_drop = None
 
 if sys.platform == "darwin":
-    python_version = "cp310.cp311.cp312"
+    python_tag = "cp310.cp311.cp312"
     dest = "bin"
     dir_path = "launcher/build/Release"
     dest_drop = 3
 if sys.platform == "win32":
-    python_version = "cp310.cp311.cp312"
+    python_tag = "cp310.cp311.cp312"
     dest = f"Scripts/{launcher}"
     dir_path = "launcher/x64/Release"
     dest_drop = 3
 if sys.platform == "linux":
-    python_version = "cp310.cp311.cp312"
+    python_tag = "cp310.cp311.cp312"
     dest = f"bin/{launcher}"
     dir_path = "launcher/linux/x64"
     dest_drop = 3
