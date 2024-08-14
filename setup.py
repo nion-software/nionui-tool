@@ -31,23 +31,6 @@ class BinaryDistribution(setuptools.Distribution):
         return True
 
 
-from setuptools.command import bdist_wheel as bdist_wheel_
-from packaging import tags
-
-
-# the bdist_wheel tools are awful and undocumented
-# much of the techniques in this file were from other libraries and reading the source
-# the wheel code is a separate project from setuptools
-
-# see https://github.com/nion-software/nionui-launcher/releases
-# see https://fredrikaverpil.github.io/2018/03/09/official-pyside2-wheels/
-# see https://pypi.org/project/PySide2/#files
-# see https://github.com/pypa/wheel
-# see https://github.com/pypa/setuptools
-# see https://github.com/pypa/wheel/issues/161
-# see http://code.qt.io/cgit/pyside/pyside-setup.git/tree/build_scripts/wheel_override.py?id=824b7733c0bd8b162b198c67014d7f008fb71b8c
-
-
 platform = None
 python_version = None
 abi = None
@@ -79,10 +62,12 @@ if sys.platform == "linux":
 
 data_files = package_files(dir_path, dest, dest_drop)
 
+
 def long_description() -> str:
     with open('README.rst', 'r') as fi:
         result = fi.read()
     return result
+
 
 setuptools.setup(
     name=f"{tool_id}-tool",
