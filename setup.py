@@ -33,7 +33,7 @@ class BinaryDistribution(setuptools.Distribution):
 from distutils.util import get_platform
 from wheel.bdist_wheel import bdist_wheel as bdist_wheel_
 from packaging import tags
-from wheel.bdist_wheel import get_abi_tag, get_platform
+from wheel.bdist_wheel import get_platform
 
 
 # the bdist_wheel tools are awful and undocumented
@@ -92,12 +92,6 @@ class bdist_wheel(bdist_wheel_):
             impl_name = tags.interpreter_name()
             impl_ver = tags.interpreter_version()
             impl = impl_name + impl_ver
-            # We don't work on CPython 3.1, 3.0.
-            if self.py_limited_api and (impl_name + impl_ver).startswith('cp3'):
-                impl = self.py_limited_api
-                abi_tag = 'abi3'
-            else:
-                abi_tag = str(get_abi_tag()).lower()
             abi_tag = self.abi_tag
             tag = (impl, abi_tag, plat_name)
             supported_tags = [(t.interpreter, t.abi, t.platform) for t in tags.sys_tags()]
