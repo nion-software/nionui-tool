@@ -3,6 +3,7 @@ import pathlib
 import platform as platform_module
 import setuptools
 import sys
+import typing
 
 tool_id = "nionui"
 launcher = "NionUILauncher"
@@ -10,23 +11,23 @@ launcher = "NionUILauncher"
 version = "0.5.0"
 
 
-def package_files(directory, prefix, prefix_drop):
+def package_files(directory: str, prefix: str, prefix_drop: int) -> list[typing.Tuple[str, list[str]]]:
     # note: Windows setup does not work with Path
-    prefixes = dict()
+    prefixes = dict[str, list[str]]()
     for (path, directories, filenames) in os.walk(directory):
         for filename in filenames:
             full_path = pathlib.Path(path) / filename
             if not os.path.islink(str(full_path)):
                 dest_path = pathlib.Path(prefix) / pathlib.Path(*pathlib.Path(path).parts[prefix_drop:])
-                prefixes.setdefault(str(dest_path), list()).append(str(pathlib.Path(path) / filename))
+                prefixes.setdefault(str(dest_path), list[str]()).append(str(pathlib.Path(path) / filename))
     return list(prefixes.items())
 
 
 class BinaryDistribution(setuptools.Distribution):
     # force abi+platform in whl
-    def has_data_files(self):
+    def has_data_files(self) -> bool:
         return True
-    def has_ext_modules(self):
+    def has_ext_modules(self) -> bool:
         return True
 
 
@@ -45,59 +46,6 @@ from packaging import tags
 # see https://github.com/pypa/setuptools
 # see https://github.com/pypa/wheel/issues/161
 # see http://code.qt.io/cgit/pyside/pyside-setup.git/tree/build_scripts/wheel_override.py?id=824b7733c0bd8b162b198c67014d7f008fb71b8c
-
-
-# this class overrides some methods of bdist_wheel to avoid its stricter tag checks.
-class bdist_wheel(bdist_wheel_.bdist_wheel):
-    def run(self):
-        super().run()
-
-    def finalize_options(self):
-        super().finalize_options()
-        self.universal = True
-        self.plat_name_supplied = True
-        global platform, python_version, abi
-        self.plat_name = platform
-        self.py_limited_api = python_version
-        self.abi_tag = abi
-
-    def get_tag(self):
-        # bdist sets self.plat_name if unset, we should only use it for purepy
-        # wheels if the user supplied it.
-        if self.plat_name_supplied:
-            plat_name = self.plat_name
-        elif self.root_is_pure:
-            plat_name = 'any'
-        else:
-            # macosx contains system version in platform name so need special handle
-            if self.plat_name and not self.plat_name.startswith("macosx"):
-                plat_name = self.plat_name
-            else:
-                plat_name = bdist_wheel_.get_platform(self.bdist_dir)
-
-            if plat_name in ('linux-x86_64', 'linux_x86_64') and sys.maxsize == 2147483647:
-                plat_name = 'linux_i686'
-
-        plat_name = plat_name.replace('-', '_').replace('.', '_')
-
-        if self.root_is_pure:
-            if self.universal:
-                impl = 'py2.py3'
-            else:
-                impl = self.python_tag
-            tag = (impl, 'none', plat_name)
-        else:
-            impl_name = tags.interpreter_name()
-            impl_ver = tags.interpreter_version()
-            impl = impl_name + impl_ver
-            abi_tag = self.abi_tag
-            tag = (impl, abi_tag, plat_name)
-            supported_tags = [(t.interpreter, t.abi, t.platform) for t in tags.sys_tags()]
-            # XXX switch to this alternate implementation for non-pure:
-            if not self.py_limited_api:
-                assert tag == supported_tags[0], "%s != %s" % (tag, supported_tags[0])
-            # assert tag in supported_tags, "would build wheel with unsupported tag {}".format(tag)
-        return tag
 
 
 platform = None
@@ -131,7 +79,7 @@ if sys.platform == "linux":
 
 data_files = package_files(dir_path, dest, dest_drop)
 
-def long_description():
+def long_description() -> str:
     with open('README.rst', 'r') as fi:
         result = fi.read()
     return result
@@ -153,7 +101,6 @@ setuptools.setup(
     },
     data_files=data_files,
     distclass=BinaryDistribution,
-    cmdclass={'bdist_wheel': bdist_wheel},
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
     ],
