@@ -115,6 +115,10 @@ setuptools.setup(
     data_files=data_files,
     distclass=BinaryDistribution,
     cmdclass={'bdist_wheel': bdist_wheel},
+    install_requires=
+    [
+        'numpy >=2.0,<3.0'
+    ],
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
     ],
