@@ -558,7 +558,7 @@ public:
     LayerCache m_layer_cache;
     QMap<QString, QVariant> m_imageMap;
     RenderedTimeStamps m_rendered_timestamps;
-    bool rendering;
+    bool m_is_rendering;
     quint64 time;
     QMutex latenciesMutex;
     QQueue<int64_t> latencies_ns;

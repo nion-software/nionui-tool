@@ -2632,7 +2632,7 @@ QRectOptional PyCanvas::renderOne(bool &immediate)
     {
         QMutexLocker locker(&section->m_mutex);
         // first check whether the section can be rendered (not rendering already and has commands to render)
-        if (!section->rendering && !section->m_commands_binary.empty())
+        if (!section->m_is_rendering && !section->m_commands_binary.empty())
         {
             // next check whether it is earlier than the current next_section
             // if so, make this the new next section
@@ -2647,8 +2647,8 @@ QRectOptional PyCanvas::renderOne(bool &immediate)
             QMutexLocker locker(&nextSection->m_mutex);
             // mark this section as being rendered, but check to make sure it's not being rendered
             // on another thread (avoids race condition). also check to see if it was deleted.
-            if (!nextSection->rendering && !nextSection->m_commands_binary.empty())
-                nextSection->rendering = true;
+            if (!nextSection->m_is_rendering && !nextSection->m_commands_binary.empty())
+                nextSection->m_is_rendering = true;
             else
                 return QRectOptional();
         }
@@ -2656,7 +2656,7 @@ QRectOptional PyCanvas::renderOne(bool &immediate)
         {
             QMutexLocker locker(&nextSection->m_mutex);
             // mark this section as being finished. no race condition. just clear it and update the time.
-            nextSection->rendering = false;
+            nextSection->m_is_rendering = false;
             nextSection->time = m_timer.nsecsElapsed();
             immediate = nextSection->m_section_id != 0;
         }
@@ -3106,7 +3106,7 @@ void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint3
             auto screen = this->screen();
             section->m_device_pixel_ratio = screen ? screen->devicePixelRatio() : 1.0;  // m_screen may be nullptr in earlier versions of Qt
             section->m_section_id = section_id;
-            section->rendering = false;
+            section->m_is_rendering = false;
             section->time = 0;
             section->record_latency = false;
         }
