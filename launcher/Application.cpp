@@ -957,7 +957,9 @@ static PyObject *Canvas_draw_binary(PyObject * /*self*/, PyObject *args)
     {
         Python_ThreadAllow thread_allow;
 
-        canvas->setBinaryCommands(std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4), imageMap);
+        QSharedPointer<std::vector<quint32>> command_buffer(new std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4));
+
+        canvas->setBinaryCommands(command_buffer, imageMap);
     }
 
     PythonSupport::instance()->bufferRelease(&buffer);
@@ -990,7 +992,9 @@ static PyObject *Canvas_drawSection_binary(PyObject * /*self*/, PyObject *args)
     {
         Python_ThreadAllow thread_allow;
 
-        canvas->setBinarySectionCommands(section_id, std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4), QRect(QPoint(left * display_scaling, top * display_scaling), QSize(width * display_scaling, height * display_scaling)), imageMap);
+        QSharedPointer<std::vector<quint32>> command_buffer(new std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4));
+
+        canvas->setBinarySectionCommands(section_id, command_buffer, QRect(QPoint(left * display_scaling, top * display_scaling), QSize(width * display_scaling, height * display_scaling)), imageMap);
     }
 
     PythonSupport::instance()->bufferRelease(&buffer);
@@ -2782,9 +2786,9 @@ static PyObject *DrawingContext_paintRGBAToImage_binary(PyObject * /*self*/, PyO
 
         {
             QPainter painter(&image.image);
-            std::vector<quint32> commands;
-            commands.assign((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4);
-            PaintBinaryCommands(&painter, commands, imageMap, RenderedTimeStamps(), 1.0);
+            QSharedPointer<std::vector<quint32>> command_buffer(new std::vector<quint32>());
+            command_buffer->assign((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4);
+            PaintBinaryCommands(&painter, command_buffer, imageMap, RenderedTimeStamps(), 1.0);
         }
 
         if (image.image.format() != QImage::Format_ARGB32_Premultiplied)

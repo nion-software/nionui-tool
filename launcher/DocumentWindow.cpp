@@ -129,6 +129,7 @@ void DocumentWindow::initialize()
 
 void DocumentWindow::queueRepaint(PyCanvas *canvas)
 {
+    QMutexLocker locker(&m_repaint_mutex);
     m_queued_repaints.insert(canvas);
 }
 
@@ -143,11 +144,14 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
         application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
     if (event->timerId() == m_repaint_timer)
     {
-        Q_FOREACH(PyCanvas *canvas, m_queued_repaints)
+        QSet<PyCanvas *> queued_repaints;
         {
-            canvas->repaint();
+            QMutexLocker locker(&m_repaint_mutex);
+            queued_repaints = m_queued_repaints;
+            m_queued_repaints.clear();
         }
-        m_queued_repaints.clear();
+        for (auto canvas : queued_repaints)
+            canvas->repaint();
     }
 }
 
@@ -1627,7 +1631,7 @@ inline QString read_string(const quint32 *commands, unsigned int &command_index)
 
 struct NullDeleter {template<typename T> void operator()(T*) {} };
 
-RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<quint32> commands_v, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling, int section_id, float devicePixelRatio)
+RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const QSharedPointer<std::vector<quint32>> &commands_v, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling, int section_id, float devicePixelRatio)
 {
     QSharedPointer<QPainter> painter(rawPainter, NullDeleter());
 
@@ -1661,12 +1665,12 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
 
     unsigned int command_index = 0;
 
-    const quint32 *commands = &commands_v[0];
+    const quint32 *commands = commands_v->data();
 
     extern QElapsedTimer timer;
     extern qint64 timer_offset_ns;
 
-    while (command_index < commands_v.size())
+    while (command_index < commands_v->size())
     {
         quint32 cmd_hex = read_uint32(commands, command_index);
         quint32 cmd = (cmd_hex & 0x000000FF) << 24 |
@@ -2308,11 +2312,11 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const std::vector<q
     return rendered_timestamps;
 }
 
-RenderResult render(const QSharedPointer<CanvasSection> &section, const std::vector<quint32> &commands_binary, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
+RenderResult render(const QSharedPointer<CanvasSection> &section, const QSharedPointer<std::vector<quint32>> &commands_binary, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
 {
     RenderResult result(section);
 
-    if (!commands_binary.empty() && !rect.isEmpty())
+    if (commands_binary && !rect.isEmpty())
     {
         // create the buffer image at a resolution suitable for the devicePixelRatio of the section's screen.
         QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(QSize(rect.width() * devicePixelRatio, rect.height() * devicePixelRatio), QImage::Format_ARGB32_Premultiplied));
@@ -2339,14 +2343,14 @@ RenderResult render(const QSharedPointer<CanvasSection> &section, const std::vec
     return result;
 }
 
-PyCanvasRenderTask::PyCanvasRenderTask(const QSharedPointer<CanvasSection> &section, const std::vector<quint32> &commands_binary, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
-    : m_section(section)
+PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const QSharedPointer<std::vector<quint32>> &commands_binary, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
+    : m_canvas(canvas)
+    , m_section(section)
     , m_commands_binary(commands_binary)
     , m_rect(rect)
     , m_image_map(imageMap)
     , m_device_pixel_ratio(devicePixelRatio)
     , m_rendered_timestamps(rendered_timestamps)
-    , m_signals(new PyCanvasRenderTaskSignals())
 
 {
 }
@@ -2355,7 +2359,7 @@ void PyCanvasRenderTask::run()
 {
     auto render_result = render(m_section, m_commands_binary, m_rect, m_image_map, m_device_pixel_ratio, m_rendered_timestamps);
 
-    Q_EMIT m_signals->renderingReady(render_result);
+    m_canvas->repaintCanvasSection(render_result);
 }
 
 CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
@@ -2412,8 +2416,8 @@ void PyCanvas::repaintCanvasSection(const RenderResult &render_result)
         section->image = render_result.image;
         section->image_rect = render_result.image_rect;
         section->record_latency = render_result.record_latency;
-        if (!section->m_commands_binary.empty())
-            QThreadPool::globalInstance()->start(queueTask(section));
+        if (section->m_commands_binary)
+            queueTask(section);
         static_cast<DocumentWindow *>(window())->queueRepaint(this);
     }
 }
@@ -2817,22 +2821,17 @@ void PyCanvas::releaseMouse0()
     }
 }
 
-void PyCanvas::renderingFinished()
-{
-    QTimer::singleShot(0, this, SLOT(update()));
-}
-
 void PyCanvas::setCommands(const QList<CanvasDrawingCommand> &commands)
 {
     // deprecated.
 }
 
-void PyCanvas::setBinaryCommands(const std::vector<quint32> &commands, const QMap<QString, QVariant> &imageMap)
+void PyCanvas::setBinaryCommands(const QSharedPointer<std::vector<quint32>> &commands, const QMap<QString, QVariant> &imageMap)
 {
     setBinarySectionCommands(0, commands, rect(), imageMap);
 }
 
-void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint32> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap)
+void PyCanvas::setBinarySectionCommands(int section_id, const QSharedPointer<std::vector<quint32>> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap)
 {
     QSharedPointer<CanvasSection> section;
 
@@ -2858,10 +2857,10 @@ void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint3
     section->rect = rect;
     section->m_imageMap = imageMap;
 
-    QThreadPool::globalInstance()->start(queueTask(section));
+    queueTask(section);
 }
 
-PyCanvasRenderTask *PyCanvas::queueTask(QSharedPointer<CanvasSection> section)
+void PyCanvas::queueTask(QSharedPointer<CanvasSection> section)
 {
     // IMPORTANT: assumes m_commands_mutex is help and commands_binary is not empty.
     // only start the task if one is not already running for this section. if one is already running,
@@ -2869,14 +2868,12 @@ PyCanvasRenderTask *PyCanvas::queueTask(QSharedPointer<CanvasSection> section)
     if (!section->m_render_task)
     {
         auto commands_binary = section->m_commands_binary;
-        section->m_commands_binary.clear();
-        PyCanvasRenderTask *task = new PyCanvasRenderTask(section, commands_binary, section->rect, section->m_imageMap, section->m_device_pixel_ratio, section->m_rendered_timestamps);
+        section->m_commands_binary.reset();
+        PyCanvasRenderTask *task = new PyCanvasRenderTask(this, section, commands_binary, section->rect, section->m_imageMap, section->m_device_pixel_ratio, section->m_rendered_timestamps);
         task->setAutoDelete(false);
-        connect(task->signals(), SIGNAL(renderingReady(const RenderResult &)), this, SLOT(repaintCanvasSection(const RenderResult &)));
         section->m_render_task.reset(task);
-        return task;
+        QThreadPool::globalInstance()->start(task);
     }
-    return nullptr;
 }
 
 void PyCanvas::removeSection(int section_id)

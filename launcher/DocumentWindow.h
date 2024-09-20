@@ -90,6 +90,8 @@ private:
     int m_periodic_timer;
     int m_repaint_timer;
 
+    QMutex m_repaint_mutex;
+
     bool m_closed;
 
     QScreen *m_screen;
@@ -289,7 +291,7 @@ struct RenderedTimeStamp
 
 typedef QList<RenderedTimeStamp> RenderedTimeStamps;
 
-RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const std::vector<quint32> commands, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling = 0.0, int section_id = 0, float devicePixelRatio = 1.0);
+RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const QSharedPointer<std::vector<quint32>> &commands, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling = 0.0, int section_id = 0, float devicePixelRatio = 1.0);
 
 class PyStyledItemDelegate : public QStyledItemDelegate
 {
@@ -522,7 +524,7 @@ class CanvasSection
 {
 public:
     int m_section_id;
-    std::vector<quint32> m_commands_binary;
+    QSharedPointer<std::vector<quint32>> m_commands_binary;
     float m_device_pixel_ratio;
     QRect rect;
     QRect image_rect;
@@ -559,31 +561,21 @@ struct RenderResult
     RenderResult(const QSharedPointer<CanvasSection> &section) : section(section), record_latency(false) { }
 };
 
-class PyCanvasRenderTaskSignals : public QObject
-{
-    Q_OBJECT
-
-Q_SIGNALS:
-    void renderingReady(const RenderResult &render_result);
-};
-
 class PyCanvasRenderTask : public QRunnable
 {
 public:
-    PyCanvasRenderTask(const QSharedPointer<CanvasSection> &section, const std::vector<quint32> &commands_binary, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps);
-
-    PyCanvasRenderTaskSignals *signals() const { return m_signals.get(); }
+    PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const QSharedPointer<std::vector<quint32>> &commands_binary, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps);
 
     virtual void run() override;
 
 private:
+    PyCanvas *m_canvas;
     const QSharedPointer<CanvasSection> m_section;
-    const std::vector<quint32> m_commands_binary;
+    const QSharedPointer<std::vector<quint32>> m_commands_binary;
     const QRect m_rect;
     const QMap<QString, QVariant> m_image_map;
     float m_device_pixel_ratio;
     const RenderedTimeStamps m_rendered_timestamps;
-    std::unique_ptr<PyCanvasRenderTaskSignals> m_signals;
 };
 
 class PyCanvas : public QWidget
@@ -622,9 +614,9 @@ public:
     virtual void dropEvent(QDropEvent *event) override;
 
     void setCommands(const QList<CanvasDrawingCommand> &commands);
-    void setBinaryCommands(const std::vector<quint32> &commands, const QMap<QString, QVariant> &imageMap);
+    void setBinaryCommands(const QSharedPointer<std::vector<quint32>> &commands, const QMap<QString, QVariant> &imageMap);
 
-    void setBinarySectionCommands(int section_id, const std::vector<quint32> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap);
+    void setBinarySectionCommands(int section_id, const QSharedPointer<std::vector<quint32>> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap);
     void removeSection(int section_id);
 
     void grabMouse0(const QPoint &gp);
@@ -632,14 +624,11 @@ public:
 
     QElapsedTimer total_timer;
 
-    private Q_SLOTS:
-    void renderingFinished();
     void repaintCanvasSection(const RenderResult &render_result);
 
 private:
     QVariant m_py_object;
     QMutex m_commands_mutex;
-    QList<CanvasDrawingCommand> m_commands;
     QMap<int, QSharedPointer<CanvasSection> > m_sections;
     QPoint m_last_pos;
     bool m_pressed;
@@ -648,7 +637,7 @@ private:
     QElapsedTimer m_timer;
     QElapsedTimer m_repaint_timer;
 
-    PyCanvasRenderTask *queueTask(QSharedPointer<CanvasSection> section);
+    void queueTask(QSharedPointer<CanvasSection> section);
 };
 
 QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id);
