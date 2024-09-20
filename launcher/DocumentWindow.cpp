@@ -133,6 +133,12 @@ void DocumentWindow::queueRepaint(PyCanvas *canvas)
     m_queued_repaints.insert(canvas);
 }
 
+void DocumentWindow::unqueueRepaint(PyCanvas *canvas)
+{
+    QMutexLocker locker(&m_repaint_mutex);
+    m_queued_repaints.remove(canvas);
+}
+
 Application *DocumentWindow::application() const
 {
     return dynamic_cast<Application *>(QCoreApplication::instance());
@@ -2373,6 +2379,7 @@ CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
 PyCanvas::PyCanvas()
     : m_pressed(false)
     , m_grab_mouse_count(0)
+    , m_queued_window(nullptr)
 {
     setMouseTracking(true);
     setAcceptDrops(true);
@@ -2383,6 +2390,10 @@ PyCanvas::PyCanvas()
 
 PyCanvas::~PyCanvas()
 {
+    if (m_queued_window)
+    {
+        m_queued_window->unqueueRepaint(this);
+    }
     QMutexLocker locker(&m_commands_mutex);
     while (true)
     {
@@ -2418,7 +2429,8 @@ void PyCanvas::repaintCanvasSection(const RenderResult &render_result)
         section->record_latency = render_result.record_latency;
         if (section->m_commands_binary)
             queueTask(section);
-        static_cast<DocumentWindow *>(window())->queueRepaint(this);
+        m_queued_window = static_cast<DocumentWindow *>(window());
+        m_queued_window->queueRepaint(this);
     }
 }
 

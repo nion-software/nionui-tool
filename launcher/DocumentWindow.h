@@ -61,6 +61,7 @@ public:
     void initialize();
 
     void queueRepaint(PyCanvas *canvas);
+    void unqueueRepaint(PyCanvas *canvas);
 
 public Q_SLOTS:
     void screenChanged(QScreen *screen);
@@ -636,6 +637,7 @@ private:
     QPoint m_grab_reference_point;
     QElapsedTimer m_timer;
     QElapsedTimer m_repaint_timer;
+    DocumentWindow *m_queued_window;
 
     void queueTask(QSharedPointer<CanvasSection> section);
 };
