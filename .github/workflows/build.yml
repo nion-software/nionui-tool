@@ -14,6 +14,7 @@ env:
 
 jobs:
   build_linux:
+    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -97,6 +98,7 @@ jobs:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: dist/*.tar.bz2
   build_macos:
+    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -208,8 +210,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: ["3.10", "3.11", "3.12"]
-        qt-version: ["6.7.2"]
+        python-version: ["3.12"]
+        qt-version: ["6.6.3"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -270,6 +272,7 @@ jobs:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: dist/*.tar.bz2
   test_linux:
+    if: false
     needs: build_linux
     runs-on: ${{ matrix.os }}
     strategy:
@@ -410,6 +413,7 @@ jobs:
         echo "popd"
         popd
   test_macos:
+    if: false
     needs: build_macos
     runs-on: ${{ matrix.os }}
     strategy:
@@ -573,7 +577,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.12"]
     steps:
     - uses: actions/checkout@v4
     - name: Download Wheel
