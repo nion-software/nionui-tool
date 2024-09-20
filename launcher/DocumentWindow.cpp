@@ -2525,9 +2525,10 @@ PyCanvasRenderTask::~PyCanvasRenderTask()
 
 void PyCanvasRenderTask::run()
 {
-    QRectOptional repaint_rect = m_canvas->renderOne();
+    bool immediate = false;
+    QRectOptional repaint_rect = m_canvas->renderOne(immediate);
     if (repaint_rect.has_value)
-        Q_EMIT m_signals->renderingReady(repaint_rect.value);
+        Q_EMIT m_signals->renderingReady(repaint_rect.value, immediate);
 }
 
 PyCanvas::PyCanvas()
@@ -2539,6 +2540,7 @@ PyCanvas::PyCanvas()
     setAcceptDrops(true);
 
     m_timer.start();
+    m_repaint_timer.start();
 }
 
 PyCanvas::~PyCanvas()
@@ -2552,9 +2554,17 @@ PyCanvas::~PyCanvas()
     }
 }
 
-void PyCanvas::repaintRect(const QRect &repaintRect)
+void PyCanvas::repaintRect(const QRect &repaintRect, bool immediate)
 {
-    update(repaintRect);
+    if (immediate && m_repaint_timer.elapsed() >= 20)
+    {
+        m_repaint_timer.restart();
+        repaint();
+    }
+    else
+    {
+        update(repaintRect);
+    }
 }
 
 void PyCanvas::focusInEvent(QFocusEvent *event)
@@ -2600,7 +2610,7 @@ public:
     }
 };
 
-QRectOptional PyCanvas::renderOne()
+QRectOptional PyCanvas::renderOne(bool &immediate)
 {
     RenderCounter render_counter(&m_rendering_count_mutex, m_rendering_count);
 
@@ -2642,6 +2652,7 @@ QRectOptional PyCanvas::renderOne()
             // mark this section as being finished. no race condition. just clear it and update the time.
             nextSection->rendering = false;
             nextSection->time = m_timer.nsecsElapsed();
+            immediate = nextSection->m_section_id != 0;
         }
         wakeRenderer();
         return rect_optional;
@@ -3111,7 +3122,7 @@ void PyCanvas::setBinarySectionCommands(int section_id, const std::vector<quint3
 void PyCanvas::wakeRenderer()
 {
     PyCanvasRenderTask *task = new PyCanvasRenderTask(this);
-    connect(task->signals(), SIGNAL(renderingReady(const QRect &)), this, SLOT(repaintRect(const QRect &)));
+    connect(task->signals(), SIGNAL(renderingReady(const QRect &, bool)), this, SLOT(repaintRect(const QRect &, bool)));
     QThreadPool::globalInstance()->start(task);
 }
 

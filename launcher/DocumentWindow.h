@@ -573,7 +573,7 @@ class PyCanvasRenderTaskSignals : public QObject
     Q_OBJECT
 
 Q_SIGNALS:
-    void renderingReady(const QRect &repaint_rect);
+    void renderingReady(const QRect &repaint_rect, bool immediate);
 };
 
 class PyCanvasRenderTask : public QRunnable
@@ -635,7 +635,7 @@ public:
     void grabMouse0(const QPoint &gp);
     void releaseMouse0();
 
-    QRectOptional renderOne();
+    QRectOptional renderOne(bool &immediate);
     QRectOptional renderSection(QSharedPointer<CanvasSection> section);
     void wakeRenderer();
 
@@ -643,7 +643,7 @@ public:
 
 private Q_SLOTS:
     void renderingFinished();
-    void repaintRect(const QRect &rect);
+    void repaintRect(const QRect &rect, bool immediate);
 
 private:
     QVariant m_py_object;
@@ -658,6 +658,7 @@ private:
     QElapsedTimer m_timer;
     QMutex m_rendering_count_mutex;
     int m_rendering_count;
+    QElapsedTimer m_repaint_timer;
 };
 
 QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id);
