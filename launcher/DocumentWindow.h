@@ -47,6 +47,8 @@ class Application;
 class ItemModel;
 class ListModel;
 
+class PyCanvas;
+
 class DocumentWindow : public QMainWindow
 {
     Q_OBJECT
@@ -57,6 +59,8 @@ public:
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
 
     void initialize();
+
+    void queueRepaint(PyCanvas *canvas);
 
 public Q_SLOTS:
     void screenChanged(QScreen *screen);
@@ -84,10 +88,13 @@ private:
     QVariant m_py_object;
 
     int m_periodic_timer;
+    int m_repaint_timer;
 
     bool m_closed;
 
     QScreen *m_screen;
+
+    QSet<PyCanvas *> m_queued_repaints;
 
     Application *application() const;
 
