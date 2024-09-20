@@ -121,9 +121,15 @@ void DocumentWindow::initialize()
 {
     // start the timer event
     m_periodic_timer = startTimer(20);
+    m_repaint_timer = startTimer(25);
 
     // reset it here until it is really modified
     cleanDocument();
+}
+
+void DocumentWindow::queueRepaint(PyCanvas *canvas)
+{
+    m_queued_repaints.insert(canvas);
 }
 
 Application *DocumentWindow::application() const
@@ -135,6 +141,14 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == m_periodic_timer && isVisible())
         application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
+    if (event->timerId() == m_repaint_timer)
+    {
+        Q_FOREACH(PyCanvas *canvas, m_queued_repaints)
+        {
+            canvas->repaint();
+        }
+        m_queued_repaints.clear();
+    }
 }
 
 void DocumentWindow::hideEvent(QHideEvent *hide_event)
@@ -2556,15 +2570,7 @@ PyCanvas::~PyCanvas()
 
 void PyCanvas::repaintRect(const QRect &repaintRect, bool immediate)
 {
-    if (immediate && m_repaint_timer.elapsed() >= 20)
-    {
-        m_repaint_timer.restart();
-        repaint();
-    }
-    else
-    {
-        update(repaintRect);
-    }
+    static_cast<DocumentWindow *>(window())->queueRepaint(this);
 }
 
 void PyCanvas::focusInEvent(QFocusEvent *event)
