@@ -130,8 +130,6 @@ public:
         std::list<std::string> variants;
         variants.push_back("libpython3.12.dylib");
         variants.push_back("libpython3.11.dylib");
-        variants.push_back("libpython3.10.dylib");
-        variants.push_back("libpython3.9.dylib");
 
         for (auto directory: directories)
         {
@@ -147,8 +145,6 @@ public:
     {
         filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.12.dylib"));
         filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.11.dylib"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.10.dylib"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.9.dylib"));
     }
 
     virtual void buildLibraryPaths(FileSystem *fs, const std::string &python_home, const std::string &python_home_new, std::list<std::string> &filePaths) override
@@ -209,20 +205,14 @@ public:
         std::string homeParentDirectory = fs->parentDirectory(home_bin_path);
         filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12.so"));
         filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.11/config-3.11-x86_64-linux-gnu/libpython3.11.so"));
-        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.so"));
-        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.9/config-3.9-x86_64-linux-gnu/libpython3.9.so"));
         filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.12.so"));
         filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.11.so"));
-        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.10.so"));
-        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.9.so"));
     }
 
     virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
     {
         filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.12.so"));
         filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.11.so"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.10.so"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.9.so"));
     }
 
     virtual void buildLibraryPaths(FileSystem *fs, const std::string &python_home, const std::string &python_home_new, std::list<std::string> &filePaths) override
