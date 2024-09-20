@@ -262,7 +262,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"${CONFIGURATION}\" != \"Debug\" ]; then\n    \"$QTDIR/bin/macdeployqt\" \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME\"\n    install_name_tool -rpath @loader_path/../../Contents @loader_path/../../Contents/Frameworks \"$TARGET_BUILD_DIR/$EXECUTABLE_PATH\" || true\n    \"$PYTHONHOME/bin/python3\" fix_deploy.py \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/Frameworks\"\n    \"$PYTHONHOME/bin/python3\" fix_deploy.py \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/PlugIns\"\nfi\n";
+			shellScript = "if [ \"${CONFIGURATION}\" != \"XDebug\" ]; then\n    \"$QTDIR/bin/macdeployqt\" \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME\"\n    install_name_tool -rpath @loader_path/../../Contents @loader_path/../../Contents/Frameworks \"$TARGET_BUILD_DIR/$EXECUTABLE_PATH\" || true\n    \"$PYTHONHOME/bin/python3\" fix_deploy.py \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/Frameworks\"\n    \"$PYTHONHOME/bin/python3\" fix_deploy.py \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/PlugIns\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -318,10 +318,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "";
 				COMBINE_HIDPI_IMAGES = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(LOCAL_LIBRARY_DIR)/Frameworks",
-				);
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "NionUILauncher-Prefix.pch";
 				INFOPLIST_FILE = "$(SRCROOT)/NionUILauncher-Info.plist";
@@ -354,10 +351,6 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "";
 				COMBINE_HIDPI_IMAGES = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(LOCAL_LIBRARY_DIR)/Frameworks",
-				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "NionUILauncher-Prefix.pch";
 				INFOPLIST_FILE = "$(SRCROOT)/NionUILauncher-Info.plist";
