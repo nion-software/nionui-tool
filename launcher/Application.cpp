@@ -954,7 +954,11 @@ static PyObject *Canvas_draw_binary(PyObject * /*self*/, PyObject *args)
 
     QMap<QString, QVariant> imageMap = PyObjectToQVariant(obj1).toMap();
 
-    canvas->setBinaryCommands(std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4), imageMap);
+    {
+        Python_ThreadAllow thread_allow;
+
+        canvas->setBinaryCommands(std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4), imageMap);
+    }
 
     PythonSupport::instance()->bufferRelease(&buffer);
 
@@ -983,7 +987,11 @@ static PyObject *Canvas_drawSection_binary(PyObject * /*self*/, PyObject *args)
 
     float display_scaling = GetDisplayScaling();
 
-    canvas->setBinarySectionCommands(section_id, std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4), QRect(QPoint(left * display_scaling, top * display_scaling), QSize(width * display_scaling, height * display_scaling)), imageMap);
+    {
+        Python_ThreadAllow thread_allow;
+
+        canvas->setBinarySectionCommands(section_id, std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4), QRect(QPoint(left * display_scaling, top * display_scaling), QSize(width * display_scaling, height * display_scaling)), imageMap);
+    }
 
     PythonSupport::instance()->bufferRelease(&buffer);
 
@@ -2726,7 +2734,6 @@ static PyObject *DrawingContext_paintRGBAToImage(PyObject * /*self*/, PyObject *
 
         {
             QPainter painter(&image.image);
-            PaintImageCache image_cache;
             QList<CanvasDrawingCommand> drawing_commands;
             Q_FOREACH(const QVariant &raw_command_variant, raw_commands)
             {
@@ -2736,7 +2743,7 @@ static PyObject *DrawingContext_paintRGBAToImage(PyObject * /*self*/, PyObject *
                 drawing_command.arguments = raw_command.mid(1);
                 drawing_commands.append(drawing_command);
             }
-            PaintCommands(painter, drawing_commands, &image_cache, 1.0);
+            PaintCommands(painter, drawing_commands, 1.0);
         }
 
         if (image.image.format() != QImage::Format_ARGB32_Premultiplied)
@@ -2775,11 +2782,9 @@ static PyObject *DrawingContext_paintRGBAToImage_binary(PyObject * /*self*/, PyO
 
         {
             QPainter painter(&image.image);
-            PaintImageCache image_cache;
-            LayerCache layer_cache;
             std::vector<quint32> commands;
             commands.assign((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4);
-            PaintBinaryCommands(&painter, commands, imageMap, &image_cache, &layer_cache, RenderedTimeStamps(), 1.0);
+            PaintBinaryCommands(&painter, commands, imageMap, RenderedTimeStamps(), 1.0);
         }
 
         if (image.image.format() != QImage::Format_ARGB32_Premultiplied)
