@@ -60,8 +60,8 @@ public:
 
     void initialize();
 
-    void queueRepaint(PyCanvas *canvas);
-    void unqueueRepaint(PyCanvas *canvas);
+    void requestRepaint(PyCanvas *canvas);
+    void cancelRepaintRequest(PyCanvas *canvas);
 
 public Q_SLOTS:
     void screenChanged(QScreen *screen);
@@ -96,7 +96,7 @@ private:
 
     QScreen *m_screen;
 
-    QSet<PyCanvas *> m_queued_repaints;
+    QSet<PyCanvas *> m_repaint_requests;
 
     Application *application() const;
 
@@ -524,7 +524,7 @@ class CanvasSection
 {
 public:
     int m_section_id;
-    QSharedPointer<std::vector<quint32>> m_commands_binary;
+    QSharedPointer<std::vector<quint32>> m_pending_commands;
     float m_device_pixel_ratio;
     QRect rect;
     QRect image_rect;
@@ -569,14 +569,14 @@ struct RenderResult
 class PyCanvasRenderTask : public QRunnable
 {
 public:
-    PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const QSharedPointer<std::vector<quint32>> &commands_binary, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps);
+    PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const QSharedPointer<std::vector<quint32>> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps);
 
     virtual void run() override;
 
 private:
     PyCanvas *m_canvas;
     const QSharedPointer<CanvasSection> m_section;
-    const QSharedPointer<std::vector<quint32>> m_commands_binary;
+    const QSharedPointer<std::vector<quint32>> m_commands;
     const QRect m_rect;
     const QMap<QString, QVariant> m_image_map;
     float m_device_pixel_ratio;
@@ -629,19 +629,17 @@ public:
 
     QElapsedTimer total_timer;
 
-    void repaintCanvasSection(const RenderResult &render_result);
+    void continuePaintingSection(const RenderResult &render_result);
 
 private:
     QVariant m_py_object;
-    QMutex m_commands_mutex;
+    QMutex m_sections_mutex;
     QMap<int, QSharedPointer<CanvasSection> > m_sections;
     QPoint m_last_pos;
     bool m_pressed;
     unsigned m_grab_mouse_count;
     QPoint m_grab_reference_point;
-    DocumentWindow *m_queued_window;
-
-    PyCanvasRenderTask *queueTask(QSharedPointer<CanvasSection> section);
+    DocumentWindow *m_document_window;
 };
 
 QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id);

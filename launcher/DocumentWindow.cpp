@@ -126,16 +126,16 @@ void DocumentWindow::initialize()
     cleanDocument();
 }
 
-void DocumentWindow::queueRepaint(PyCanvas *canvas)
+void DocumentWindow::requestRepaint(PyCanvas *canvas)
 {
     QMutexLocker locker(&m_repaint_mutex);
-    m_queued_repaints.insert(canvas);
+    m_repaint_requests.insert(canvas);
 }
 
-void DocumentWindow::unqueueRepaint(PyCanvas *canvas)
+void DocumentWindow::cancelRepaintRequest(PyCanvas *canvas)
 {
     QMutexLocker locker(&m_repaint_mutex);
-    m_queued_repaints.remove(canvas);
+    m_repaint_requests.remove(canvas);
 }
 
 Application *DocumentWindow::application() const
@@ -147,13 +147,13 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == m_periodic_timer && isVisible())
     {
-        QSet<PyCanvas *> queued_repaints;
+        QSet<PyCanvas *> repaint_requests;
         {
             QMutexLocker locker(&m_repaint_mutex);
-            queued_repaints = m_queued_repaints;
-            m_queued_repaints.clear();
+            repaint_requests = m_repaint_requests;
+            m_repaint_requests.clear();
         }
-        for (auto canvas : queued_repaints)
+        for (auto canvas : repaint_requests)
             canvas->update();
 
         application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
@@ -2302,22 +2302,23 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const QSharedPointe
     return rendered_timestamps;
 }
 
-PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const QSharedPointer<std::vector<quint32>> &commands_binary, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
+PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const QSharedPointer<std::vector<quint32>> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
     : m_canvas(canvas)
     , m_section(section)
-    , m_commands_binary(commands_binary)
+    , m_commands(commands)
     , m_rect(rect)
     , m_image_map(imageMap)
     , m_device_pixel_ratio(devicePixelRatio)
     , m_rendered_timestamps(rendered_timestamps)
 {
+    setAutoDelete(false);
 }
 
 void PyCanvasRenderTask::run()
 {
     RenderResult render_result(m_section);
 
-    if (m_commands_binary && !m_rect.isEmpty())
+    if (m_commands && !m_rect.isEmpty())
     {
         // create the buffer image at a resolution suitable for the devicePixelRatio of the section's screen.
         QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(QSize(m_rect.width() * m_device_pixel_ratio, m_rect.height() * m_device_pixel_ratio), QImage::Format_ARGB32_Premultiplied));
@@ -2326,7 +2327,7 @@ void PyCanvasRenderTask::run()
         painter.setRenderHints(DEFAULT_RENDER_HINTS);
         // draw everything at the higher scale of the section's screen.
         painter.scale(m_device_pixel_ratio, m_device_pixel_ratio);
-        auto new_rendered_timestamps = PaintBinaryCommands(&painter, m_commands_binary, m_image_map, m_rendered_timestamps, 0.0, m_section->m_section_id, m_device_pixel_ratio);
+        auto new_rendered_timestamps = PaintBinaryCommands(&painter, m_commands, m_image_map, m_rendered_timestamps, 0.0, m_section->m_section_id, m_device_pixel_ratio);
         painter.end();  // ending painter here speeds up QImage assignment below (Windows)
         render_result.image = image;
         render_result.image_rect = m_rect;
@@ -2341,7 +2342,7 @@ void PyCanvasRenderTask::run()
         render_result.repaint_rect = m_rect;
     }
 
-    m_canvas->repaintCanvasSection(render_result);
+    m_canvas->continuePaintingSection(render_result);
 }
 
 CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
@@ -2352,10 +2353,32 @@ CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
 }
 
 
+/*
+ The canvas widget renders a list of drawing commnds in a thread and paints the resulting bitmap.
+
+ The drawing can optionally be split into sections which are rendered in a specific area of the canvas.
+ The drawing commands for each section can be submitted independently and will each render on its own
+ thread.
+
+ The client submits drawing commands, which triggers a rendering thread if one is not already running, or else
+ stores the commands for the next rendering. Only a single rendering thread is allowed to run at once for a
+ given section.
+
+ When a section has been rendered it will request the document window to call update() on the canvas item.
+ The document window will check for update requests periodically (timerEvent). Repainting is always done on the
+ main UI thread in paintEvent, but the repaints should be very fast as they are only blitting a bitmap that has
+ already been rendered on a thread.
+
+ To achieve high performance, locking is minimized (see m_sections_mutex). It is locked in the destructor for
+ synchronization, when updating the section with the bitmap that has been rendered on a
+ thread (continuePaintingSection), painting (paintEvent), and updating the commands to trigger rendering on a
+ thread (setBinarySectionCommands).
+ */
+
 PyCanvas::PyCanvas()
     : m_pressed(false)
     , m_grab_mouse_count(0)
-    , m_queued_window(nullptr)
+    , m_document_window(nullptr)
 {
     setMouseTracking(true);
     setAcceptDrops(true);
@@ -2363,11 +2386,9 @@ PyCanvas::PyCanvas()
 
 PyCanvas::~PyCanvas()
 {
-    if (m_queued_window)
-    {
-        m_queued_window->unqueueRepaint(this);
-    }
-    QMutexLocker locker(&m_commands_mutex);
+    if (m_document_window)
+        m_document_window->cancelRepaintRequest(this);
+    QMutexLocker locker(&m_sections_mutex);
     while (true)
     {
         bool is_rendering = false;
@@ -2381,13 +2402,21 @@ PyCanvas::~PyCanvas()
         }
         if (!is_rendering)
             break;
-        m_commands_mutex.unlock();
+        m_sections_mutex.unlock();
         QThread::msleep(1);
-        m_commands_mutex.lock();
+        m_sections_mutex.lock();
     }
 }
 
-void PyCanvas::repaintCanvasSection(const RenderResult &render_result)
+/*
+ Continue painting the section and rendering in the render result.
+
+ The render result will be created on a thread and this function will be called on a thread.
+ Its main task is to safely transfer the render result (image, image_rect) to the section object,
+ notify the window that the canvas item needs an update, and then launch another render task if
+ needed, determined by whether m_pending_commands is non-empty.
+ */
+void PyCanvas::continuePaintingSection(const RenderResult &render_result)
 {
     auto repaint_rect = render_result.repaint_rect;
 
@@ -2395,19 +2424,24 @@ void PyCanvas::repaintCanvasSection(const RenderResult &render_result)
 
     if (repaint_rect.has_value)
     {
-        QMutexLocker locker(&m_commands_mutex);
+        QMutexLocker locker(&m_sections_mutex);
         auto section = render_result.section;
         section->m_render_task.reset();
         section->m_rendered_timestamps = render_result.rendered_timestamps;
         section->image = render_result.image;
         section->image_rect = render_result.image_rect;
         section->record_latency = render_result.record_latency;
-        if (section->m_commands_binary)
-            task = queueTask(section);
-        m_queued_window = static_cast<DocumentWindow *>(window());
-        m_queued_window->queueRepaint(this);
+        auto const &pending_commands = section->m_pending_commands;
+        section->m_pending_commands.reset();
+        if (pending_commands)
+        {
+            task = new PyCanvasRenderTask(this, section, pending_commands, section->rect, section->m_imageMap, section->m_device_pixel_ratio, section->m_rendered_timestamps);
+        }
+        m_document_window = static_cast<DocumentWindow *>(window());
+        m_document_window->requestRepaint(this);
     }
 
+    // launch the task outside of the mutex.
     if (task)
         QThreadPool::globalInstance()->start(task);
 }
@@ -2549,7 +2583,7 @@ void PyCanvas::paintEvent(QPaintEvent *event)
     RenderedTimeStamps rendered_timestamps;
 
     {
-        QMutexLocker locker(&m_commands_mutex);
+        QMutexLocker locker(&m_sections_mutex);
 
         auto current_time_ns = GetCurrentTime();
 
@@ -2873,15 +2907,16 @@ void PyCanvas::setBinaryCommands(const QSharedPointer<std::vector<quint32>> &com
 
 void PyCanvas::setBinarySectionCommands(int section_id, const QSharedPointer<std::vector<quint32>> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap)
 {
-    QSharedPointer<CanvasSection> section;
-
     // ensure the original gets released outside of the lock by assigning it to this variable.
     QMap<QString, QVariant> imageMapCopy;
 
     PyCanvasRenderTask *task = nullptr;
 
     {
-        QMutexLocker locker(&m_commands_mutex);
+        QMutexLocker locker(&m_sections_mutex);
+
+        QSharedPointer<CanvasSection> section;
+
         if (m_sections.contains(section_id))
         {
             section = m_sections[section_id];
@@ -2890,43 +2925,33 @@ void PyCanvas::setBinarySectionCommands(int section_id, const QSharedPointer<std
         {
             auto screen = this->screen();
             auto device_pixel_ratio = screen ? screen->devicePixelRatio() : 1.0;  // m_screen may be nullptr in earlier versions of Qt
-            QSharedPointer<CanvasSection> new_section(new CanvasSection(section_id, device_pixel_ratio));
-            m_sections[section_id] = new_section;
-            section = new_section;
+            section.reset(new CanvasSection(section_id, device_pixel_ratio));
+            m_sections[section_id] = section;
         }
 
-        section->m_commands_binary = commands;
         imageMapCopy = section->m_imageMap;
         section->rect = rect;
         section->m_imageMap = imageMap;
 
-        task = queueTask(section);
+        if (!section->m_render_task)
+        {
+            task = new PyCanvasRenderTask(this, section, commands, section->rect, section->m_imageMap, section->m_device_pixel_ratio, section->m_rendered_timestamps);
+            section->m_render_task.reset(task);
+        }
+        else
+        {
+            section->m_pending_commands = commands;
+        }
     }
 
+    // launch the task outside of the mutex.
     if (task)
         QThreadPool::globalInstance()->start(task);
 }
 
-PyCanvasRenderTask *PyCanvas::queueTask(QSharedPointer<CanvasSection> section)
-{
-    // IMPORTANT: assumes m_commands_mutex is help and commands_binary is not empty.
-    // only start the task if one is not already running for this section. if one is already running,
-    // another task will started when it finishes.
-    PyCanvasRenderTask *task = nullptr;
-    if (!section->m_render_task)
-    {
-        auto commands_binary = section->m_commands_binary;
-        section->m_commands_binary.reset();
-        task = new PyCanvasRenderTask(this, section, commands_binary, section->rect, section->m_imageMap, section->m_device_pixel_ratio, section->m_rendered_timestamps);
-        task->setAutoDelete(false);
-        section->m_render_task.reset(task);
-    }
-    return task;
-}
-
 void PyCanvas::removeSection(int section_id)
 {
-    QMutexLocker locker(&m_commands_mutex);
+    QMutexLocker locker(&m_sections_mutex);
     m_sections.remove(section_id);
 }
 
