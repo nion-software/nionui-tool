@@ -2302,12 +2302,10 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const QSharedPointe
     return rendered_timestamps;
 }
 
-PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const QSharedPointer<std::vector<quint32>> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
+PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const DrawingCommandsSharedPtr &drawing_commands, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
     : m_canvas(canvas)
     , m_section(section)
-    , m_commands(commands)
-    , m_rect(rect)
-    , m_image_map(imageMap)
+    , m_drawing_commands(drawing_commands)
     , m_device_pixel_ratio(devicePixelRatio)
     , m_rendered_timestamps(rendered_timestamps)
 {
@@ -2318,28 +2316,32 @@ void PyCanvasRenderTask::run()
 {
     RenderResult render_result(m_section);
 
-    if (m_commands && !m_rect.isEmpty())
+    auto const &commands = m_drawing_commands->commands();
+    auto const &rect = m_drawing_commands->rect();
+    auto const &image_map = m_drawing_commands->imageMap();
+
+    if (commands && !rect.isEmpty())
     {
         // create the buffer image at a resolution suitable for the devicePixelRatio of the section's screen.
-        QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(QSize(m_rect.width() * m_device_pixel_ratio, m_rect.height() * m_device_pixel_ratio), QImage::Format_ARGB32_Premultiplied));
+        QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(QSize(rect.width() * m_device_pixel_ratio, rect.height() * m_device_pixel_ratio), QImage::Format_ARGB32_Premultiplied));
         image->fill(QColor(0,0,0,0));
         QPainter painter(image.data());
         painter.setRenderHints(DEFAULT_RENDER_HINTS);
         // draw everything at the higher scale of the section's screen.
         painter.scale(m_device_pixel_ratio, m_device_pixel_ratio);
-        auto new_rendered_timestamps = PaintBinaryCommands(&painter, m_commands, m_image_map, m_rendered_timestamps, 0.0, m_section->m_section_id, m_device_pixel_ratio);
+        auto new_rendered_timestamps = PaintBinaryCommands(&painter, commands, image_map, m_rendered_timestamps, 0.0, m_section->m_section_id, m_device_pixel_ratio);
         painter.end();  // ending painter here speeds up QImage assignment below (Windows)
         render_result.image = image;
-        render_result.image_rect = m_rect;
+        render_result.image_rect = rect;
         for (auto const &r : new_rendered_timestamps)
         {
             QTransform transform = r.transform;
-            transform.translate(m_rect.left(), m_rect.top());
+            transform.translate(rect.left(), rect.top());
             transform = transform * QTransform::fromScale(1/m_device_pixel_ratio, 1/m_device_pixel_ratio);
             render_result.rendered_timestamps.append(RenderedTimeStamp(transform, r.timestamp_ns, r.section_id));
         }
         render_result.record_latency = true;
-        render_result.repaint_rect = m_rect;
+        render_result.repaint_rect = rect;
     }
 
     m_canvas->continuePaintingSection(render_result);
@@ -2354,25 +2356,32 @@ CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
 
 
 /*
- The canvas widget renders a list of drawing commnds in a thread and paints the resulting bitmap.
+ The canvas widget renders low-level drawing commnds in a thread and paints the resulting bitmap.
 
- The drawing can optionally be split into sections which are rendered in a specific area of the canvas.
- The drawing commands for each section can be submitted independently and will each render on its own
- thread.
+ The drawing can optionally be split into sections which are rendered in a specific rectangle of the canvas.
+ The drawing commands for each section can be submitted independently and will each render to a bitmap on
+ its own thread. The resulting bitmaps can be painted from the main thread very quickly, preserving performance.
 
- The client submits drawing commands, which triggers a rendering thread if one is not already running, or else
- stores the commands for the next rendering. Only a single rendering thread is allowed to run at once for a
- given section.
+ The client submits drawing commands for each section on a thread. This triggers a rendering thread for the
+ section if one is not already running, otherwise the commands are stored as pending for future rendering.
+ All sections can render simultaneously with other sections, but each section only renders one version of
+ itself at any time. Rendering for a specific section is automatically relaunched on a new thread if there
+ are pending drawing commands received during an existing rendering. If multiple drawing commands are submitted
+ during rendering, only the latest one is used as the pending drawing commands.
 
- When a section has been rendered it will request the document window to call update() on the canvas item.
- The document window will check for update requests periodically (timerEvent). Repainting is always done on the
- main UI thread in paintEvent, but the repaints should be very fast as they are only blitting a bitmap that has
- already been rendered on a thread.
+ When a section has finished rendering, it requests the document window to update the section's canvas item.
+ The request is thread safe and does not block. The next rendering pass for the section can begin immediately.
+ The document window checks periodically for update requests in timerEvent on the main thread. If it sees a
+ request, it calls update on the target canvas item in order to trigger a paint event. If multiple sections
+ request updates in between paint events, update will only be called once per canvas item. The paint event
+ draws all sections. Calling update or receiving a paint event is always done on the main thread. For best
+ performance, the paint event must run quickly and update must not be called too often, otherwise Qt will try
+ to gather up repaint events by delaying them.
 
- To achieve high performance, locking is minimized (see m_sections_mutex). It is locked in the destructor for
- synchronization, when updating the section with the bitmap that has been rendered on a
- thread (continuePaintingSection), painting (paintEvent), and updating the commands to trigger rendering on a
- thread (setBinarySectionCommands).
+ To achieve high performance, locking is minimized (see m_sections_mutex). The lock is held in the destructor
+ for synchronization, when updating the section with the bitmap after it has been rendered on its
+ thread (continuePaintingSection), during painting (paintEvent), and when updating the commands to trigger
+ rendering on a thread (setBinarySectionCommands).
  */
 
 PyCanvas::PyCanvas()
@@ -2411,10 +2420,11 @@ PyCanvas::~PyCanvas()
 /*
  Continue painting the section and rendering in the render result.
 
- The render result will be created on a thread and this function will be called on a thread.
- Its main task is to safely transfer the render result (image, image_rect) to the section object,
+ The render result will be created on a thread and this function will be called by the thread.
+ Its main task is to safely transfer the resulting bitmap (image, image_rect) to the section,
  notify the window that the canvas item needs an update, and then launch another render task if
- needed, determined by whether m_pending_commands is non-empty.
+ needed, determined by whether m_pending_drawing_commands is non-empty. The resulting bitmap
+ will be painted during a subsequent paint event.
  */
 void PyCanvas::continuePaintingSection(const RenderResult &render_result)
 {
@@ -2431,11 +2441,11 @@ void PyCanvas::continuePaintingSection(const RenderResult &render_result)
         section->image = render_result.image;
         section->image_rect = render_result.image_rect;
         section->record_latency = render_result.record_latency;
-        auto const &pending_commands = section->m_pending_commands;
-        section->m_pending_commands.reset();
+        auto const &pending_commands = section->m_pending_drawing_commands;
+        section->m_pending_drawing_commands.reset();
         if (pending_commands)
         {
-            task = new PyCanvasRenderTask(this, section, pending_commands, section->rect, section->m_imageMap, section->m_device_pixel_ratio, section->m_rendered_timestamps);
+            task = new PyCanvasRenderTask(this, section, pending_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
         }
         m_document_window = static_cast<DocumentWindow *>(window());
         m_document_window->requestRepaint(this);
@@ -2569,6 +2579,13 @@ struct DrawnText
     DrawnText(const QString &text, int line, const QTransform &transform) : text(text), line(line), world_transform(transform) { }
 };
 
+/*
+ Paint the canvas item.
+
+ Iterates through the sections and draws the bitmap associated with the section. Also handles the display
+ of frame rate and latency. This method should block minimally and run fast since it affects overall
+ responsiveness of the user interface.
+ */
 void PyCanvas::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event)
@@ -2900,15 +2917,17 @@ void PyCanvas::setCommands(const QList<CanvasDrawingCommand> &commands)
     // deprecated.
 }
 
-void PyCanvas::setBinaryCommands(const QSharedPointer<std::vector<quint32>> &commands, const QMap<QString, QVariant> &imageMap)
-{
-    setBinarySectionCommands(0, commands, rect(), imageMap);
-}
+/*
+ Update the drawing commands for the given section.
 
-void PyCanvas::setBinarySectionCommands(int section_id, const QSharedPointer<std::vector<quint32>> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap)
+ Section zero is used when not using individual sections.
+
+ Creates a new section if needed. Then either starts a new rendering task or stores the commands as pending.
+ */
+void PyCanvas::setBinarySectionCommands(int section_id, const DrawingCommandsSharedPtr &drawing_commands)
 {
     // ensure the original gets released outside of the lock by assigning it to this variable.
-    QMap<QString, QVariant> imageMapCopy;
+    DrawingCommandsSharedPtr pending_drawing_commands;
 
     PyCanvasRenderTask *task = nullptr;
 
@@ -2929,18 +2948,16 @@ void PyCanvas::setBinarySectionCommands(int section_id, const QSharedPointer<std
             m_sections[section_id] = section;
         }
 
-        imageMapCopy = section->m_imageMap;
-        section->rect = rect;
-        section->m_imageMap = imageMap;
+        pending_drawing_commands = section->m_pending_drawing_commands;
 
         if (!section->m_render_task)
         {
-            task = new PyCanvasRenderTask(this, section, commands, section->rect, section->m_imageMap, section->m_device_pixel_ratio, section->m_rendered_timestamps);
+            task = new PyCanvasRenderTask(this, section, drawing_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
             section->m_render_task.reset(task);
         }
         else
         {
-            section->m_pending_commands = commands;
+            section->m_pending_drawing_commands = drawing_commands;
         }
     }
 

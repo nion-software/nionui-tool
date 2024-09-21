@@ -520,16 +520,31 @@ private:
 class PyCanvas;
 class PyCanvasRenderTask;
 
+class DrawingCommands
+{
+public:
+    DrawingCommands(const QSharedPointer<std::vector<quint32>> &commands, const QRect &rect, const QMap<QString, QVariant> &image_map)
+    : m_commands(commands), m_rect(rect), m_image_map(image_map) { }
+
+    const QSharedPointer<std::vector<quint32>> &commands() const { return m_commands; }
+    const QMap<QString, QVariant> &imageMap() const { return m_image_map; }
+    const QRect &rect() const { return m_rect; }
+private:
+    QSharedPointer<std::vector<quint32>> m_commands;
+    QMap<QString, QVariant> m_image_map;
+    QRect m_rect;
+};
+
+typedef QSharedPointer<DrawingCommands> DrawingCommandsSharedPtr;
+
 class CanvasSection
 {
 public:
     int m_section_id;
-    QSharedPointer<std::vector<quint32>> m_pending_commands;
+    DrawingCommandsSharedPtr m_pending_drawing_commands;
     float m_device_pixel_ratio;
-    QRect rect;
     QRect image_rect;
     QSharedPointer<QImage> image;
-    QMap<QString, QVariant> m_imageMap;
     RenderedTimeStamps m_rendered_timestamps;
     QScopedPointer<PyCanvasRenderTask> m_render_task;
     QQueue<int64_t> latencies_ns;
@@ -569,16 +584,14 @@ struct RenderResult
 class PyCanvasRenderTask : public QRunnable
 {
 public:
-    PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const QSharedPointer<std::vector<quint32>> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps);
+    PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const DrawingCommandsSharedPtr &drawing_commands, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps);
 
     virtual void run() override;
 
 private:
     PyCanvas *m_canvas;
     const QSharedPointer<CanvasSection> m_section;
-    const QSharedPointer<std::vector<quint32>> m_commands;
-    const QRect m_rect;
-    const QMap<QString, QVariant> m_image_map;
+    const DrawingCommandsSharedPtr m_drawing_commands;
     float m_device_pixel_ratio;
     const RenderedTimeStamps m_rendered_timestamps;
 };
@@ -619,9 +632,7 @@ public:
     virtual void dropEvent(QDropEvent *event) override;
 
     void setCommands(const QList<CanvasDrawingCommand> &commands);
-    void setBinaryCommands(const QSharedPointer<std::vector<quint32>> &commands, const QMap<QString, QVariant> &imageMap);
-
-    void setBinarySectionCommands(int section_id, const QSharedPointer<std::vector<quint32>> &commands, const QRect &rect, const QMap<QString, QVariant> &imageMap);
+    void setBinarySectionCommands(int section_id, const DrawingCommandsSharedPtr &drawing_commands);
     void removeSection(int section_id);
 
     void grabMouse0(const QPoint &gp);
