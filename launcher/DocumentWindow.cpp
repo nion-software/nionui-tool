@@ -120,8 +120,7 @@ DocumentWindow::DocumentWindow(const QString &title, QWidget *parent)
 void DocumentWindow::initialize()
 {
     // start the timer event
-    m_periodic_timer = startTimer(20);
-    m_repaint_timer = startTimer(25);
+    m_periodic_timer = startTimer(25);
 
     // reset it here until it is really modified
     cleanDocument();
@@ -147,8 +146,6 @@ Application *DocumentWindow::application() const
 void DocumentWindow::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == m_periodic_timer && isVisible())
-        application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
-    if (event->timerId() == m_repaint_timer)
     {
         QSet<PyCanvas *> queued_repaints;
         {
@@ -157,7 +154,9 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
             m_queued_repaints.clear();
         }
         for (auto canvas : queued_repaints)
-            canvas->repaint();
+            canvas->update();
+
+        application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
     }
 }
 
@@ -2383,9 +2382,6 @@ PyCanvas::PyCanvas()
 {
     setMouseTracking(true);
     setAcceptDrops(true);
-
-    m_timer.start();
-    m_repaint_timer.start();
 }
 
 PyCanvas::~PyCanvas()
