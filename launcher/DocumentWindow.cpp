@@ -2279,32 +2279,17 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const QSharedPointe
                 else
                 {
                     // use existing date time, elapsedDuration
-                    Q_FOREACH(const RenderedTimeStamp &rendered_timestamp, lastRenderedTimestamps)
+                    for (const auto &rendered_timestamp : lastRenderedTimestamps)
                     {
                         if (rendered_timestamp.section_id == section_id)
                         {
-                            timestamp_ns = rendered_timestamp.time_stamp_ns;
+                            timestamp_ns = rendered_timestamp.timestamp_ns;
                             elapsed_ns = rendered_timestamp.elapsed_ns;
                             text = rendered_timestamp.text;
                         }
                     }
                 }
-                painter->save();
-                QPointF text_pos(12, 12);
-                QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-                QFontMetrics fm(text_font);
-                int text_width = fm.horizontalAdvance(text);
-                int text_ascent = fm.ascent();
-                int text_height = fm.height();
-                QPainterPath background;
-                background.addRect(text_pos.x() - 4, text_pos.y() - 4, text_width + 8, text_height + 8);
-                painter->fillPath(background, Qt::white);
-                QPainterPath path;
-                path.addText(text_pos.x(), text_pos.y() + text_ascent, text_font, text);
-                painter->fillPath(path, Qt::black);
-                painter->restore();
-                QTransform transform = painter->transform();
-                rendered_timestamps.append(RenderedTimeStamp(transform, timestamp_ns, section_id, elapsed_ns, text));
+                rendered_timestamps.append(RenderedTimeStamp(painter->transform(), timestamp_ns, section_id, elapsed_ns, text));
                 break;
             }
         }
@@ -2317,37 +2302,6 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const QSharedPointe
     return rendered_timestamps;
 }
 
-RenderResult render(const QSharedPointer<CanvasSection> &section, const QSharedPointer<std::vector<quint32>> &commands_binary, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
-{
-    RenderResult result(section);
-
-    if (commands_binary && !rect.isEmpty())
-    {
-        // create the buffer image at a resolution suitable for the devicePixelRatio of the section's screen.
-        QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(QSize(rect.width() * devicePixelRatio, rect.height() * devicePixelRatio), QImage::Format_ARGB32_Premultiplied));
-        image->fill(QColor(0,0,0,0));
-        QPainter painter(image.data());
-        painter.setRenderHints(DEFAULT_RENDER_HINTS);
-        // draw everything at the higher scale of the section's screen.
-        painter.scale(devicePixelRatio, devicePixelRatio);
-        auto new_rendered_timestamps = PaintBinaryCommands(&painter, commands_binary, imageMap, rendered_timestamps, 0.0, section->m_section_id, devicePixelRatio);
-        painter.end();  // ending painter here speeds up QImage assignment below (Windows)
-        result.image = image;
-        result.image_rect = rect;
-        for (auto r : new_rendered_timestamps)
-        {
-            QTransform transform = r.transform;
-            transform.translate(rect.left(), rect.top());
-            transform = transform * QTransform::fromScale(1/devicePixelRatio, 1/devicePixelRatio);
-            result.rendered_timestamps.append(RenderedTimeStamp(transform, r.time_stamp_ns, r.section_id));
-        }
-        result.record_latency = true;
-        result.repaint_rect = rect;
-    }
-
-    return result;
-}
-
 PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const QSharedPointer<std::vector<quint32>> &commands_binary, const QRect &rect, const QMap<QString, QVariant> &imageMap, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
     : m_canvas(canvas)
     , m_section(section)
@@ -2356,13 +2310,36 @@ PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<Ca
     , m_image_map(imageMap)
     , m_device_pixel_ratio(devicePixelRatio)
     , m_rendered_timestamps(rendered_timestamps)
-
 {
 }
 
 void PyCanvasRenderTask::run()
 {
-    auto render_result = render(m_section, m_commands_binary, m_rect, m_image_map, m_device_pixel_ratio, m_rendered_timestamps);
+    RenderResult render_result(m_section);
+
+    if (m_commands_binary && !m_rect.isEmpty())
+    {
+        // create the buffer image at a resolution suitable for the devicePixelRatio of the section's screen.
+        QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(QSize(m_rect.width() * m_device_pixel_ratio, m_rect.height() * m_device_pixel_ratio), QImage::Format_ARGB32_Premultiplied));
+        image->fill(QColor(0,0,0,0));
+        QPainter painter(image.data());
+        painter.setRenderHints(DEFAULT_RENDER_HINTS);
+        // draw everything at the higher scale of the section's screen.
+        painter.scale(m_device_pixel_ratio, m_device_pixel_ratio);
+        auto new_rendered_timestamps = PaintBinaryCommands(&painter, m_commands_binary, m_image_map, m_rendered_timestamps, 0.0, m_section->m_section_id, m_device_pixel_ratio);
+        painter.end();  // ending painter here speeds up QImage assignment below (Windows)
+        render_result.image = image;
+        render_result.image_rect = m_rect;
+        for (auto const &r : new_rendered_timestamps)
+        {
+            QTransform transform = r.transform;
+            transform.translate(m_rect.left(), m_rect.top());
+            transform = transform * QTransform::fromScale(1/m_device_pixel_ratio, 1/m_device_pixel_ratio);
+            render_result.rendered_timestamps.append(RenderedTimeStamp(transform, r.timestamp_ns, r.section_id));
+        }
+        render_result.record_latency = true;
+        render_result.repaint_rect = m_rect;
+    }
 
     m_canvas->repaintCanvasSection(render_result);
 }
@@ -2421,7 +2398,7 @@ void PyCanvas::repaintCanvasSection(const RenderResult &render_result)
         QMutexLocker locker(&m_commands_mutex);
         auto section = render_result.section;
         section->m_render_task.reset();
-        section->last_rendered_timestamps = render_result.rendered_timestamps;
+        section->m_rendered_timestamps = render_result.rendered_timestamps;
         section->image = render_result.image;
         section->image_rect = render_result.image_rect;
         section->record_latency = render_result.record_latency;
@@ -2477,6 +2454,70 @@ int64_t GetCurrentTime()
 #endif
 }
 
+template<typename T>
+struct Measurements
+{
+    Measurements(const QQueue<T> &values_in)
+        : minimum(std::numeric_limits<T>::max())
+        , maximum(std::numeric_limits<T>::min())
+        , average(0.0)
+        , std_dev(0.0)
+    {
+        auto values = values_in;
+        std::sort(values.begin(), values.end());
+        int discard = values.size() / 10;
+        while (discard > 0)
+        {
+            if (discard > 0 && values.size())
+            {
+                values.pop_front();
+                discard -= 1;
+            }
+            if (discard > 0 && values.size())
+            {
+                values.pop_back();
+                discard -= 1;
+            }
+        }
+        for (auto value : values)
+        {
+            average += value;
+            if (value < minimum)
+                minimum = value;
+            if (value > maximum)
+                maximum = value;
+        }
+        average = average / values.size();
+        double sum_squares = 0;
+        for (auto value : values)
+        {
+            sum_squares += (value - average) * (value - average);
+            value_string_list += " " + QString::number(qRound(value / 1e6));
+        }
+        std_dev = sqrt(sum_squares / values.size());
+    }
+
+    T minimum;
+    T maximum;
+    double average;
+    double std_dev;
+    QString value_string_list;
+
+    QString text() const
+    {
+        if (average > 0)
+            return " " + QString::number(qRound(average / 1e6)).rightJustified(3) + " ± " + QString::number(std_dev / 1e6, 'f', 1).rightJustified(4) + " [" + QString::number(qRound(minimum / 1e6)).rightJustified(3) + ":" + QString::number(qRound(maximum / 1e6)).rightJustified(3) + " ] ";
+        return QString();
+    }
+
+    QString textF() const
+    {
+        if (average > 0.0)
+            return " " + QString::number(average, 'f', 1).rightJustified(3) + " ± " + QString::number(std_dev, 'f', 1).rightJustified(4) + " [" + QString::number(minimum, 'f', 1).rightJustified(3) + ":" + QString::number(maximum, 'f', 1).rightJustified(3) + " ] ";
+        return QString();
+    }
+};
+
 struct ImageAndRect
 {
     QSharedPointer<QImage> image;
@@ -2485,12 +2526,13 @@ struct ImageAndRect
     ImageAndRect(QSharedPointer<QImage> image, const QRect &image_rect) : image(image), image_rect(image_rect) { }
 };
 
-struct XYZ
+struct DrawnText
 {
     QString text;
+    int line;
     QTransform world_transform;
 
-    XYZ(const QString &text, const QTransform &transform) : text(text), world_transform(transform) { }
+    DrawnText(const QString &text, int line, const QTransform &transform) : text(text), line(line), world_transform(transform) { }
 };
 
 void PyCanvas::paintEvent(QPaintEvent *event)
@@ -2502,7 +2544,7 @@ void PyCanvas::paintEvent(QPaintEvent *event)
     painter.begin(this);
 
     std::list<ImageAndRect> imageAndRects;
-    std::list<XYZ> xyzs;
+    std::list<DrawnText> drawnTexts;
 
     RenderedTimeStamps rendered_timestamps;
 
@@ -2511,96 +2553,81 @@ void PyCanvas::paintEvent(QPaintEvent *event)
 
         auto current_time_ns = GetCurrentTime();
 
-        Q_FOREACH(QSharedPointer<CanvasSection> section, m_sections)
+        for (auto const &section : m_sections)
         {
             if (section->image && !section->image->isNull() && section->image_rect.intersects(event->rect()))
                 imageAndRects.push_back(ImageAndRect(section->image, section->image_rect));
 
-            for (RenderedTimeStamps::iterator i = section->m_rendered_timestamps.begin(); i != section->m_rendered_timestamps.end(); ++i)
+            for (auto &rendered_timestamp : section->m_rendered_timestamps)
             {
-                RenderedTimeStamp &rendered_timestamp = *i;
                 if (!rendered_timestamp.elapsed_ns)
                 {
-                    rendered_timestamp.elapsed_ns = current_time_ns - rendered_timestamp.time_stamp_ns;
+                    rendered_timestamp.elapsed_ns = current_time_ns - rendered_timestamp.timestamp_ns;
                 }
             }
             rendered_timestamps.append(section->m_rendered_timestamps);
         }
 
-        for (const RenderedTimeStamp &rendered_timestamp : rendered_timestamps)
+        for (auto const &rendered_timestamp : rendered_timestamps)
         {
-            int64_t latency_min_ns = 1000000000;
-            int64_t latency_avg_ns = 0;
-            int64_t latency_max_ns = 0;
-            double latency_std_ns = 0;
-            QString latencyListString;
             if (rendered_timestamp.section_id > 0)
             {
                 auto section = m_sections[rendered_timestamp.section_id];
-                QMutexLocker locker(&section->latenciesMutex);
                 if (section->record_latency)
                 {
                     section->latencies_ns.enqueue(rendered_timestamp.elapsed_ns);
                     while (section->latencies_ns.size() > 40)
                         section->latencies_ns.dequeue();
+                    section->timestamps_ns.enqueue(rendered_timestamp.timestamp_ns);
+                    while (section->timestamps_ns.size() > 40)
+                        section->timestamps_ns.dequeue();
                     section->record_latency = false;
                 }
-                auto latencies_ns(section->latencies_ns);
-                std::sort(latencies_ns.begin(), latencies_ns.end());
-                int discard = latencies_ns.size() / 10;
-                while (discard > 0)
+                QQueue<double> frame_rates;
+                auto timestamps_ns(section->timestamps_ns);
+                if (timestamps_ns.size() > 1)
                 {
-                    if (latencies_ns.size())
-                        latencies_ns.pop_front();
-                    discard -= 1;
+                    for (auto i = 0; i < timestamps_ns.size() - 1; ++i)
+                    {
+                        auto delta_ns = timestamps_ns[i+1] - timestamps_ns[i];
+                        if (delta_ns > 0.0)
+                        {
+                            double frame_rate = 1.0e9 / delta_ns;
+                            frame_rates.push_back(frame_rate);
+                        }
+                    }
                 }
-                Q_FOREACH(quint64 latency_ns, latencies_ns)
-                {
-                    latency_avg_ns += latency_ns;
-                    if (latency_ns < latency_min_ns)
-                        latency_min_ns = latency_ns;
-                    if (latency_ns > latency_max_ns)
-                        latency_max_ns = latency_ns;
-                }
-                double latencyAverageF = (double)latency_avg_ns / latencies_ns.size();
-                latency_avg_ns = (int64_t)latencyAverageF;
-                double sumSquares = 0;
-                Q_FOREACH(quint64 latency_ns, latencies_ns)
-                {
-                    sumSquares += (latency_ns - latencyAverageF) * (latency_ns - latencyAverageF);
-                    latencyListString += " " + QString::number(qRound(latency_ns / 1e6));
-                }
-                latency_std_ns = sqrt(sumSquares / latencies_ns.size() );
+                Measurements latencies_measurement(section->latencies_ns);
+                Measurements frame_rates_measurement(frame_rates);
+                QString latency_text = "Latency " + QString::number(static_cast<int>(qRound(rendered_timestamp.elapsed_ns / 1e6))).rightJustified(4) + latencies_measurement.text();
+                QString frame_rate_text = "Frame Rate" + frame_rates_measurement.textF();
+                drawnTexts.push_back(DrawnText(frame_rate_text, 0, rendered_timestamp.transform));
+                drawnTexts.push_back(DrawnText(latency_text, 1, rendered_timestamp.transform));
             }
-            QString text = "Latency " + QString::number(static_cast<int>(qRound(rendered_timestamp.elapsed_ns / 1e6))).rightJustified(4);
-            QTransform world_transform = rendered_timestamp.transform;
-            if (latency_avg_ns > 0)
-                text += ":" + QString::number(qRound(latency_avg_ns / 1e6)).rightJustified(3) + " ± " + QString::number(latency_std_ns / 1e6, 'f', 1).rightJustified(4) + " [" + QString::number(qRound(latency_min_ns / 1e6)).rightJustified(3) + ":" + QString::number(qRound(latency_max_ns / 1e6)).rightJustified(3) + " ] ";
-            xyzs.push_back(XYZ(text, world_transform));
         }
     }
 
-    for (auto imageAndRect : imageAndRects)
+    for (auto const &imageAndRect : imageAndRects)
     {
         painter.drawImage(imageAndRect.image_rect, *imageAndRect.image);
     }
 
-    for (const XYZ &xyz : xyzs)
+    for (auto const &drawnText : drawnTexts)
     {
         painter.save();
         painter.setRenderHints(DEFAULT_RENDER_HINTS);
         QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
         QFontMetrics fm(text_font);
-        int text_width = fm.horizontalAdvance(xyz.text);
+        int text_width = fm.horizontalAdvance(drawnText.text);
         int text_ascent = fm.ascent();
         int text_height = fm.height();
-        QPointF text_pos(12, 12 + text_height + 16);
-        painter.setWorldTransform(xyz.world_transform);
+        QPointF text_pos(12, text_height + ((text_height + 12) * drawnText.line));
+        painter.setWorldTransform(drawnText.world_transform);
         QPainterPath background;
         background.addRect(text_pos.x() - 4, text_pos.y() - 4, text_width + 8, text_height + 8);
         painter.fillPath(background, Qt::white);
         QPainterPath path;
-        path.addText(text_pos.x(), text_pos.y() + text_ascent, text_font, xyz.text);
+        path.addText(text_pos.x(), text_pos.y() + text_ascent, text_font, drawnText.text);
         painter.fillPath(path, Qt::black);
         painter.restore();
     }
