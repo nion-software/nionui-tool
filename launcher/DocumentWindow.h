@@ -280,10 +280,10 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
 
 struct RenderedTimeStamp
 {
-    RenderedTimeStamp(const QTransform &transform, const int64_t &time_stamp_ns, int section_id, int64_t elapsed_ns = 0, const QString text = QString()) : transform(transform), time_stamp_ns(time_stamp_ns), section_id(section_id), elapsed_ns(elapsed_ns), text(text) { }
+    RenderedTimeStamp(const QTransform &transform, const int64_t &timestamp_ns, int section_id, int64_t elapsed_ns = 0, const QString text = QString()) : transform(transform), timestamp_ns(timestamp_ns), section_id(section_id), elapsed_ns(elapsed_ns), text(text) { }
 
     QTransform transform;
-    int64_t time_stamp_ns;
+    int64_t timestamp_ns;
     int64_t elapsed_ns;
     QString text;
     int section_id;
@@ -532,10 +532,9 @@ public:
     QMap<QString, QVariant> m_imageMap;
     RenderedTimeStamps m_rendered_timestamps;
     QScopedPointer<PyCanvasRenderTask> m_render_task;
-    QMutex latenciesMutex;
     QQueue<int64_t> latencies_ns;
+    QQueue<int64_t> timestamps_ns;
     bool record_latency;
-    RenderedTimeStamps last_rendered_timestamps;
 
     CanvasSection(int section_id, float device_pixel_ratio);
 };
@@ -561,6 +560,12 @@ struct RenderResult
     RenderResult(const QSharedPointer<CanvasSection> &section) : section(section), record_latency(false) { }
 };
 
+/*
+ A task to render a canvas section.
+
+ The rendered timestamps are passed in as const. They are not updated on the section directly and instead a
+ new copy is put into the RenderResult and the section is updated at paint time.
+ */
 class PyCanvasRenderTask : public QRunnable
 {
 public:
