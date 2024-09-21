@@ -639,7 +639,7 @@ private:
     QElapsedTimer m_repaint_timer;
     DocumentWindow *m_queued_window;
 
-    void queueTask(QSharedPointer<CanvasSection> section);
+    PyCanvasRenderTask *queueTask(QSharedPointer<CanvasSection> section);
 };
 
 QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id);
