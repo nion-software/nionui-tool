@@ -959,7 +959,9 @@ static PyObject *Canvas_draw_binary(PyObject * /*self*/, PyObject *args)
 
         QSharedPointer<std::vector<quint32>> command_buffer(new std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4));
 
-        canvas->setBinaryCommands(command_buffer, imageMap);
+        DrawingCommandsSharedPtr drawing_commands(new DrawingCommands(command_buffer, canvas->rect(), imageMap));
+
+        canvas->setBinarySectionCommands(0, drawing_commands);
     }
 
     PythonSupport::instance()->bufferRelease(&buffer);
@@ -994,7 +996,9 @@ static PyObject *Canvas_drawSection_binary(PyObject * /*self*/, PyObject *args)
 
         QSharedPointer<std::vector<quint32>> command_buffer(new std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4));
 
-        canvas->setBinarySectionCommands(section_id, command_buffer, QRect(QPoint(left * display_scaling, top * display_scaling), QSize(width * display_scaling, height * display_scaling)), imageMap);
+        DrawingCommandsSharedPtr drawing_commands(new DrawingCommands(command_buffer, QRect(QPoint(left * display_scaling, top * display_scaling), QSize(width * display_scaling, height * display_scaling)), imageMap));
+
+        canvas->setBinarySectionCommands(section_id, drawing_commands);
     }
 
     PythonSupport::instance()->bufferRelease(&buffer);
