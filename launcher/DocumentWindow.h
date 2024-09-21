@@ -89,7 +89,6 @@ private:
     QVariant m_py_object;
 
     int m_periodic_timer;
-    int m_repaint_timer;
 
     QMutex m_repaint_mutex;
 
@@ -635,8 +634,6 @@ private:
     bool m_pressed;
     unsigned m_grab_mouse_count;
     QPoint m_grab_reference_point;
-    QElapsedTimer m_timer;
-    QElapsedTimer m_repaint_timer;
     DocumentWindow *m_queued_window;
 
     PyCanvasRenderTask *queueTask(QSharedPointer<CanvasSection> section);
