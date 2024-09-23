@@ -957,7 +957,7 @@ static PyObject *Canvas_draw_binary(PyObject * /*self*/, PyObject *args)
     {
         Python_ThreadAllow thread_allow;
 
-        QSharedPointer<std::vector<quint32>> command_buffer(new std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4));
+        CommandsSharedPtr command_buffer(new std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4));
 
         DrawingCommandsSharedPtr drawing_commands(new DrawingCommands(command_buffer, canvas->rect(), imageMap));
 
@@ -994,7 +994,7 @@ static PyObject *Canvas_drawSection_binary(PyObject * /*self*/, PyObject *args)
     {
         Python_ThreadAllow thread_allow;
 
-        QSharedPointer<std::vector<quint32>> command_buffer(new std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4));
+        CommandsSharedPtr command_buffer(new std::vector<quint32>((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4));
 
         DrawingCommandsSharedPtr drawing_commands(new DrawingCommands(command_buffer, QRect(QPoint(left * display_scaling, top * display_scaling), QSize(width * display_scaling, height * display_scaling)), imageMap));
 
@@ -2790,7 +2790,7 @@ static PyObject *DrawingContext_paintRGBAToImage_binary(PyObject * /*self*/, PyO
 
         {
             QPainter painter(&image.image);
-            QSharedPointer<std::vector<quint32>> command_buffer(new std::vector<quint32>());
+            CommandsSharedPtr command_buffer(new std::vector<quint32>());
             command_buffer->assign((quint32 *)buffer.buf, ((quint32 *)buffer.buf) + buffer.len / 4);
             PaintBinaryCommands(&painter, command_buffer, imageMap, RenderedTimeStamps(), 1.0);
         }
