@@ -1636,7 +1636,7 @@ inline QString read_string(const quint32 *commands, unsigned int &command_index)
 
 struct NullDeleter {template<typename T> void operator()(T*) {} };
 
-RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const QSharedPointer<std::vector<quint32>> &commands_v, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling, int section_id, float devicePixelRatio)
+RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsSharedPtr &commands_v, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling, int section_id, float devicePixelRatio)
 {
     QSharedPointer<QPainter> painter(rawPainter, NullDeleter());
 
@@ -2302,23 +2302,23 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const QSharedPointe
     return rendered_timestamps;
 }
 
-PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const QSharedPointer<CanvasSection> &section, const DrawingCommandsSharedPtr &drawing_commands, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
+PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const CanvasSectionSharedPtr &section, const DrawingCommandsSharedPtr &drawing_commands, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
     : m_canvas(canvas)
     , m_section(section)
     , m_drawing_commands(drawing_commands)
     , m_device_pixel_ratio(devicePixelRatio)
     , m_rendered_timestamps(rendered_timestamps)
 {
-    setAutoDelete(false);
+    // NOTE: this class is a QRunnable and auto deletes when the run() method completes.
 }
 
 void PyCanvasRenderTask::run()
 {
     RenderResult render_result(m_section);
 
-    auto const &commands = m_drawing_commands->commands();
-    auto const &rect = m_drawing_commands->rect();
-    auto const &image_map = m_drawing_commands->imageMap();
+    auto const commands = m_drawing_commands->commands();
+    auto const rect = m_drawing_commands->rect();
+    auto const image_map = m_drawing_commands->imageMap();
 
     if (commands && !rect.isEmpty())
     {
@@ -2351,7 +2351,9 @@ CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
     : m_section_id(section_id)
     , m_device_pixel_ratio(device_pixel_ratio)
     , record_latency(false)
+    , m_render_task(nullptr)
 {
+    // m_render_task auto deletes after its run method finishes, so it should not be in a scoped or shared pointer.
 }
 
 
@@ -2401,7 +2403,7 @@ PyCanvas::~PyCanvas()
     while (true)
     {
         bool is_rendering = false;
-        Q_FOREACH(QSharedPointer<CanvasSection> section, m_sections)
+        Q_FOREACH(CanvasSectionSharedPtr section, m_sections)
         {
             if (section->m_render_task)
             {
@@ -2436,16 +2438,21 @@ void PyCanvas::continuePaintingSection(const RenderResult &render_result)
     {
         QMutexLocker locker(&m_sections_mutex);
         auto section = render_result.section;
-        section->m_render_task.reset();
+        // m_render_task is used to determine if the rendering thread is running, so clear it here.
+        // the render task will be auto deleted after its run method finishes, and since this method
+        // is being called from the run method, deleting the m_render_task here would be an error and
+        // lead to crashes.
+        section->m_render_task = nullptr;
         section->m_rendered_timestamps = render_result.rendered_timestamps;
         section->image = render_result.image;
         section->image_rect = render_result.image_rect;
         section->record_latency = render_result.record_latency;
-        auto const &pending_commands = section->m_pending_drawing_commands;
+        auto pending_commands = section->m_pending_drawing_commands;
         section->m_pending_drawing_commands.reset();
         if (pending_commands)
         {
             task = new PyCanvasRenderTask(this, section, pending_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
+            section->m_render_task = task;
         }
         m_document_window = static_cast<DocumentWindow *>(window());
         m_document_window->requestRepaint(this);
@@ -2934,7 +2941,7 @@ void PyCanvas::setBinarySectionCommands(int section_id, const DrawingCommandsSha
     {
         QMutexLocker locker(&m_sections_mutex);
 
-        QSharedPointer<CanvasSection> section;
+        CanvasSectionSharedPtr section;
 
         if (m_sections.contains(section_id))
         {
@@ -2953,7 +2960,7 @@ void PyCanvas::setBinarySectionCommands(int section_id, const DrawingCommandsSha
         if (!section->m_render_task)
         {
             task = new PyCanvasRenderTask(this, section, drawing_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
-            section->m_render_task.reset(task);
+            section->m_render_task = task;
         }
         else
         {
