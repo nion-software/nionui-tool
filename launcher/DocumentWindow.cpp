@@ -150,8 +150,7 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
         QSet<PyCanvas *> repaint_requests;
         {
             QMutexLocker locker(&m_repaint_mutex);
-            repaint_requests = m_repaint_requests;
-            m_repaint_requests.clear();
+            repaint_requests.swap(m_repaint_requests);
         }
         for (auto canvas : repaint_requests)
             canvas->update();
@@ -2320,7 +2319,7 @@ void PyCanvasRenderTask::run()
     auto const rect = m_drawing_commands->rect();
     auto const image_map = m_drawing_commands->imageMap();
 
-    if (commands && !rect.isEmpty())
+    if (commands && !commands->empty() && !rect.isEmpty())
     {
         // create the buffer image at a resolution suitable for the devicePixelRatio of the section's screen.
         QSharedPointer<QImage> image = QSharedPointer<QImage>(new QImage(QSize(rect.width() * m_device_pixel_ratio, rect.height() * m_device_pixel_ratio), QImage::Format_ARGB32_Premultiplied));
