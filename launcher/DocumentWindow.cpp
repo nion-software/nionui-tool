@@ -2340,7 +2340,6 @@ void PyCanvasRenderTask::run()
             render_result.rendered_timestamps.append(RenderedTimeStamp(transform, r.timestamp_ns, r.section_id));
         }
         render_result.record_latency = true;
-        render_result.repaint_rect = rect;
     }
 
     m_canvas->continuePaintingSection(render_result);
@@ -2429,11 +2428,8 @@ PyCanvas::~PyCanvas()
  */
 void PyCanvas::continuePaintingSection(const RenderResult &render_result)
 {
-    auto repaint_rect = render_result.repaint_rect;
-
     PyCanvasRenderTask *task = nullptr;
 
-    if (repaint_rect.has_value)
     {
         QMutexLocker locker(&m_sections_mutex);
         auto section = render_result.section;
@@ -2596,10 +2592,6 @@ void PyCanvas::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event)
 
-    QPainter painter;
-
-    painter.begin(this);
-
     std::list<ImageAndRect> imageAndRects;
     std::list<DrawnText> drawnTexts;
 
@@ -2663,6 +2655,9 @@ void PyCanvas::paintEvent(QPaintEvent *event)
             }
         }
     }
+
+    QPainter painter;
+    painter.begin(this);
 
     for (auto const &imageAndRect : imageAndRects)
     {

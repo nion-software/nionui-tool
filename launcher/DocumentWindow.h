@@ -570,7 +570,6 @@ struct QRectOptional
 struct RenderResult
 {
     CanvasSectionSharedPtr section;
-    QRectOptional repaint_rect;
     RenderedTimeStamps rendered_timestamps;
     QSharedPointer<QImage> image;
     QRect image_rect;
