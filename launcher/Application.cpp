@@ -6374,6 +6374,12 @@ void Application::output(const QString &str)
 Application::Application(int & argv, char **args)
     : QApplication(argv, args)
 {
+#if defined(Q_OS_WIN)
+    // use old style until Qt has sensible text field defaults
+    // see https://github.com/nion-software/nion-instrumentation/issues/421
+    qApp->setStyle("windowsvista");
+#endif
+
     timer.start();
 
     // this default is wrong and should be removed once all applications
