@@ -96,8 +96,6 @@ private:
 
     QScreen *m_screen;
 
-    QSet<PyCanvas *> m_repaint_requests;
-
     Application *application() const;
 
     friend class Application;
@@ -655,7 +653,6 @@ private:
     bool m_pressed;
     unsigned m_grab_mouse_count;
     QPoint m_grab_reference_point;
-    DocumentWindow *m_document_window;
 };
 
 QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id);

@@ -91,6 +91,63 @@ QColor ParseColorString(const QString &color_string)
     return color;
 }
 
+class RepaintManager
+{
+public:
+    RepaintManager()
+    {
+    }
+
+    void requestRepaint(QWidget *window, PyCanvas *canvas)
+    {
+        QMutexLocker locker(&mutex);
+
+        for (const auto &p : requests)
+        {
+            if (p.first == window && p.second == canvas)
+                return;
+        }
+
+        requests.push_back(std::pair<QWidget *, PyCanvas *>(window, canvas));
+    }
+
+    void cancelRepaintRequest(PyCanvas *canvas)
+    {
+        QMutexLocker locker(&mutex);
+
+        std::list<std::pair<QWidget *, PyCanvas *>> new_requests;
+
+        for (const auto &p : requests)
+        {
+            if (p.second != canvas)
+                new_requests.push_back(p);
+        }
+
+        requests = new_requests;
+    }
+
+    void update(QWidget *widget)
+    {
+        // ideally only the passed widget could be updated; the widget may be a QDockWidget
+        // which never calls update; so as a workaround, just update everything and clear the list.
+        // this may be a problem (too many updates) in the future with multiple document windows.
+        QMutexLocker locker(&mutex);
+
+        for (const auto &p : requests)
+        {
+            p.second->update();
+        }
+
+        requests.clear();
+    }
+
+private:
+    QMutex mutex;
+    std::list<std::pair<QWidget *, PyCanvas *>> requests;
+};
+
+RepaintManager repaintManager;
+
 DocumentWindow::DocumentWindow(const QString &title, QWidget *parent)
     : QMainWindow(parent)
     , m_closed(false)
@@ -126,18 +183,6 @@ void DocumentWindow::initialize()
     cleanDocument();
 }
 
-void DocumentWindow::requestRepaint(PyCanvas *canvas)
-{
-    QMutexLocker locker(&m_repaint_mutex);
-    m_repaint_requests.insert(canvas);
-}
-
-void DocumentWindow::cancelRepaintRequest(PyCanvas *canvas)
-{
-    QMutexLocker locker(&m_repaint_mutex);
-    m_repaint_requests.remove(canvas);
-}
-
 Application *DocumentWindow::application() const
 {
     return dynamic_cast<Application *>(QCoreApplication::instance());
@@ -147,14 +192,7 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == m_periodic_timer && isVisible())
     {
-        QSet<PyCanvas *> repaint_requests;
-        {
-            QMutexLocker locker(&m_repaint_mutex);
-            repaint_requests.swap(m_repaint_requests);
-        }
-        for (auto canvas : repaint_requests)
-            canvas->update();
-
+        repaintManager.update(this);
         application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
     }
 }
@@ -2354,7 +2392,6 @@ CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
     // m_render_task auto deletes after its run method finishes, so it should not be in a scoped or shared pointer.
 }
 
-
 /*
  The canvas widget renders low-level drawing commnds in a thread and paints the resulting bitmap.
 
@@ -2387,7 +2424,6 @@ CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
 PyCanvas::PyCanvas()
     : m_pressed(false)
     , m_grab_mouse_count(0)
-    , m_document_window(nullptr)
 {
     setMouseTracking(true);
     setAcceptDrops(true);
@@ -2395,8 +2431,7 @@ PyCanvas::PyCanvas()
 
 PyCanvas::~PyCanvas()
 {
-    if (m_document_window)
-        m_document_window->cancelRepaintRequest(this);
+    repaintManager.cancelRepaintRequest(this);
     QMutexLocker locker(&m_sections_mutex);
     while (true)
     {
@@ -2449,8 +2484,7 @@ void PyCanvas::continuePaintingSection(const RenderResult &render_result)
             task = new PyCanvasRenderTask(this, section, pending_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
             section->m_render_task = task;
         }
-        m_document_window = static_cast<DocumentWindow *>(window());
-        m_document_window->requestRepaint(this);
+        repaintManager.requestRepaint(window(), this);
     }
 
     // launch the task outside of the mutex.
