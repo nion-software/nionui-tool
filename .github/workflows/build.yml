@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04]
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
         qt-version: ["6.7.3"]
     steps:
     - uses: actions/checkout@v4
@@ -102,12 +102,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-13]
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
         architecture: [x86_64]
         qt-version: ["6.7.3"]
         include:
             - os: macos-14
               python-version: "3.12"
+              architecture: arm64
+              qt-version: "6.7.3"
+            - os: macos-14
+              python-version: "3.13"
               architecture: arm64
               qt-version: "6.7.3"
     steps:
@@ -212,7 +216,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
         qt-version: ["6.7.3"]
     steps:
     - uses: actions/checkout@v4
@@ -280,7 +284,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
     - uses: actions/checkout@v4
     - name: Download Wheel
@@ -422,12 +426,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-13]
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
         architecture: [x86_64]
         qt-version: ["6.7.3"]
         include:
             - os: macos-14
               python-version: "3.12"
+              architecture: arm64
+              qt-version: "6.7.3"
+            - os: macos-14
+              python-version: "3.13"
               architecture: arm64
               qt-version: "6.7.3"
     steps:
@@ -579,7 +587,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2019]
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
     - uses: actions/checkout@v4
     - name: Download Wheel

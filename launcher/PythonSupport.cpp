@@ -128,6 +128,7 @@ public:
         directories.push_back(fs->absoluteFilePath(home_bin_path, "/usr/local/Cellar/python@" + version));
 
         std::list<std::string> variants;
+        variants.push_back("libpython3.13.dylib");
         variants.push_back("libpython3.12.dylib");
         variants.push_back("libpython3.11.dylib");
 
@@ -143,6 +144,7 @@ public:
 
     virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
     {
+        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.13.dylib"));
         filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.12.dylib"));
         filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.11.dylib"));
     }
@@ -203,14 +205,17 @@ public:
     virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) override
     {
         std::string homeParentDirectory = fs->parentDirectory(home_bin_path);
+        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.13.so"));
         filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12.so"));
         filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.11/config-3.11-x86_64-linux-gnu/libpython3.11.so"));
+        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.13.so"));
         filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.12.so"));
         filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.11.so"));
     }
 
     virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
     {
+        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.13.so"));
         filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.12.so"));
         filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.11.so"));
     }
@@ -305,6 +310,11 @@ public:
 
     virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) override
     {
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/Python313.dll"));
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Python313.dll"));
+        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python313.dll"));
+        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Python313.dll"));
+
         filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/Python312.dll"));
         filePaths.push_back(fs->absoluteFilePath(python_home, "Python312.dll"));
         filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python312.dll"));
@@ -314,32 +324,20 @@ public:
         filePaths.push_back(fs->absoluteFilePath(python_home, "Python311.dll"));
         filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python311.dll"));
         filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Python311.dll"));
-
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/Python310.dll"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Python310.dll"));
-        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python310.dll"));
-        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Python310.dll"));
-
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/Python39.dll"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Python39.dll"));
-        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python39.dll"));
-        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Python39.dll"));
     }
 
     virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
     {
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Python313.dll"));
         filePaths.push_back(fs->absoluteFilePath(python_home, "Python312.dll"));
         filePaths.push_back(fs->absoluteFilePath(python_home, "Python311.dll"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Python310.dll"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Python39.dll"));
     }
 
     virtual void buildLibraryPaths(FileSystem *fs, const std::string &python_home, const std::string &python_home_new, std::list<std::string> &filePaths) override
     {
+        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python313.zip"));
         filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python312.zip"));
         filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python311.zip"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python310.zip"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python39.zip"));
         filePaths.push_back(fs->absoluteFilePath(python_home_new, "DLLs"));
         filePaths.push_back(fs->absoluteFilePath(python_home_new, "lib"));
         filePaths.push_back(python_home_new);
