@@ -459,6 +459,8 @@ public:
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
 
     virtual void keyPressEvent(QKeyEvent *event) override;
+    virtual void focusInEvent(QFocusEvent *event) override;
+    virtual void focusOutEvent(QFocusEvent *event) override;
 
 private Q_SLOTS:
     void editingFinished();

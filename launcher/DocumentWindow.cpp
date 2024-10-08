@@ -651,6 +651,32 @@ void PyLineEdit::textEdited(const QString &text)
     }
 }
 
+void PyLineEdit::focusInEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        app->dispatchPyMethod(m_py_object, "focusIn", QVariantList());
+    }
+
+    QLineEdit::focusInEvent(event);
+}
+
+void PyLineEdit::focusOutEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event)
+
+    if (m_py_object.isValid())
+    {
+        Application *app = dynamic_cast<Application *>(QCoreApplication::instance());
+        app->dispatchPyMethod(m_py_object, "focusOut", QVariantList());
+    }
+
+    QLineEdit::focusOutEvent(event);
+}
+
 void PyLineEdit::keyPressEvent(QKeyEvent *key_event)
 {
     if (key_event->type() == QEvent::KeyPress)
