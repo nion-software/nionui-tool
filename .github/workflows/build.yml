@@ -335,6 +335,7 @@ jobs:
         echo "Running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack
         sleep 5
+        echo "Re-running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
@@ -368,6 +369,7 @@ jobs:
         conda list
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack
         sleep 5
+        echo "Re-running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Test Conda Forge
       shell: bash -l {0}
@@ -390,6 +392,7 @@ jobs:
         conda list
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack
         sleep 5
+        echo "Re-running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
