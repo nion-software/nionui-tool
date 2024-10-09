@@ -328,6 +328,7 @@ jobs:
         popd
         echo "Running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack
+        echo "Ran test... ${{ env.tool-exe }}"
         sleep 5
         echo "Re-running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
@@ -359,9 +360,10 @@ jobs:
         pushd nionui_app_test
         python -m pip install .
         popd
-        echo "Running test..."
         conda list
+        echo "Running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack
+        echo "Ran test... ${{ env.tool-exe }}"
         sleep 5
         echo "Re-running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
@@ -382,9 +384,10 @@ jobs:
         pushd nionui_app_test
         python -m pip install .
         popd
-        echo "Running test..."
         conda list
+        echo "Running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack
+        echo "Ran test... ${{ env.tool-exe }}"
         sleep 5
         echo "Re-running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
