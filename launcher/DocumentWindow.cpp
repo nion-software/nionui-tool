@@ -2457,7 +2457,9 @@ PyCanvas::PyCanvas()
 
 PyCanvas::~PyCanvas()
 {
+    // cancel any outstanding requests before shutting down the thread.
     repaintManager.cancelRepaintRequest(this);
+    // now shut down the rendering thread by waiting until not rendering.
     QMutexLocker locker(&m_sections_mutex);
     while (true)
     {
@@ -2476,6 +2478,9 @@ PyCanvas::~PyCanvas()
         QThread::msleep(1);
         m_sections_mutex.lock();
     }
+    // and once again cancel outstanding requests that might have been added
+    // during thread shutdown.
+    repaintManager.cancelRepaintRequest(this);
 }
 
 /*
