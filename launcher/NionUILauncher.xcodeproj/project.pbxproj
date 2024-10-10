@@ -262,7 +262,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"${CONFIGURATION}\" != \"XDebug\" ]; then\n    \"$QTDIR/bin/macdeployqt\" \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME\"\n    install_name_tool -rpath @loader_path/../../Contents @loader_path/../../Contents/Frameworks \"$TARGET_BUILD_DIR/$EXECUTABLE_PATH\" || true\n    \"$PYTHONHOME/bin/python3\" fix_deploy.py \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/Frameworks\"\n    \"$PYTHONHOME/bin/python3\" fix_deploy.py \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/PlugIns\"\nfi\n";
+			shellScript = "\"$QTDIR/bin/macdeployqt\" \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME\"\n\ninstall_name_tool -add_rpath \"@loader_path/../../Contents/Frameworks\" \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME/Contents/MacOS/Nion UI Launcher\" || true\n\n/usr/bin/codesign -s - \"$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME\" --entitlements entitlements.xml --options runtime --timestamp --deep --force --verbose\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -317,6 +317,7 @@
 			baseConfigurationReference = FD0ACF42178CDF8300BB53E3 /* targetDebugNionUILauncher.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
@@ -350,6 +351,7 @@
 			baseConfigurationReference = FD0ACF46178CDF8300BB53E3 /* targetReleaseNionUILauncher.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "NionUILauncher-Prefix.pch";
