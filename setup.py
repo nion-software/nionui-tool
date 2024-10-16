@@ -3,6 +3,7 @@ import pathlib
 import platform
 import setuptools
 import sys
+import sysconfig
 import typing
 
 tool_id = "nionui"
@@ -69,7 +70,7 @@ dest_drop = None
 if sys.platform == "darwin":
     python_tag = "cp310.cp311.cp312"
     abi_tag = "abi3"
-    platform_tag = f"macosx_11_0_arm64" if platform.processor() == "arm" else "macosx_11_0_intel"
+    platform_tag = sysconfig.get_platform().replace("-", "_").replace(".", "_")
     dest = "bin"
     dir_path = "launcher/build/Release"
     dest_drop = 3

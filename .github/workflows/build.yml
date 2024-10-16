@@ -44,7 +44,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install setuptools --upgrade
-        python -m pip install packaging
+        python -m pip install packaging build cibuildwheel
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON"
@@ -70,7 +70,7 @@ jobs:
         chrpath -r "\$ORIGIN/../.." launcher/linux/x64/plugins/platforms/libqxcb.so
         chrpath -r "\$ORIGIN/../.." launcher/linux/x64/plugins/imageformats/*.so
         printf "[Paths]\nPrefix=.\nPlugins=plugins\n" > launcher/linux/x64/qt.conf
-        python setup.py bdist_wheel
+        python -m build .
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v3
       with:
@@ -101,7 +101,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12]
+        os: [macos-13]
         python-version: ["3.11", "3.12"]
         architecture: [x86_64]
         qt-version: ["6.7.3"]
@@ -138,7 +138,7 @@ jobs:
         APPNAME="Nion UI Launcher"
         python -m pip install --upgrade pip
         python -m pip install --upgrade setuptools
-        python -m pip install packaging
+        python -m pip install packaging build cibuildwheel
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON"
@@ -175,7 +175,11 @@ jobs:
         mv build/*.app build/Release
         tar -czf "build/Release/$APPNAME.app.tar.gz" "build/Release/$APPNAME.app"
         popd
-        python setup.py bdist_wheel
+        PYTHON_VERSION_COMPRESSED=$(echo "${{ matrix.python-version }}" | sed 's/\.//g')
+        export CIBW_ARCHS_MACOS="${{ matrix.architecture }}"
+        export CIBW_BUILD=cp$PYTHON_VERSION_COMPRESSED-macosx_${{ matrix.architecture }}
+        export CIBW_REPAIR_WHEEL_COMMAND=""
+        python -m cibuildwheel --output-dir dist
     - name: Upload Wheel
       uses: actions/upload-artifact@v4
       with:
@@ -233,7 +237,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install --upgrade setuptools
-        python -m pip install packaging
+        python -m pip install packaging build cibuildwheel
         pushd launcher
         $PYTHON_EXEC = python -c "import sys; print(sys.executable, end='')"
         cmake CMakeLists.txt -DPython3_EXECUTABLE="$PYTHON_EXEC"
@@ -243,7 +247,7 @@ jobs:
         Remove-Item -Recurse -Force x64\*
         Move-Item -Path build\Release -Destination x64
         popd
-        python setup.py bdist_wheel
+        python -m build .
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v3
       with:
@@ -298,6 +302,8 @@ jobs:
     - name: Virtual screen
       shell: bash
       run: |
+        # update package list. see https://github.com/actions/runner-images/issues/10785#issuecomment-2420741561
+        sudo apt-get update
         sudo apt-get install xvfb -y
         # libopengl0: see https://bugreports.qt.io/browse/QTBUG-89754
         sudo apt-get install libopengl0 -y
@@ -415,7 +421,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12]
+        os: [macos-13]
         python-version: ["3.11", "3.12"]
         architecture: [x86_64]
         qt-version: ["6.7.3"]
