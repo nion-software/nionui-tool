@@ -82,6 +82,7 @@ jobs:
       run: |
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
+        conda update --all -q -y
         conda install -q conda-build -y
         conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
         OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
@@ -201,6 +202,7 @@ jobs:
       run: |
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
+        conda update --all -q -y
         conda install -q conda-build -y
         conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
         OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
@@ -263,6 +265,7 @@ jobs:
       run: |
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
+        conda update --all -q -y
         conda install -q conda-build -y
         conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
         OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
