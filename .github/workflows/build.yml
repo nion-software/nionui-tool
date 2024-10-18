@@ -20,7 +20,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         python-version: ["3.11", "3.12"]
-        qt-version: ["6.7.3"]
+        qt-version: ["6.8.0"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -104,12 +104,12 @@ jobs:
         os: [macos-13]
         python-version: ["3.11", "3.12"]
         architecture: [x86_64]
-        qt-version: ["6.7.3"]
+        qt-version: ["6.8.0"]
         include:
             - os: macos-14
               python-version: "3.12"
               architecture: arm64
-              qt-version: "6.7.3"
+              qt-version: "6.8.0"
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -213,7 +213,7 @@ jobs:
       matrix:
         os: [windows-2019]
         python-version: ["3.11", "3.12"]
-        qt-version: ["6.7.3"]
+        qt-version: ["6.8.0"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -231,7 +231,7 @@ jobs:
         version: ${{ matrix.qt-version }}
         host: 'windows'
         target: 'desktop'
-        arch: 'win64_msvc2019_64'
+        arch: 'win64_msvc2022_64'
     - name: Build
       shell: pwsh
       run: |
@@ -334,7 +334,9 @@ jobs:
         popd
         echo "Running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack
+        echo "Ran test... ${{ env.tool-exe }}"
         sleep 5
+        echo "Re-running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
@@ -364,10 +366,12 @@ jobs:
         pushd nionui_app_test
         python -m pip install .
         popd
-        echo "Running test..."
         conda list
+        echo "Running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack
+        echo "Ran test... ${{ env.tool-exe }}"
         sleep 5
+        echo "Re-running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Test Conda Forge
       shell: bash -l {0}
@@ -386,10 +390,12 @@ jobs:
         pushd nionui_app_test
         python -m pip install .
         popd
-        echo "Running test..."
         conda list
+        echo "Running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack
+        echo "Ran test... ${{ env.tool-exe }}"
         sleep 5
+        echo "Re-running test... ${{ env.tool-exe }}"
         xvfb-run ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
@@ -424,12 +430,12 @@ jobs:
         os: [macos-13]
         python-version: ["3.11", "3.12"]
         architecture: [x86_64]
-        qt-version: ["6.7.3"]
+        qt-version: ["6.8.0"]
         include:
             - os: macos-14
               python-version: "3.12"
               architecture: arm64
-              qt-version: "6.7.3"
+              qt-version: "6.8.0"
     steps:
     - uses: actions/checkout@v4
     - name: Download Wheel
