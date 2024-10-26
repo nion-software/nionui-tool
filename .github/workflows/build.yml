@@ -728,7 +728,7 @@ jobs:
       shell: bash
       run: |
         mkdir dist
-        find . -name "*cp39*.whl" -exec cp {} dist \;
+        find . -name "*cp311*.whl" -exec cp {} dist \;
         ls -Rl .
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1

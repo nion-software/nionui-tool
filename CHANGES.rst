@@ -1,13 +1,17 @@
 Changelog (nionui-tool)
 =======================
 
-0.5.0 (UNRELEASED)
+5.0.0 (2024-10-26)
 ------------------
 - Eliminate dependence on NumPy for build.
+- Rework threaded painting to simplify and for performance.
 - Re-enable radio button auto-exclusive to fix deselectable radio button issue. See nionui#76.
 - Disable scroll wheel support in combo box to prevent inspector scrolling issues.
 - Improve latency display (requires Python 3.12 to work properly).
 - Add text alignment functions.
+- Ensure Window 10 text field styling is used.
+- Add suppoort for Python 3.13; drop Python 3.9, 3.10.
+- Update to Qt 6.8.0.
 
 0.4.24 (2024-06-12)
 -------------------
