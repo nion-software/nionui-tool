@@ -648,6 +648,7 @@ public:
     void continuePaintingSection(const RenderResult &render_result);
 
 private:
+    bool m_closing;
     QVariant m_py_object;
     QMutex m_sections_mutex;
     QMap<int, CanvasSectionSharedPtr> m_sections;
