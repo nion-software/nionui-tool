@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+5.0.1 (2024-11-14)
+------------------
+- Fix possible crash when closing canvas items.
+
 5.0.0 (2024-10-26)
 ------------------
 - Eliminate dependence on NumPy for build.
