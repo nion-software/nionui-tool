@@ -98,44 +98,44 @@ public:
     {
     }
 
-    void requestRepaint(QWidget *window, PyCanvas *canvas)
+    void requestRepaint(PyCanvas *canvas)
     {
         QMutexLocker locker(&mutex);
 
-        for (const auto &p : requests)
+        for (const auto &r : requests)
         {
-            if (p.first == window && p.second == canvas)
+            if (r == canvas)
                 return;
         }
 
-        requests.push_back(std::pair<QWidget *, PyCanvas *>(window, canvas));
+        requests.push_back(canvas);
     }
 
     void cancelRepaintRequest(PyCanvas *canvas)
     {
         QMutexLocker locker(&mutex);
 
-        std::list<std::pair<QWidget *, PyCanvas *>> new_requests;
+        std::list<PyCanvas *> new_requests;
 
-        for (const auto &p : requests)
+        for (const auto &r : requests)
         {
-            if (p.second != canvas)
-                new_requests.push_back(p);
+            if (r != canvas)
+                new_requests.push_back(r);
         }
 
         requests = new_requests;
     }
 
-    void update(QWidget *widget)
+    void update()
     {
         // ideally only the passed widget could be updated; the widget may be a QDockWidget
         // which never calls update; so as a workaround, just update everything and clear the list.
         // this may be a problem (too many updates) in the future with multiple document windows.
         QMutexLocker locker(&mutex);
 
-        for (const auto &p : requests)
+        for (const auto &r : requests)
         {
-            p.second->update();
+            r->update();
         }
 
         requests.clear();
@@ -143,7 +143,7 @@ public:
 
 private:
     QMutex mutex;
-    std::list<std::pair<QWidget *, PyCanvas *>> requests;
+    std::list<PyCanvas *> requests;
 };
 
 RepaintManager repaintManager;
@@ -192,7 +192,7 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == m_periodic_timer && isVisible())
     {
-        repaintManager.update(this);
+        repaintManager.update();
         application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
     }
 }
@@ -2448,7 +2448,8 @@ CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
  */
 
 PyCanvas::PyCanvas()
-    : m_pressed(false)
+    : m_closing(false)
+    , m_pressed(false)
     , m_grab_mouse_count(0)
 {
     setMouseTracking(true);
@@ -2457,6 +2458,7 @@ PyCanvas::PyCanvas()
 
 PyCanvas::~PyCanvas()
 {
+    m_closing = true;
     // cancel any outstanding requests before shutting down the thread.
     repaintManager.cancelRepaintRequest(this);
     // now shut down the rendering thread by waiting until not rendering.
@@ -2510,12 +2512,15 @@ void PyCanvas::continuePaintingSection(const RenderResult &render_result)
         section->record_latency = render_result.record_latency;
         auto pending_commands = section->m_pending_drawing_commands;
         section->m_pending_drawing_commands.reset();
-        if (pending_commands)
+        // do not start a new task if closing.
+        if (!m_closing && pending_commands)
         {
             task = new PyCanvasRenderTask(this, section, pending_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
             section->m_render_task = task;
         }
-        repaintManager.requestRepaint(window(), this);
+        // note: this may be occurring during a delete, in which case even the window may not be available.
+        if (!m_closing)
+            repaintManager.requestRepaint(this);
     }
 
     // launch the task outside of the mutex.
@@ -3000,30 +3005,35 @@ void PyCanvas::setBinarySectionCommands(int section_id, const DrawingCommandsSha
     {
         QMutexLocker locker(&m_sections_mutex);
 
-        CanvasSectionSharedPtr section;
+        // this request can come in on a thread during shutdown and add a new request
+        // after the destructor has synced threading. so check if closing before proceeding.
+        if (!m_closing)
+        {
+            CanvasSectionSharedPtr section;
 
-        if (m_sections.contains(section_id))
-        {
-            section = m_sections[section_id];
-        }
-        else
-        {
-            auto screen = this->screen();
-            auto device_pixel_ratio = screen ? screen->devicePixelRatio() : 1.0;  // m_screen may be nullptr in earlier versions of Qt
-            section.reset(new CanvasSection(section_id, device_pixel_ratio));
-            m_sections[section_id] = section;
-        }
+            if (m_sections.contains(section_id))
+            {
+                section = m_sections[section_id];
+            }
+            else
+            {
+                auto screen = this->screen();
+                auto device_pixel_ratio = screen ? screen->devicePixelRatio() : 1.0;  // m_screen may be nullptr in earlier versions of Qt
+                section.reset(new CanvasSection(section_id, device_pixel_ratio));
+                m_sections[section_id] = section;
+            }
 
-        pending_drawing_commands = section->m_pending_drawing_commands;
+            pending_drawing_commands = section->m_pending_drawing_commands;
 
-        if (!section->m_render_task)
-        {
-            task = new PyCanvasRenderTask(this, section, drawing_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
-            section->m_render_task = task;
-        }
-        else
-        {
-            section->m_pending_drawing_commands = drawing_commands;
+            if (!section->m_render_task)
+            {
+                task = new PyCanvasRenderTask(this, section, drawing_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
+                section->m_render_task = task;
+            }
+            else
+            {
+                section->m_pending_drawing_commands = drawing_commands;
+            }
         }
     }
 
@@ -3035,6 +3045,18 @@ void PyCanvas::setBinarySectionCommands(int section_id, const DrawingCommandsSha
 void PyCanvas::removeSection(int section_id)
 {
     QMutexLocker locker(&m_sections_mutex);
+
+    // ensure the section is not pending before removing.
+    auto section = m_sections[section_id];
+    while (true)
+    {
+        if (!section->m_render_task)
+            break;
+        m_sections_mutex.unlock();
+        QThread::msleep(1);
+        m_sections_mutex.lock();
+    }
+
     m_sections.remove(section_id);
 }
 
