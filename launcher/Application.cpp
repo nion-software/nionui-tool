@@ -1597,6 +1597,38 @@ static PyObject *Core_getQtVersion(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->build()("s", qVersion());
 }
 
+#define Q0(x) x
+#define Q(x) Q0(x)
+
+static PyObject *Core_getBuildVersion(PyObject * /*self*/, PyObject *args)
+{
+    Q_UNUSED(args)
+
+    QVariantMap buildVersion;
+
+    // note: these defines are expected to be quoted
+
+#if defined(GIT_REPO)
+    QString repo = QString(Q(GIT_REPO));
+    if (!repo.isEmpty())
+        buildVersion["repo"] = QString(repo);
+#endif
+
+#if defined(GIT_REF)
+    QString ref = QString(Q(GIT_REF));
+    if (!ref.isEmpty())
+        buildVersion["reference"] = QString(ref);
+#endif
+
+#if defined(GIT_SHA)
+    QString sha = QString(Q(GIT_SHA));
+    if (!sha.isEmpty())
+        buildVersion["sha"] = QString(sha);
+#endif
+
+    return QVariantToPyObject(buildVersion);
+}
+
 static PyObject *Core_getLocation(PyObject * /*self*/, PyObject *args)
 {
     char *location_c = NULL;
@@ -6479,6 +6511,7 @@ static PyMethodDef Methods[] = {
     {"Core_getFontMetrics", Core_getFontMetrics, METH_VARARGS, "Core_getFontMetrics."},
     {"Core_getLocation", Core_getLocation, METH_VARARGS, "Core_getLocation."},
     {"Core_getQtVersion", Core_getQtVersion, METH_VARARGS, "Core_getQtVersion."},
+    {"Core_getBuildVersion", Core_getBuildVersion, METH_VARARGS, "Core_getBuildVersion."},
     {"Core_out", Core_out, METH_VARARGS, "Core_out."},
     {"Core_pathToURL", Core_pathToURL, METH_VARARGS, "Core_pathToURL."},
     {"Core_setApplicationInfo", Core_setApplicationInfo, METH_VARARGS, "Core_setApplicationInfo."},

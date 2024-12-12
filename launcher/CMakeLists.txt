@@ -1,5 +1,3 @@
-# NOTE: requires Python 3.7 build environment so that _Py_DECREF is inlined.
-
 # https://doc.qt.io/qt-5/cmake-get-started.html#build-a-gui-executable
 # https://gitlab.kitware.com/cmake/cmake/issues/19820
 # https://cmake.org/cmake/help/latest/prop_tgt/MACOSX_BUNDLE_INFO_PLIST.html
@@ -36,6 +34,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 COMPONENTS Core Gui Widgets REQUIRED)
 qt_standard_project_setup()
 add_compile_definitions(QT_NO_KEYWORDS)
+add_compile_definitions(GIT_REPO="${GIT_REPO}")
+add_compile_definitions(GIT_REF="${GIT_REF}")
+add_compile_definitions(GIT_SHA="${GIT_SHA}")
 
 # set up Python
 find_package (Python3 COMPONENTS Development)
