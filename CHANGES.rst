@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+5.1.0 (2025-01-10)
+------------------
+- Add support for querying build version.
+
 5.0.1 (2024-11-14)
 ------------------
 - Fix possible crash when closing canvas items.
