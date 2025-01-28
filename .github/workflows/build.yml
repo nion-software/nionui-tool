@@ -96,7 +96,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
-        path: dist/*.tar.bz2
+        path: dist/*.conda
   build_macos:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -211,7 +211,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.architecture }}-${{ matrix.python-version }}
-        path: dist/*.tar.bz2
+        path: dist/*.conda
   build_win:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -279,7 +279,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
-        path: dist/*.tar.bz2
+        path: dist/*.conda
   test_linux:
     needs: build_linux
     runs-on: ${{ matrix.os }}
@@ -371,7 +371,7 @@ jobs:
         pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
         pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
         # conda install -q -y -c nion ${{ env.tool-package }}
-        conda install -q -y ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        conda install -q -y ${{steps.download_conda.outputs.download-path}}/*.conda
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -395,7 +395,7 @@ jobs:
         pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
         pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
         # conda install -q -y -c nion -c conda-forge ${{ env.tool-package }}
-        conda install -q -y -c conda-forge ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        conda install -q -y -c conda-forge ${{steps.download_conda.outputs.download-path}}/*.conda
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -424,7 +424,7 @@ jobs:
         echo "directory list"
         ls -Rl ${{steps.download_conda.outputs.download-path}}
         echo "anaconda upload"
-        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.tar.bz2
+        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.conda
         echo "deactivate"
         conda deactivate
         echo "popd"
@@ -541,7 +541,7 @@ jobs:
         pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
         pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
         # conda install -q -y -c nion ${{ env.tool-package }}
-        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.tar.bz2")
+        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.conda")
         echo "Installing '$FILENAME'"
         conda install -q -y -c conda-forge $FILENAME
         pushd nionui_app_test
@@ -565,7 +565,7 @@ jobs:
         pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
         pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
         # conda install -q -y -c nion -c conda-forge ${{ env.tool-package }}
-        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.tar.bz2")
+        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.conda")
         echo "Installing '$FILENAME'"
         conda install -q -y -c conda-forge $FILENAME
         pushd nionui_app_test
@@ -585,7 +585,7 @@ jobs:
         pushd conda_build
         conda create -n upload-env -q conda-build anaconda-client -y
         conda activate upload-env
-        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.tar.bz2")
+        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.conda")
         echo "Send to Anaconda '$FILENAME'"
         anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing $FILENAME
         conda deactivate
@@ -665,7 +665,7 @@ jobs:
         pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
         pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
         # conda install -q -y -c nion ${{ env.tool-package }}
-        $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
+        $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.conda
         conda install -q -y ${{steps.download_conda.outputs.download-path}}\$filename
         pushd nionui_app_test
         python -m pip install .
@@ -687,7 +687,7 @@ jobs:
         pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
         pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
         # conda install -q -y -c nion -c conda-forge ${{ env.tool-package }}
-        $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.tar.bz2
+        $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.conda
         conda install -q -y -c conda-forge ${{steps.download_conda.outputs.download-path}}\$filename
         pushd nionui_app_test
         python -m pip install .
@@ -706,7 +706,7 @@ jobs:
         pushd conda_build
         conda create -n upload-env -q conda-build anaconda-client -y
         conda activate upload-env
-        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.tar.bz2")
+        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.conda")
         echo "Send to Anaconda '$FILENAME'"
         anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing $FILENAME
         conda deactivate
