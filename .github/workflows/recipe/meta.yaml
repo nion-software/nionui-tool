@@ -6,7 +6,7 @@
 {% set win_exe = "NionUILauncher" %}
 {% set summary = "A native launcher for Nion UI apps." %}
 
-{% set version = "5.1.0" %}
+{% set version = "5.1.1" %}
 
 {% set name_u = name|replace('-', '_') %}
 

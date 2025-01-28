@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+5.1.1 (2025-01-28)
+------------------
+- Eliminate a possible deadlock when removing sections.
+
 5.1.0 (2025-01-10)
 ------------------
 - Add support for querying build version.
