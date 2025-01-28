@@ -552,6 +552,7 @@ public:
     QQueue<int64_t> latencies_ns;
     QQueue<int64_t> timestamps_ns;
     bool record_latency;
+    bool closing;
 
     CanvasSection(int section_id, float device_pixel_ratio);
 };
@@ -642,8 +643,6 @@ public:
 
     void grabMouse0(const QPoint &gp);
     void releaseMouse0();
-
-    QElapsedTimer total_timer;
 
     void continuePaintingSection(const RenderResult &render_result);
 

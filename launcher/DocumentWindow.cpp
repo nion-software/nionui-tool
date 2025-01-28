@@ -2414,6 +2414,7 @@ CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
     , m_device_pixel_ratio(device_pixel_ratio)
     , record_latency(false)
     , m_render_task(nullptr)
+    , closing(false)
 {
     // m_render_task auto deletes after its run method finishes, so it should not be in a scoped or shared pointer.
 }
@@ -2513,13 +2514,13 @@ void PyCanvas::continuePaintingSection(const RenderResult &render_result)
         auto pending_commands = section->m_pending_drawing_commands;
         section->m_pending_drawing_commands.reset();
         // do not start a new task if closing.
-        if (!m_closing && pending_commands)
+        if (!m_closing && !section->closing && pending_commands)
         {
             task = new PyCanvasRenderTask(this, section, pending_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
             section->m_render_task = task;
         }
         // note: this may be occurring during a delete, in which case even the window may not be available.
-        if (!m_closing)
+        if (!m_closing && !section->closing)
             repaintManager.requestRepaint(this);
     }
 
@@ -3025,7 +3026,7 @@ void PyCanvas::setBinarySectionCommands(int section_id, const DrawingCommandsSha
 
             pending_drawing_commands = section->m_pending_drawing_commands;
 
-            if (!section->m_render_task)
+            if (!section->closing)
             {
                 task = new PyCanvasRenderTask(this, section, drawing_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
                 section->m_render_task = task;
@@ -3048,13 +3049,20 @@ void PyCanvas::removeSection(int section_id)
 
     // ensure the section is not pending before removing.
     auto section = m_sections[section_id];
+    section->closing = true;
     while (true)
     {
         if (!section->m_render_task)
             break;
-        m_sections_mutex.unlock();
-        QThread::msleep(1);
-        m_sections_mutex.lock();
+
+        // when closing a section, it may need to render to Python and this method
+        // may be called from Python. so allow Python threads in the wait-loop.
+        {
+            Python_ThreadAllow thread_allow;
+            m_sections_mutex.unlock();
+            QThread::msleep(1);
+            m_sections_mutex.lock();
+        }
     }
 
     m_sections.remove(section_id);
