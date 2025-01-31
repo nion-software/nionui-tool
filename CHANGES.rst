@@ -1,7 +1,7 @@
 Changelog (nionui-tool)
 =======================
 
-5.1.1 (2025-01-28)
+5.1.2 (2025-01-30)
 ------------------
 - Eliminate a possible deadlock when removing sections.
 

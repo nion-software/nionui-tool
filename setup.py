@@ -9,7 +9,7 @@ import typing
 tool_id = "nionui"
 launcher = "NionUILauncher"
 
-version = "5.1.1"
+version = "5.1.2"
 
 
 def package_files(directory: str, prefix: str, prefix_drop: int) -> list[typing.Tuple[str, list[str]]]:
