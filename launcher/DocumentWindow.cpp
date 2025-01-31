@@ -3026,7 +3026,7 @@ void PyCanvas::setBinarySectionCommands(int section_id, const DrawingCommandsSha
 
             pending_drawing_commands = section->m_pending_drawing_commands;
 
-            if (!section->closing)
+            if (!section->m_render_task && !section->closing)
             {
                 task = new PyCanvasRenderTask(this, section, drawing_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
                 section->m_render_task = task;
