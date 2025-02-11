@@ -47,7 +47,7 @@ jobs:
         python -m pip install packaging build cibuildwheel
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
-        cmake CMakeLists.txt -DGIT_REPO=${{ github.repository }} -DGIT_REF=${{ github.ref }} -DGIT_SHA=${{ github.sha }}
+        cmake CMakeLists.txt -DGIT_REPO=${{ github.repository }} -DGIT_REF="${{ github.ref }}" -DGIT_SHA=${{ github.sha }}
         cmake --build . --config Release
         mkdir -p linux
         mv build linux/x64
@@ -146,7 +146,7 @@ jobs:
         python -m pip install packaging build cibuildwheel
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
-        cmake CMakeLists.txt -DGIT_REPO=${{ github.repository }} -DGIT_REF=${{ github.ref }} -DGIT_SHA=${{ github.sha }}
+        cmake CMakeLists.txt -DGIT_REPO=${{ github.repository }} -DGIT_REF="${{ github.ref }}" -DGIT_SHA=${{ github.sha }}
         cmake --build . --config Release
         pushd build
         echo -n "$MACOS_CERTIFICATE" | base64 -d > certificate.p12
@@ -246,7 +246,7 @@ jobs:
         python -m pip install packaging build cibuildwheel
         pushd launcher
         $PYTHON_EXEC = python -c "import sys; print(sys.executable, end='')"
-        cmake CMakeLists.txt -DGIT_REPO=${{ github.repository }} -DGIT_REF=${{ github.ref }} -DGIT_SHA=${{ github.sha }}
+        cmake CMakeLists.txt -DGIT_REPO=${{ github.repository }} -DGIT_REF="${{ github.ref }}" -DGIT_SHA=${{ github.sha }}
         cmake --build . --config Release
         Get-ChildItem -Include *.pdb -Recurse | foreach { $_.Delete() }
         Get-ChildItem build\Release\imageformats -Include *d.dll -Recurse | foreach { $_.Delete() }
