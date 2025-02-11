@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         python-version: ["3.11", "3.12", "3.13"]
         qt-version: ["6.8.2"]
     steps:
@@ -286,7 +286,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os: [ubuntu-22.04, ubuntu-24.04]
         python-version: ["3.11", "3.12", "3.13"]
     steps:
     - uses: actions/checkout@v4
@@ -407,7 +407,7 @@ jobs:
         sleep 5
         conda deactivate
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-20.04'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-22.04'
       shell: bash -l {0}
       run: |
         # make a directory to avoid name conflicts with the channel. argh.
