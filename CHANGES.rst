@@ -1,6 +1,11 @@
 Changelog (nionui-tool)
 =======================
 
+5.1.3 (2025-02-11)
+------------------
+- Fix issue with reporting build version.
+- Update to Qt 6.8.2.
+
 5.1.2 (2025-01-30)
 ------------------
 - Eliminate a possible deadlock when removing sections.
@@ -8,6 +13,7 @@ Changelog (nionui-tool)
 5.1.0 (2025-01-10)
 ------------------
 - Add support for querying build version.
+- Update to Qt 6.8.1.
 
 5.0.1 (2024-11-14)
 ------------------
@@ -22,7 +28,7 @@ Changelog (nionui-tool)
 - Improve latency display (requires Python 3.12 to work properly).
 - Add text alignment functions.
 - Ensure Window 10 text field styling is used.
-- Add suppoort for Python 3.13; drop Python 3.9, 3.10.
+- Add support for Python 3.13; drop Python 3.9, 3.10.
 - Update to Qt 6.8.0.
 
 0.4.24 (2024-06-12)
