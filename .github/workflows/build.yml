@@ -66,6 +66,8 @@ jobs:
         cp ../Qt/${{ matrix.qt-version }}/gcc_64/plugins/platforms/libqxcb.so launcher/linux/x64/plugins/platforms
         cp ../Qt/${{ matrix.qt-version }}/gcc_64/plugins/imageformats/libq* launcher/linux/x64/plugins/imageformats
         rm launcher/linux/x64/plugins/imageformats/libqsvg.so
+        sudo apt-get update
+        sudo apt-get -y install chrpath
         chrpath -r "\$ORIGIN" launcher/linux/x64/libicu*.so.73
         chrpath -r "\$ORIGIN/../.." launcher/linux/x64/plugins/platforms/libqxcb.so
         chrpath -r "\$ORIGIN/../.." launcher/linux/x64/plugins/imageformats/*.so
