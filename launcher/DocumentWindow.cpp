@@ -3143,7 +3143,7 @@ void PyCanvas::dragMoveEvent(QDragMoveEvent *event)
         }
         else
         {
-            QWidget::dragMoveEvent(event);
+            event->ignore();
         }
     }
     else
