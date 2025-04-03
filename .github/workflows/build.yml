@@ -20,7 +20,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         python-version: ["3.11", "3.12", "3.13"]
-        qt-version: ["6.8.3"]
+        qt-version: ["6.9.0"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -107,16 +107,16 @@ jobs:
         os: [macos-13]
         python-version: ["3.11", "3.12", "3.13"]
         architecture: [x86_64]
-        qt-version: ["6.8.3"]
+        qt-version: ["6.9.0"]
         include:
             - os: macos-14
               python-version: "3.12"
               architecture: arm64
-              qt-version: "6.8.3"
+              qt-version: "6.9.0"
             - os: macos-14
               python-version: "3.13"
               architecture: arm64
-              qt-version: "6.8.3"
+              qt-version: "6.9.0"
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -219,9 +219,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019]
+        os: [windows-2022]
         python-version: ["3.11", "3.12", "3.13"]
-        qt-version: ["6.8.3"]
+        qt-version: ["6.9.0"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -440,16 +440,16 @@ jobs:
         os: [macos-13]
         python-version: ["3.11", "3.12", "3.13"]
         architecture: [x86_64]
-        qt-version: ["6.8.3"]
+        qt-version: ["6.9.0"]
         include:
             - os: macos-14
               python-version: "3.12"
               architecture: arm64
-              qt-version: "6.8.3"
+              qt-version: "6.9.0"
             - os: macos-14
               python-version: "3.13"
               architecture: arm64
-              qt-version: "6.8.3"
+              qt-version: "6.9.0"
     steps:
     - uses: actions/checkout@v4
     - name: Download Wheel
@@ -598,7 +598,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019]
+        os: [windows-2022]
         python-version: ["3.11", "3.12", "3.13"]
     steps:
     - uses: actions/checkout@v4
@@ -700,7 +700,7 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2019'
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2022'
       shell: bash -l {0}
       run: |
         # make a directory to avoid name conflicts with the channel. argh.
