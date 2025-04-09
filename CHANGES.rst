@@ -1,6 +1,11 @@
 Changelog (nionui-tool)
 =======================
 
+5.1.4 (2025-04-09)
+------------------
+- Fix issue drag and drop cursor handling.
+- Update to Qt 6.9.0.
+
 5.1.3 (2025-02-11)
 ------------------
 - Fix issue with reporting build version.
