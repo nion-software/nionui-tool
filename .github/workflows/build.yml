@@ -221,12 +221,18 @@ jobs:
       matrix:
         os: [windows-2022]
         python-version: ["3.11", "3.12", "3.13"]
+        arch_dir: ["x64"]
         qt-version: ["6.9.0"]
+        qt-host: ["windows"]
+        qt-arch: ["win64_msvc2022_64"]
         include:
             - os: windows-11-arm
               python-version: "3.13"
+              arch_dir: "arm64"
               architecture: arm64
               qt-version: "6.9.0"
+              qt-host: "windows_arm64"
+              qt-arch: "win64_msvc2022_arm64"
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -242,9 +248,9 @@ jobs:
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ matrix.qt-version }}
-        host: 'windows'
+        host: ${{ matrix.qt-host }}
         target: 'desktop'
-        arch: 'win64_msvc2022_64'
+        arch: ${{ matrix.qt-arch }}
     - name: Build
       shell: pwsh
       run: |
@@ -257,15 +263,15 @@ jobs:
         cmake --build . --config Release
         Get-ChildItem -Include *.pdb -Recurse | foreach { $_.Delete() }
         Get-ChildItem build\Release\imageformats -Include *d.dll -Recurse | foreach { $_.Delete() }
-        Remove-Item -Recurse -Force x64\*
-        Move-Item -Path build\Release -Destination x64
+        Remove-Item -Recurse -Force ${{ matrix.arch_dir }}\*
+        Move-Item -Path build\Release -Destination ${{ matrix.arch_dir }}
         popd
         python -m build .
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
-        python-version: "3.11"
+        python-version: "3.13"
         miniconda-version: "latest"
     - name: Build Conda Package
       shell: bash -l {0}
