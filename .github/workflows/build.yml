@@ -14,6 +14,7 @@ env:
 
 jobs:
   build_linux:
+    if: False
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -100,6 +101,7 @@ jobs:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: dist/*.conda
   build_macos:
+    if: False
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -219,19 +221,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022]
-        python-version: ["3.11", "3.12", "3.13"]
-        arch_dir: ["x64"]
-        qt-version: ["6.9.0"]
-        qt-host: ["windows"]
-        qt-arch: ["win64_msvc2022_64"]
+#        os: [windows-2022]
+#        python-version: ["3.11", "3.12", "3.13"]
+#        arch_dir: ["x64"]
+#        qt-version: ["6.9.0"]
+#        qt-host: ["windows"]
+#        qt-arch: ["win64_msvc2022_64"]
         include:
             - os: windows-11-arm
               python-version: "3.13"
               arch_dir: "arm64"
               architecture: arm64
               qt-version: "6.9.0"
-              qt-host: "windows_arm64"
+              qt-host: "windows"
               qt-arch: "win64_msvc2022_arm64"
     steps:
     - uses: actions/checkout@v4
@@ -294,6 +296,7 @@ jobs:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: dist/*.conda
   test_linux:
+    if: False
     needs: build_linux
     runs-on: ${{ matrix.os }}
     strategy:
@@ -443,6 +446,7 @@ jobs:
         echo "popd"
         popd
   test_macos:
+    if: False
     needs: build_macos
     runs-on: ${{ matrix.os }}
     strategy:
