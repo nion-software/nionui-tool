@@ -222,6 +222,11 @@ jobs:
         os: [windows-2022]
         python-version: ["3.11", "3.12", "3.13"]
         qt-version: ["6.9.0"]
+        include:
+            - os: windows-11-arm
+              python-version: "3.13"
+              architecture: arm64
+              qt-version: "6.9.0"
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -600,6 +605,11 @@ jobs:
       matrix:
         os: [windows-2022]
         python-version: ["3.11", "3.12", "3.13"]
+        include:
+            - os: windows-11-arm
+              python-version: "3.13"
+              architecture: arm64
+              qt-version: "6.9.0"
     steps:
     - uses: actions/checkout@v4
     - name: Download Wheel
