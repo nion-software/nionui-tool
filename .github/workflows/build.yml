@@ -227,6 +227,7 @@ jobs:
 #        qt-version: ["6.9.0"]
 #        qt-host: ["windows"]
 #        qt-arch: ["win64_msvc2022_64"]
+# rebuild
         include:
             - os: windows-11-arm
               python-version: "3.13"
