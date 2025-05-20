@@ -227,7 +227,6 @@ jobs:
 #        qt-version: ["6.9.0"]
 #        qt-host: ["windows"]
 #        qt-arch: ["win64_msvc2022_64"]
-# rebuild
         include:
             - os: windows-11-arm
               python-version: "3.13"
@@ -248,7 +247,7 @@ jobs:
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action
       with:
         version: ${{ matrix.qt-version }}
         host: ${{ matrix.qt-host }}
