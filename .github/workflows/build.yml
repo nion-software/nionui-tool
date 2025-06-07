@@ -247,12 +247,10 @@ jobs:
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
     - name: Install Qt
-      uses: jurplel/install-qt-action@v5
+      uses: jurplel/install-qt-action@master
       with:
         version: ${{ matrix.qt-version }}
-        host: ${{ matrix.qt-host }}
         target: 'desktop'
-        arch: ${{ matrix.qt-arch }}
     - name: Build
       shell: pwsh
       run: |
