@@ -250,8 +250,9 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ matrix.qt-version }}
+        host: ${{ matrix.qt-host }}
         target: 'desktop'
-        setup-python: False
+        arch: ${{ matrix.qt-arch }}
     - name: Build
       shell: pwsh
       run: |
