@@ -253,6 +253,7 @@ jobs:
       with:
         version: ${{ matrix.qt-version }}
         target: 'desktop'
+        setup-python: False
     - name: Build
       shell: pwsh
       run: |
