@@ -229,7 +229,7 @@ jobs:
 #        qt-arch: ["win64_msvc2022_64"]
         include:
             - os: windows-11-arm
-              python-version: "3.13.3"
+              python-version: "3.13"
               arch_dir: "arm64"
               architecture: arm64
               qt-version: "6.9.1"
