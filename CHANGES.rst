@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+5.1.5 (UNRELEASED)
+------------------
+- Add support for handling tab/backtab in canvas items.
+
 5.1.4 (2025-04-09)
 ------------------
 - Fix issue drag and drop cursor handling.

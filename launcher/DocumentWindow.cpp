@@ -2760,6 +2760,15 @@ bool PyCanvas::event(QEvent *event)
 {
     switch (event->type())
     {
+        case QEvent::KeyPress:
+        {
+            QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+            if (keyEvent->key() == Qt::Key_Tab || keyEvent->key() == Qt::Key_Backtab)
+            {
+                keyPressEvent(keyEvent);
+                return true; // Event handled, stop propagation
+            }
+        } break;
         case QEvent::Gesture:
         {
             QGestureEvent *gesture_event = static_cast<QGestureEvent *>(event);
