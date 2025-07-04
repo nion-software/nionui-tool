@@ -136,6 +136,7 @@ jobs:
         version: ${{ matrix.qt-version }}
         host: 'mac'
         target: 'desktop'
+        setup-python: false
     - name: Build
       shell: bash
       env:
