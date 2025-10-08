@@ -159,7 +159,7 @@ jobs:
         echo "Unlock keychain"
         security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" build.keychain
         echo "Import certificate (disabled)"
-        security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+        security -v import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
         echo "Find identity"
         security find-identity -v
         echo "Set key partition list (avoids dialog)"
