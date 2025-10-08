@@ -22,9 +22,9 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
         qt-version: ["6.10.0"]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Display Python version
@@ -118,9 +118,9 @@ jobs:
               architecture: arm64
               qt-version: "6.10.0"
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Display Python version
@@ -225,9 +225,9 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
         qt-version: ["6.10.0"]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Display Python version
@@ -293,7 +293,7 @@ jobs:
         os: [ubuntu-22.04, ubuntu-24.04]
         python-version: ["3.11", "3.12", "3.13"]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Download Wheel
       uses: actions/download-artifact@v4
       id: download_wheel
@@ -307,7 +307,7 @@ jobs:
         name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
         path: conda_downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Virtual screen
@@ -453,7 +453,7 @@ jobs:
               architecture: arm64
               qt-version: "6.10.0"
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Download Wheel
       uses: actions/download-artifact@v4
       id: download_wheel
@@ -467,7 +467,7 @@ jobs:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.architecture }}-${{ matrix.python-version }}
         path: conda_downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Test system Python installed with brew with virtual environment
@@ -603,7 +603,7 @@ jobs:
         os: [windows-2022]
         python-version: ["3.11", "3.12", "3.13"]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Download Wheel
       uses: actions/download-artifact@v4
       id: download_wheel
@@ -617,7 +617,7 @@ jobs:
         name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
         path: conda_downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Test system Python installed with official build with virtual environment
