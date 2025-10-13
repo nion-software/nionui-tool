@@ -79,7 +79,6 @@ typedef int (*PyObject_SetAttrFn)(PyObject *o, PyObject *attr_name, PyObject *v)
 typedef PyObject* (*PyRun_SimpleStringFn)(const char *str);
 typedef PyObject* (*PyRun_StringFlagsFn)(const char *str, int start, PyObject *globals, PyObject *locals, PyCompilerFlags *flags);
 typedef int (*PySequence_CheckFn)(PyObject *o);
-typedef PyObject* (*PySequence_FastFn)(PyObject *o, const char *m);
 typedef PyObject* (*PySequence_GetItemFn)(PyObject *o, Py_ssize_t i);
 typedef Py_ssize_t (*PySequence_SizeFn)(PyObject *o);
 typedef int (*PyState_AddModuleFn)(PyObject *module, PyModuleDef *def);
@@ -151,7 +150,6 @@ static PyObject_SetAttrFn fObject_SetAttr = 0;
 static PyRun_SimpleStringFn fRun_SimpleString = 0;
 static PyRun_StringFlagsFn fRun_StringFlags = 0;
 static PySequence_CheckFn fSequence_Check = 0;
-static PySequence_FastFn fSequence_Fast = 0;
 static PySequence_GetItemFn fSequence_GetItem = 0;
 static PySequence_SizeFn fSequence_Size = 0;
 static PyState_AddModuleFn fState_AddModule = 0;
@@ -232,7 +230,6 @@ void deinitialize_pylib()
     fRun_SimpleString = 0;
     fRun_StringFlags = 0;
     fSequence_Check = 0;
-    fSequence_Fast = 0;
     fSequence_GetItem = 0;
     fSequence_Size = 0;
     fState_AddModule = 0;
@@ -670,13 +667,6 @@ int DPySequence_Check(PyObject *o)
     if (fSequence_Check == 0)
         fSequence_Check = (PySequence_CheckFn)LOOKUP_SYMBOL(pylib, "PySequence_Check");
     return fSequence_Check(o);
-}
-
-PyObject* DPySequence_Fast(PyObject *o, const char *m)
-{
-    if (fSequence_Fast == 0)
-        fSequence_Fast = (PySequence_FastFn)LOOKUP_SYMBOL(pylib, "PySequence_Fast");
-    return fSequence_Fast(o, m);
 }
 
 PyObject* DPySequence_GetItem(PyObject *o, Py_ssize_t i)

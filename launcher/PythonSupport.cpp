@@ -669,13 +669,12 @@ PythonValueVariant PyObjectToValueVariant(PyObject *py_object)
     {
         std::vector<PythonValueVariant> list;
         int count = (int)CALL_PY(PySequence_Size)(py_object);
-        PyObject *fast_list = CALL_PY(PySequence_Fast)(py_object, "error");
-        PyObject **fast_items = PySequence_Fast_ITEMS(fast_list);
         for (int i=0; i<count; i++)
         {
-            list.push_back(PyObjectToValueVariant(fast_items[i]));
+            auto item = CALL_PY(PySequence_GetItem(py_object, i));
+            list.push_back(PyObjectToValueVariant(item));
+            Py_DECREF(item);
         }
-        Py_DECREF(fast_list);
         return PythonValueVariant{list};
     }
     else if (py_object == CALL_PY(Py_NoneGet)())

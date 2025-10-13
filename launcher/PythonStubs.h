@@ -56,7 +56,6 @@ int DECLARE_PY(PyObject_SetAttr)(PyObject *o, PyObject *attr_name, PyObject *v);
 PyObject* DECLARE_PY(PyRun_SimpleString)(const char *str);
 PyObject* DECLARE_PY(PyRun_StringFlags)(const char *str, int start, PyObject *globals, PyObject *locals, PyCompilerFlags *flags);
 int DECLARE_PY(PySequence_Check)(PyObject *o);
-PyObject* DECLARE_PY(PySequence_Fast)(PyObject *o, const char *m);
 PyObject* DECLARE_PY(PySequence_GetItem)(PyObject *o, Py_ssize_t i);
 Py_ssize_t DECLARE_PY(PySequence_Size)(PyObject *o);
 int DECLARE_PY(PyState_AddModule)(PyObject *module, PyModuleDef *def);
