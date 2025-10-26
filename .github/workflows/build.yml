@@ -511,6 +511,8 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
     - name: Set up Miniconda ${{ matrix.python-version }}
+      # if platform is macOS, architecture is x86_64, and python-version is 3.14, skip due to lack of conda-build support
+      if: ${{ !(matrix.os == 'macos-13' && matrix.architecture == 'x86_64' && matrix['python-version'] == '3.14') }}
       uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
