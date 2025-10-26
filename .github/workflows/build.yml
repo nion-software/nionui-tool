@@ -194,6 +194,8 @@ jobs:
         miniconda-version: "latest"
         architecture: ${{ matrix.architecture }}
     - name: Build Conda Package
+      # if platform is macOS, architecture is x86_64, and python-version is 3.14, skip due to lack of conda-build support
+      if: !(matrix.os == 'macos-13' && matrix.architecture == 'x86_64' && matrix['python-version'] == '3.14')
       shell: bash -l {0}
       run: |
         python -c "import sys; print(sys.version)"
@@ -204,6 +206,8 @@ jobs:
         OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
         mv $OUT_FILE dist
     - name: Upload Conda Package
+      # if platform is macOS, architecture is x86_64, and python-version is 3.14, skip due to lack of conda-build support
+      if: !(matrix.os == 'macos-13' && matrix.architecture == 'x86_64' && matrix['python-version'] == '3.14')
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-macos-conda-${{ matrix.architecture }}-${{ matrix.python-version }}
@@ -444,6 +448,8 @@ jobs:
         name: ${{ env.tool-id }}-macos-whl-${{ matrix.architecture }}-${{ matrix.python-version }}
         path: downloads
     - name: Download Conda
+      # if platform is macOS, architecture is x86_64, and python-version is 3.14, skip due to lack of conda-build support
+      if: !(matrix.os == 'macos-13' && matrix.architecture == 'x86_64' && matrix['python-version'] == '3.14')
       uses: actions/download-artifact@v4
       id: download_conda
       with:
@@ -514,6 +520,8 @@ jobs:
         architecture: ${{ matrix.architecture }}
         auto-activate-base: false
     - name: Test Conda
+      # if platform is macOS, architecture is x86_64, and python-version is 3.14, skip due to lack of conda-build support
+      if: !(matrix.os == 'macos-13' && matrix.architecture == 'x86_64' && matrix['python-version'] == '3.14')
       shell: bash -l {0}
       run: |
         # use conda versions instead of pypi versions. install before anything else.
@@ -539,6 +547,8 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
     - name: Test Conda Forge
+      # if platform is macOS, architecture is x86_64, and python-version is 3.14, skip due to lack of conda-build support
+      if: !(matrix.os == 'macos-13' && matrix.architecture == 'x86_64' && matrix['python-version'] == '3.14')
       shell: bash -l {0}
       run: |
         # use conda versions instead of pypi versions. install before anything else.
@@ -564,7 +574,8 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         conda deactivate
     - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+      # if platform is macOS, architecture is x86_64, and python-version is 3.14, skip due to lack of conda-build support
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && !(matrix.os == 'macos-13' && matrix.architecture == 'x86_64' && matrix['python-version'] == '3.14')
       shell: bash -l {0}
       run: |
         # make a directory to avoid name conflicts with the channel. argh.
