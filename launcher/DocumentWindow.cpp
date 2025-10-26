@@ -662,6 +662,8 @@ void PyLineEdit::focusInEvent(QFocusEvent *event)
     }
 
     QLineEdit::focusInEvent(event);
+
+    selectAll();
 }
 
 void PyLineEdit::focusOutEvent(QFocusEvent *event)
