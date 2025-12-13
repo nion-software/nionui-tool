@@ -271,6 +271,7 @@ jobs:
         Remove-Item -Recurse -Force ${{ matrix.arch_dir }}\*
         Move-Item -Path build\Release -Destination ${{ matrix.arch_dir }}
         popd
+        python -c "import platform; print(platform.processor())"
         python -m build .
     - name: Set up Miniconda ${{ matrix.python-version }}
       uses: conda-incubator/setup-miniconda@v3

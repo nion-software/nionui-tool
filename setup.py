@@ -77,9 +77,9 @@ if sys.platform == "darwin":
 if sys.platform == "win32":
     python_tag = "cp312.cp313.cp314"
     abi_tag = "none"
-    platform_tag = "win_amd64"
+    platform_tag = "win_amd64" if platform.processor() != "arm64" else "win_arm64"
     dest = f"Scripts/{launcher}"
-    dir_path = "launcher/x64/Release"
+    dir_path = "launcher/x64/Release" if platform.processor() != "arm64" else "launcher/arm64/Release"
     dest_drop = 3
 if sys.platform == "linux":
     python_tag = "cp312.cp313.cp314"
