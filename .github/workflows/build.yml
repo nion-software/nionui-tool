@@ -276,7 +276,7 @@ jobs:
       uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
-        python-version: "3.13"
+        python-version: "3.12"
         miniconda-version: "latest"
     - name: Build Conda Package
       shell: bash -l {0}
