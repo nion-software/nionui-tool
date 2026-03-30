@@ -54,7 +54,6 @@ int DECLARE_PY(PyObject_HasAttrString)(PyObject *o, const char *attr_name);
 int DECLARE_PY(PyObject_IsTrue)(PyObject *o);
 int DECLARE_PY(PyObject_SetAttr)(PyObject *o, PyObject *attr_name, PyObject *v);
 PyObject* DECLARE_PY(PyRun_SimpleString)(const char *str);
-PyObject* DECLARE_PY(PyRun_StringFlags)(const char *str, int start, PyObject *globals, PyObject *locals, PyCompilerFlags *flags);
 int DECLARE_PY(PySequence_Check)(PyObject *o);
 PyObject* DECLARE_PY(PySequence_GetItem)(PyObject *o, Py_ssize_t i);
 Py_ssize_t DECLARE_PY(PySequence_Size)(PyObject *o);
@@ -68,7 +67,6 @@ PyObject* DECLARE_PY(PyUnicode_DecodeUTF16)(const char *s, Py_ssize_t size, cons
 PyObject* DECLARE_PY(PyUnicode_FromString)(const char *u);
 wchar_t *DECLARE_PY(PyUnicode_AsWideCharString)(PyObject *unicode, Py_ssize_t *size);
 void DECLARE_PY(PyMem_Free)(void *p);
-PyObject* DECLARE_PY(Py_CompileStringExFlags)(const char *str, const char *filename, int start, PyCompilerFlags *flags, int optimize);
 void DECLARE_PY(Py_Initialize)();
 void DECLARE_PY(Py_Finalize)();
 void DECLARE_PY(Py_SetPythonHome)(wchar_t *home);

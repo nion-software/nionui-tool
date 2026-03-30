@@ -77,7 +77,6 @@ typedef int (*PyObject_HasAttrStringFn)(PyObject *o, const char *attr_name);
 typedef int (*PyObject_IsTrueFn)(PyObject *o);
 typedef int (*PyObject_SetAttrFn)(PyObject *o, PyObject *attr_name, PyObject *v);
 typedef PyObject* (*PyRun_SimpleStringFn)(const char *str);
-typedef PyObject* (*PyRun_StringFlagsFn)(const char *str, int start, PyObject *globals, PyObject *locals, PyCompilerFlags *flags);
 typedef int (*PySequence_CheckFn)(PyObject *o);
 typedef PyObject* (*PySequence_GetItemFn)(PyObject *o, Py_ssize_t i);
 typedef Py_ssize_t (*PySequence_SizeFn)(PyObject *o);
@@ -91,7 +90,6 @@ typedef PyObject* (*PyUnicode_DecodeUTF16Fn)(const char *s, Py_ssize_t size, con
 typedef PyObject *(*PyUnicode_FromStringFn)(const char *u);
 typedef wchar_t *(*PyUnicode_AsWideCharStringFn)(PyObject *unicode, Py_ssize_t *size);
 typedef void (*PyMem_FreeFn)(void *p);
-typedef PyObject* (*Py_CompileStringExFlagsFn)(const char *str, const char *filename, int start, PyCompilerFlags *flags, int optimize);
 typedef void (*Py_InitializeFn)();
 typedef void (*Py_FinalizeFn)();
 typedef void(*Py_SetPythonHomeFn)(wchar_t *ph);
@@ -148,7 +146,6 @@ static PyObject_HasAttrStringFn fObject_HasAttrString = 0;
 static PyObject_IsTrueFn fObject_IsTrue = 0;
 static PyObject_SetAttrFn fObject_SetAttr = 0;
 static PyRun_SimpleStringFn fRun_SimpleString = 0;
-static PyRun_StringFlagsFn fRun_StringFlags = 0;
 static PySequence_CheckFn fSequence_Check = 0;
 static PySequence_GetItemFn fSequence_GetItem = 0;
 static PySequence_SizeFn fSequence_Size = 0;
@@ -162,7 +159,6 @@ static PyUnicode_DecodeUTF16Fn fUnicode_DecodeUTF16 = 0;
 static PyUnicode_FromStringFn fUnicode_FromString = 0;
 static PyUnicode_AsWideCharStringFn fUnicode_AsWideCharString = 0;
 static PyMem_FreeFn fMem_Free = 0;
-static Py_CompileStringExFlagsFn fCompileStringExFlags = 0;
 static Py_InitializeFn fInitialize = 0;
 static Py_FinalizeFn fFinalize = 0;
 static Py_SetPythonHomeFn fSetPythonHome = 0;
@@ -228,7 +224,6 @@ void deinitialize_pylib()
     fObject_IsTrue = 0;
     fObject_SetAttr = 0;
     fRun_SimpleString = 0;
-    fRun_StringFlags = 0;
     fSequence_Check = 0;
     fSequence_GetItem = 0;
     fSequence_Size = 0;
@@ -240,7 +235,6 @@ void deinitialize_pylib()
     fUnicode_AsUTF8 = 0;
     fUnicode_DecodeUTF16 = 0;
     fUnicode_FromString = 0;
-    fCompileStringExFlags = 0;
     fInitialize = 0;
     fFinalize = 0;
     fSetPythonHome = 0;
@@ -655,13 +649,6 @@ PyObject* DPyRun_SimpleString(const char *str)
     return fRun_SimpleString(str);
 }
 
-PyObject* DPyRun_StringFlags(const char *str, int start, PyObject *globals, PyObject *locals, PyCompilerFlags *flags)
-{
-    if (fRun_StringFlags == 0)
-        fRun_StringFlags = (PyRun_StringFlagsFn)LOOKUP_SYMBOL(pylib, "PyRun_StringFlags");
-    return fRun_StringFlags(str, start, globals, locals, flags);
-}
-
 int DPySequence_Check(PyObject *o)
 {
     if (fSequence_Check == 0)
@@ -751,13 +738,6 @@ void DPyMem_Free(void *p)
     if (fMem_Free == 0)
         fMem_Free = (PyMem_FreeFn)LOOKUP_SYMBOL(pylib, "PyMem_Free");
     fMem_Free(p);
-}
-
-PyObject* DPy_CompileStringExFlags(const char *str, const char *filename, int start, PyCompilerFlags *flags, int optimize)
-{
-    if (fCompileStringExFlags == 0)
-        fCompileStringExFlags = (Py_CompileStringExFlagsFn)LOOKUP_SYMBOL(pylib, "Py_CompileStringExFlags");
-    return fCompileStringExFlags(str, filename, start, flags, optimize);
 }
 
 void DPy_Initialize()
