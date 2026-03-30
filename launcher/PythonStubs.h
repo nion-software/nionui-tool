@@ -36,7 +36,6 @@ int DECLARE_PY(PyList_Insert)(PyObject *list, Py_ssize_t index, PyObject *item);
 PyObject* DECLARE_PY(PyList_New)(Py_ssize_t len);
 Py_ssize_t DECLARE_PY(PyList_Size)(PyObject *list);
 long DECLARE_PY(PyLong_AsLong)(PyObject *obj);
-PY_LONG_LONG DECLARE_PY(PyLong_AsLongLong)(PyObject *obj);
 PyObject* DECLARE_PY(PyLong_FromLong)(long v);
 PyObject* DECLARE_PY(PyLong_FromLongLong)(PY_LONG_LONG v);
 PyObject* DECLARE_PY(PyLong_FromUnsignedLong)(unsigned long v);

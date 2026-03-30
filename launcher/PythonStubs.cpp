@@ -59,7 +59,6 @@ typedef int (*PyList_InsertFn)(PyObject *list, Py_ssize_t index, PyObject *item)
 typedef PyObject* (*PyList_NewFn)(Py_ssize_t len);
 typedef Py_ssize_t (*PyList_SizeFn)(PyObject *list);
 typedef long (*PyLong_AsLongFn)(PyObject *obj);
-typedef PY_LONG_LONG (*PyLong_AsLongLongFn)(PyObject *obj);
 typedef PyObject* (*PyLong_FromLongFn)(long v);
 typedef PyObject* (*PyLong_FromLongLongFn)(PY_LONG_LONG v);
 typedef PyObject* (*PyLong_FromUnsignedLongFn)(unsigned long v);
@@ -128,7 +127,6 @@ static PyList_InsertFn fList_Insert = 0;
 static PyList_NewFn fList_New = 0;
 static PyList_SizeFn fList_Size = 0;
 static PyLong_AsLongFn fLong_AsLong = 0;
-static PyLong_AsLongLongFn fLong_AsLongLong = 0;
 static PyLong_FromLongFn fLong_FromLong = 0;
 static PyLong_FromLongLongFn fLong_FromLongLong = 0;
 static PyLong_FromUnsignedLongFn fLong_FromUnsignedLong = 0;
@@ -206,7 +204,6 @@ void deinitialize_pylib()
     fList_New = 0;
     fList_Size = 0;
     fLong_AsLong = 0;
-    fLong_AsLongLong = 0;
     fLong_FromLong = 0;
     fLong_FromLongLong = 0;
     fLong_FromUnsignedLong = 0;
@@ -521,13 +518,6 @@ long DPyLong_AsLong(PyObject *obj)
     if (fLong_AsLong == 0)
         fLong_AsLong = (PyLong_AsLongFn)LOOKUP_SYMBOL(pylib, "PyLong_AsLong");
     return fLong_AsLong(obj);
-}
-
-PY_LONG_LONG DPyLong_AsLongLong(PyObject *obj)
-{
-    if (fLong_AsLongLong == 0)
-        fLong_AsLongLong = (PyLong_AsLongLongFn)LOOKUP_SYMBOL(pylib, "PyLong_AsLongLong");
-    return fLong_AsLongLong(obj);
 }
 
 PyObject* DPyLong_FromLong(long v)
