@@ -53,6 +53,8 @@ typedef void (*PyGILState_ReleaseFn)(PyGILState_STATE);
 typedef int (*PyImport_AppendInittabFn)(const char *name, PyImport_AppendInittabInitFn initfunc);
 typedef PyObject* (*PyImport_GetModuleDictFn)();
 typedef PyObject* (*PyImport_ImportModuleFn)(const char *name);
+typedef void (*Py_DecRefFn)(PyObject *o);
+typedef void (*Py_IncRefFn)(PyObject *o);
 typedef int (*PyList_AppendFn)(PyObject *list, PyObject *item);
 typedef PyObject* (*PyList_GetItemFn)(PyObject *list, Py_ssize_t index);
 typedef int (*PyList_InsertFn)(PyObject *list, Py_ssize_t index, PyObject *item);
@@ -118,6 +120,8 @@ static PyFloat_FromDoubleFn fFloat_FromDouble = 0;
 static PyGILState_EnsureFn fGILState_Ensure = 0;
 static PyGILState_CheckFn fGILState_Check = 0;
 static PyGILState_ReleaseFn fGILState_Release = 0;
+static Py_DecRefFn fPy_DecRef = 0;
+static Py_IncRefFn fPy_IncRef = 0;
 static PyImport_AppendInittabFn fImport_AppendInittab = 0;
 static PyImport_GetModuleDictFn fImport_GetModuleDict = 0;
 static PyImport_ImportModuleFn fImport_ImportModule = 0;
@@ -476,6 +480,20 @@ PyObject* DPyImport_ImportModule(const char *name)
     if (fImport_ImportModule == 0)
         fImport_ImportModule = (PyImport_ImportModuleFn)LOOKUP_SYMBOL(pylib, "PyImport_ImportModule");
     return fImport_ImportModule(name);
+}
+
+void DPy_DecRef(PyObject *o)
+{
+    if (fPy_DecRef == 0)
+        fPy_DecRef = (Py_DecRefFn)LOOKUP_SYMBOL(pylib, "Py_DecRef");
+    fPy_DecRef(o);
+}
+
+void DPy_IncRef(PyObject *o)
+{
+    if (fPy_IncRef == 0)
+        fPy_IncRef = (Py_IncRefFn)LOOKUP_SYMBOL(pylib, "Py_IncRef");
+    fPy_IncRef(o);
 }
 
 int DPyList_Append(PyObject *list, PyObject *item)
