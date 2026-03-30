@@ -423,7 +423,7 @@ PythonSupport& PythonSupport::operator=(PythonSupport const &)
 
 PythonSupport::~PythonSupport()
 {
-    Py_XDECREF(module_exception);
+    PyXDecRef(module_exception);
 }
 
 struct Python_ThreadBlockState
@@ -553,13 +553,13 @@ PyObject *PythonValueVariantToPyObject(const PythonValueVariant &value_variant)
 {
     if (value_variant.value.valueless_by_exception())
     {
-        Py_INCREF(CALL_PY(Py_NoneGet)());
+        PyIncRef(CALL_PY(Py_NoneGet)());
         return CALL_PY(Py_NoneGet)();
     }
     else if (std::holds_alternative<bool>(value_variant.value))
     {
         PyObject *py_obj = *std::get_if<bool>(&value_variant.value) ? CALL_PY(Py_TrueGet)() : CALL_PY(Py_FalseGet)();
-        Py_INCREF(py_obj);
+        PyIncRef(py_obj);
         return py_obj;
     }
     else if (std::holds_alternative<long>(value_variant.value))
@@ -590,8 +590,8 @@ PyObject *PythonValueVariantToPyObject(const PythonValueVariant &value_variant)
             PyObject *py_key = CALL_PY(PyUnicode_FromString)(item.first.c_str());
             PyObject *py_value = PythonValueVariantToPyObject(item.second);
             CALL_PY(PyDict_SetItem)(py_map, py_key, py_value);
-            Py_DECREF(py_key);
-            Py_DECREF(py_value);
+            PyDecRef(py_key);
+            PyDecRef(py_value);
         }
         return py_map;
     }
@@ -611,11 +611,11 @@ PyObject *PythonValueVariantToPyObject(const PythonValueVariant &value_variant)
     {
         const PyObjectPtr *ptr = std::get_if<PyObjectPtr>(&value_variant.value);
         PyObject *py_object = ptr->get();
-        Py_INCREF(py_object);
+        PyIncRef(py_object);
         return py_object;
     }
 
-    Py_INCREF(CALL_PY(Py_NoneGet)());
+    PyIncRef(CALL_PY(Py_NoneGet)());
     return CALL_PY(Py_NoneGet)();
 }
 
@@ -657,7 +657,7 @@ PythonValueVariant PyObjectToValueVariant(PyObject *py_object)
                 PythonValueVariant value_variant = PyObjectToValueVariant(value);
                 map.insert(std::pair(key_string, value_variant));
             }
-            Py_DECREF(items);
+            PyDecRef(items);
         }
         return PythonValueVariant{map};
     }
@@ -669,7 +669,7 @@ PythonValueVariant PyObjectToValueVariant(PyObject *py_object)
         {
             auto item = CALL_PY(PySequence_GetItem(py_object, i));
             list.push_back(PyObjectToValueVariant(item));
-            Py_DECREF(item);
+            PyDecRef(item);
         }
         return PythonValueVariant{list};
     }
@@ -691,9 +691,9 @@ void PythonSupport::addResourcePath(const std::string &resources_path)
     PyObject *py_path = CALL_PY(PyObject_GetAttrString)(sys_module, "path");
     PyObject *py_filename = CALL_PY(PyUnicode_FromString)(resources_path.c_str());
     CALL_PY(PyList_Insert)(py_path, 1, py_filename);
-    Py_DECREF(py_filename);
-    Py_DECREF(py_path);
-    Py_DECREF(sys_module);
+    PyDecRef(py_filename);
+    PyDecRef(py_path);
+    PyDecRef(sys_module);
 }
 
 PythonValueVariant PythonSupport::invokePyMethod(PyObjectPtr *object, const std::string &method, const std::list<PythonValueVariant> &args)
@@ -798,9 +798,9 @@ bool PythonSupport::setAttribute(PyObjectPtr *object, const std::string &attribu
             {
                 CALL_PY(PyErr_Clear)();
                 result = CALL_PY(PyObject_SetAttr)(py_object, py_attribute, py_value);
-                Py_DECREF(py_value);
+                PyDecRef(py_value);
             }
-            Py_DECREF(py_attribute);
+            PyDecRef(py_attribute);
         }
     }
 
@@ -1255,7 +1255,7 @@ PythonSupport::Py_BuildValueFn PythonSupport::build()
 
 PyObject *PythonSupport::getNoneReturnValue()
 {
-    Py_INCREF(CALL_PY(Py_NoneGet)());
+    PyIncRef(CALL_PY(Py_NoneGet)());
     return CALL_PY(Py_NoneGet)();
 }
 
@@ -1274,7 +1274,7 @@ PyObject *PythonSupport::createAndAddModule(PyModuleDef *moduledef)
 void PythonSupport::prepareModuleException(const char *name)
 {
     module_exception = CALL_PY(PyErr_NewException)(name, 0, 0);
-    Py_INCREF(module_exception);
+    PyIncRef(module_exception);
 }
 
 void PythonSupport::initializeModule(const char *name, CreateAndAddModuleFn fn)
@@ -1291,6 +1291,10 @@ PyObject *PythonSupport::import(const char *name)
 {
     return CALL_PY(PyImport_ImportModule)(name);
 }
+
+void PyDecRef(PyObject *o) { CALL_PY(Py_DecRef)(o); }
+void PyXDecRef(PyObject *o) { if (o != nullptr) CALL_PY(Py_DecRef)(o); }
+void PyIncRef(PyObject *o) { CALL_PY(Py_IncRef)(o); }
 
 #if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 8
 // work around mis-defined macros in cpython/objects.h in Python 3.8 headers.

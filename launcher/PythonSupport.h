@@ -27,6 +27,10 @@
 #define PyString_Check PyUnicode_Check
 #define PyCodeObject PyObject
 
+void PyDecRef(PyObject *);
+void PyXDecRef(PyObject *);
+void PyIncRef(PyObject *);
+
 // Use this when calling back to Python code to grab the GIL and release it when the
 // Python code returns.
 struct Python_ThreadBlockState;
@@ -63,19 +67,19 @@ public:
         if (borrowed)
         {
             Python_ThreadBlock thread_block;
-            Py_INCREF(py_object);
+            PyIncRef(py_object);
         }
     }
     PyObjectPtr(const PyObjectPtr &py_object_ptr)
     {
         Python_ThreadBlock thread_block;
         py_object = py_object_ptr.get();
-        Py_INCREF(py_object);
+        PyIncRef(py_object);
     }
     ~PyObjectPtr()
     {
         Python_ThreadBlock thread_block;
-        Py_XDECREF(this->py_object);
+        PyXDecRef(this->py_object);
     }
     PyObjectPtr &operator=(const PyObjectPtr &) = delete;
     PyObject *get() const { return this->py_object; }
@@ -90,8 +94,8 @@ public:
     void setPyObject(PyObject *py_object)
     {
         Python_ThreadBlock thread_block;
-        Py_XDECREF(this->py_object);
-        Py_INCREF(py_object);
+        PyXDecRef(this->py_object);
+        PyIncRef(py_object);
         this->py_object = py_object;
     }
 

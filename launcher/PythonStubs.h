@@ -30,6 +30,8 @@ typedef PyObject* (*PyImport_AppendInittabInitFn)(void);
 int DECLARE_PY(PyImport_AppendInittab)(const char *name, PyImport_AppendInittabInitFn initfunc);
 PyObject* DECLARE_PY(PyImport_GetModuleDict)();
 PyObject* DECLARE_PY(PyImport_ImportModule)(const char *name);
+void DECLARE_PY(Py_DecRef)(PyObject *o);
+void DECLARE_PY(Py_IncRef)(PyObject *o);
 int DECLARE_PY(PyList_Append)(PyObject *list, PyObject *item);
 PyObject* DECLARE_PY(PyList_GetItem)(PyObject *list, Py_ssize_t index);
 int DECLARE_PY(PyList_Insert)(PyObject *list, Py_ssize_t index, PyObject *item);
