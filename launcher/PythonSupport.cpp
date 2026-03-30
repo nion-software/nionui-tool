@@ -625,13 +625,9 @@ PythonValueVariant PyObjectToValueVariant(PyObject *py_object)
     {
         return PythonValueVariant{std::string(CALL_PY(PyUnicode_AsUTF8)(py_object))};
     }
-    else if (PyInt_Check(py_object))
-    {
-        return PythonValueVariant{PyInt_AsLong(py_object)};
-    }
     else if (PyLong_Check(py_object))
     {
-        return PythonValueVariant{CALL_PY(PyLong_AsLongLong)(py_object)};
+        return PythonValueVariant{PyInt_AsLong(py_object)};
     }
     else if (CALL_PY(PyFloat_Check)(py_object))
     {

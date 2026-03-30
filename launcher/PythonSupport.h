@@ -21,7 +21,6 @@
 #include <Python.h>
 #pragma pop_macro("_DEBUG")
 
-#define PyInt_Check PyLong_Check
 #define PyInt_FromLong CALL_PY(PyLong_FromLong)
 #define PyInt_AsLong CALL_PY(PyLong_AsLong)
 #define PyString_FromString CALL_PY(PyUnicode_FromString)
