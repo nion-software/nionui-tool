@@ -1,5 +1,6 @@
 import os
 import pathlib
+import platform
 import setuptools
 import sys
 import sysconfig
@@ -59,6 +60,13 @@ class bdist_wheel(bdist_wheel_.bdist_wheel):
         return python_tag, abi_tag, platform_tag
 
 
+def is_arm64() -> bool:
+    machine = platform.machine().lower()
+    # 'aarch64' is common on Linux/Android
+    # 'arm64' is common on macOS (Apple Silicon) and Windows
+    return machine in ['arm64', 'aarch64']
+
+
 python_tag = "cp312"  # minimum version
 abi_tag = "abi3"
 platform_tag = str()
@@ -73,9 +81,9 @@ if sys.platform == "darwin":
     dir_path = "launcher/build/Release"
     dest_drop = 3
 if sys.platform == "win32":
-    platform_tag = "win_amd64"
+    platform_tag = "win_amd64" if not is_arm64() else "win_arm64"
     dest = f"Scripts/{launcher}"
-    dir_path = "launcher/x64/Release"
+    dir_path = "launcher/x64/Release" if not is_arm64() else "launcher/arm64/Release"
     dest_drop = 3
 if sys.platform == "linux":
     platform_tag = "manylinux1_x86_64"

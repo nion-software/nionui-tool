@@ -179,7 +179,18 @@ jobs:
       matrix:
         os: [windows-2022]
         python-version: ["3.14"]
+        arch_dir: ["x64"]
         qt-version: ["6.10.0"]
+        qt-host: ["windows"]
+        qt-arch: ["win64_msvc2022_64"]
+        include:
+          - os: windows-11-arm
+            python-version: "3.14"
+            arch_dir: "arm64"
+            architecture: arm64
+            qt-version: "6.10.0"
+            qt-host: "windows_arm64"
+            qt-arch: "win64_msvc2022_arm64"
     outputs:
       artifact-id: ${{ steps.upload-wheel.outputs.artifact-id }}
     steps:
@@ -197,9 +208,9 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ matrix.qt-version }}
-        host: 'windows'
+        host: ${{ matrix.qt-host }}
+        arch: ${{ matrix.qt-arch }}
         target: 'desktop'
-        arch: 'win64_msvc2022_64'
     - name: Build
       shell: pwsh
       run: |
@@ -212,9 +223,10 @@ jobs:
         cmake --build . --config Release
         Get-ChildItem -Include *.pdb -Recurse | foreach { $_.Delete() }
         Get-ChildItem build\Release\imageformats -Include *d.dll -Recurse | foreach { $_.Delete() }
-        Remove-Item -Recurse -Force x64\*
-        Move-Item -Path build\Release -Destination x64
+        Remove-Item -Recurse -Force ${{ matrix.arch_dir }}\*
+        Move-Item -Path build\Release -Destination ${{ matrix.arch_dir }}
         popd
+        python -c "import platform; print(f'PLATFORM: {platform.machine().lower()=} {platform.processor()=}')"
         python -m build .
     - name: Upload Wheel
       uses: actions/upload-artifact@v7
@@ -297,6 +309,8 @@ jobs:
         architecture: [arm64]
         qt-version: ["6.10.0"]
     steps:
+    - name: Use the ID
+      run: echo "Using ID is ${{ needs.build_macos.outputs.artifact-id }}"
     - uses: actions/checkout@v5
     - name: Download Wheel
       uses: actions/download-artifact@v8
@@ -369,13 +383,19 @@ jobs:
       matrix:
         os: [windows-2022]
         python-version: ["3.12", "3.13", "3.14"]
+        wheel_match: ["win_amd64"]
+        include:
+          - os: windows-11-arm
+            python-version: "3.14"
+            architecture: arm64
+            wheel_match: "win_arm64"
     steps:
     - uses: actions/checkout@v5
     - name: Download Wheel
       uses: actions/download-artifact@v8
       id: download_wheel
       with:
-        artifact-ids: ${{ needs.build_win.outputs.artifact-id }}
+        pattern: "*${{ matrix.wheel_match }}*.whl"
         merge-multiple: true
         skip-decompress: true
         path: downloads
@@ -425,9 +445,10 @@ jobs:
         merge-multiple: true
         skip-decompress: true
         path: dist
-    - name: Show the files
+    - name: Show contents of dist and remove non-wheel files
       shell: bash
       run: |
+        find dist -type f -not -name "*.whl" -delete
         ls -Rl .
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
