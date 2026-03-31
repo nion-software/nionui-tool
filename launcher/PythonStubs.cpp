@@ -77,8 +77,12 @@ typedef int (*PyObject_GetBufferFn)(PyObject *o, Py_buffer *view, int flags);
 typedef int (*PyObject_HasAttrStringFn)(PyObject *o, const char *attr_name);
 typedef int (*PyObject_IsTrueFn)(PyObject *o);
 typedef int (*PyObject_SetAttrFn)(PyObject *o, PyObject *attr_name, PyObject *v);
+typedef PyTypeObject* (*PyObject_TypeFn)(PyObject *o);
 typedef PyObject* (*PyRun_SimpleStringFn)(const char *str);
+typedef int (*PyDict_CheckFn)(PyObject *o);
+typedef int (*PyList_CheckFn)(PyObject *o);
 typedef int (*PySequence_CheckFn)(PyObject *o);
+typedef int (*PyTuple_CheckFn)(PyObject *o);
 typedef PyObject* (*PySequence_GetItemFn)(PyObject *o, Py_ssize_t i);
 typedef Py_ssize_t (*PySequence_SizeFn)(PyObject *o);
 typedef int (*PyState_AddModuleFn)(PyObject *module, PyModuleDef *def);
@@ -147,6 +151,7 @@ static PyObject_GetBufferFn fObject_GetBuffer = 0;
 static PyObject_HasAttrStringFn fObject_HasAttrString = 0;
 static PyObject_IsTrueFn fObject_IsTrue = 0;
 static PyObject_SetAttrFn fObject_SetAttr = 0;
+static PyObject_TypeFn fObject_Type = 0;
 static PyRun_SimpleStringFn fRun_SimpleString = 0;
 static PySequence_CheckFn fSequence_Check = 0;
 static PySequence_GetItemFn fSequence_GetItem = 0;
@@ -224,6 +229,7 @@ void deinitialize_pylib()
     fObject_HasAttrString = 0;
     fObject_IsTrue = 0;
     fObject_SetAttr = 0;
+    fObject_Type = 0;
     fRun_SimpleString = 0;
     fSequence_Check = 0;
     fSequence_GetItem = 0;
@@ -241,10 +247,20 @@ void deinitialize_pylib()
     fSetPythonHome = 0;
 }
 
+PyTypeObject *GetObjectType(PyObject *o)
+{
+    if (fObject_Type == 0)
+        fObject_Type = (PyObject_TypeFn)LOOKUP_SYMBOL(pylib, "PyObject_Type");
+    return fObject_Type(o);
+}
+
 bool DPyBool_Check(PyObject *o)
 {
     PyTypeObject *DPyBool_Type = (PyTypeObject *)LOOKUP_SYMBOL(pylib, "PyBool_Type");
-    return Py_TYPE(o) == DPyBool_Type;
+    PyTypeObject *obj_type = (PyTypeObject*)GetObjectType(o);
+    auto is_subtype = CALL_PY(PyType_IsSubtype)(obj_type, DPyBool_Type);
+    CALL_PY(Py_DecRef)((PyObject *)obj_type);
+    return is_subtype;
 }
 
 bool DPyCapsule_CheckExact(PyObject *o)
@@ -256,13 +272,34 @@ bool DPyCapsule_CheckExact(PyObject *o)
 bool DPyFloat_Check(PyObject *o)
 {
     PyTypeObject *DPyFloat_Type = (PyTypeObject *)LOOKUP_SYMBOL(pylib, "PyFloat_Type");
-    return Py_TYPE(o) == DPyFloat_Type;
+    PyTypeObject *obj_type = (PyTypeObject*)GetObjectType(o);
+    auto is_subtype = CALL_PY(PyType_IsSubtype)(obj_type, DPyFloat_Type);
+    CALL_PY(Py_DecRef)((PyObject *)obj_type);
+    return is_subtype;
+}
+
+bool DPyLong_Check(PyObject *o)
+{
+    PyTypeObject *DPyLong_Type = (PyTypeObject *)LOOKUP_SYMBOL(pylib, "PyLong_Type");
+    PyTypeObject *obj_type = (PyTypeObject*)GetObjectType(o);
+    auto is_subtype = CALL_PY(PyType_IsSubtype)(obj_type, DPyLong_Type);
+    CALL_PY(Py_DecRef)((PyObject *)obj_type);
+    return is_subtype;
 }
 
 bool DPyModule_Check(PyObject *o)
 {
     PyTypeObject *DPyModule_Type = (PyTypeObject *)LOOKUP_SYMBOL(pylib, "PyModule_Type");
     return Py_TYPE(o) == DPyModule_Type;
+}
+
+bool DPyUnicode_Check(PyObject *o)
+{
+    PyTypeObject *DPyUnicode_Type = (PyTypeObject *)LOOKUP_SYMBOL(pylib, "PyUnicode_Type");
+    PyTypeObject *obj_type = (PyTypeObject*)GetObjectType(o);
+    auto is_subtype = CALL_PY(PyType_IsSubtype)(obj_type, DPyUnicode_Type);
+    CALL_PY(Py_DecRef)((PyObject *)obj_type);
+    return is_subtype;
 }
 
 PyObject *DPyExc_GetAttributeError()
@@ -657,11 +694,38 @@ PyObject* DPyRun_SimpleString(const char *str)
     return fRun_SimpleString(str);
 }
 
+int DPyDict_Check(PyObject *o)
+{
+    PyTypeObject *DPyDict_Type = (PyTypeObject *)LOOKUP_SYMBOL(pylib, "PyDict_Type");
+    PyTypeObject *obj_type = (PyTypeObject*)GetObjectType(o);
+    auto is_subtype = CALL_PY(PyType_IsSubtype)(obj_type, DPyDict_Type);
+    CALL_PY(Py_DecRef)((PyObject *)obj_type);
+    return is_subtype;
+}
+
+int DPyList_Check(PyObject *o)
+{
+    PyTypeObject *DPyList_Type = (PyTypeObject *)LOOKUP_SYMBOL(pylib, "PyList_Type");
+    PyTypeObject *obj_type = (PyTypeObject*)GetObjectType(o);
+    auto is_subtype = CALL_PY(PyType_IsSubtype)(obj_type, DPyList_Type);
+    CALL_PY(Py_DecRef)((PyObject *)obj_type);
+    return is_subtype;
+}
+
 int DPySequence_Check(PyObject *o)
 {
     if (fSequence_Check == 0)
         fSequence_Check = (PySequence_CheckFn)LOOKUP_SYMBOL(pylib, "PySequence_Check");
     return fSequence_Check(o);
+}
+
+int DPyTuple_Check(PyObject *o)
+{
+    PyTypeObject *DPyTuple_Type = (PyTypeObject *)LOOKUP_SYMBOL(pylib, "PyTuple_Type");
+    PyTypeObject *obj_type = (PyTypeObject*)GetObjectType(o);
+    auto is_subtype = CALL_PY(PyType_IsSubtype)(obj_type, DPyTuple_Type);
+    CALL_PY(Py_DecRef)((PyObject *)obj_type);
+    return is_subtype;
 }
 
 PyObject* DPySequence_GetItem(PyObject *o, Py_ssize_t i)
