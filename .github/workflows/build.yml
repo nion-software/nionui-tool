@@ -88,8 +88,6 @@ jobs:
         os: [macos-14]
         python-version: ["3.14"]
         architecture: [arm64]
-    outputs:
-      artifact-id: ${{ steps.upload-wheel.outputs.artifact-id }}
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -238,8 +236,6 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
         wheel_match: ["manylinux1_x86_64"]
     steps:
-    - name: Use the ID
-      run: echo "Using ID is ${{ needs.build_linux.outputs.artifact-id }}"
     - uses: actions/checkout@v5
     - name: Download Wheel
       uses: actions/download-artifact@v8
@@ -301,15 +297,14 @@ jobs:
         os: [macos-14]
         python-version: ["3.12", "3.13", "3.14"]
         architecture: [arm64]
+        wheel_match: ["macosx_11_0_arm64"]
     steps:
-    - name: Use the ID
-      run: echo "Using ID is ${{ needs.build_macos.outputs.artifact-id }}"
     - uses: actions/checkout@v5
     - name: Download Wheel
       uses: actions/download-artifact@v8
       id: download_wheel
       with:
-        artifact-ids: ${{ needs.build_macos.outputs.artifact-id }}
+        pattern: "*${{ matrix.wheel_match }}*.whl"
         merge-multiple: true
         skip-decompress: true
         path: downloads
