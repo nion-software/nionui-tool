@@ -20,6 +20,7 @@ void *LOOKUP_SYMBOL(void *h, const char *proc)
 #pragma push_macro("_DEBUG")
 #undef _DEBUG
 #define PY_SSIZE_T_CLEAN
+#define Py_LIMITED_API 0x03120000 // Target Python 3.12 and later
 #include <Python.h>
 #pragma pop_macro("_DEBUG")
 

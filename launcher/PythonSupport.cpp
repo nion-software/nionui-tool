@@ -1296,29 +1296,6 @@ void PyDecRef(PyObject *o) { CALL_PY(Py_DecRef)(o); }
 void PyXDecRef(PyObject *o) { if (o != nullptr) CALL_PY(Py_DecRef)(o); }
 void PyIncRef(PyObject *o) { CALL_PY(Py_IncRef)(o); }
 
-#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 8
-// work around mis-defined macros in cpython/objects.h in Python 3.8 headers.
-// the macro isn't defined at first use (in cpython/objects.h) so it is
-// declared as a function. since we aren't linking to the python lib,
-// the function is missing. define it here.
-// see https://bugs.python.org/issue39543
-// see https://github.com/python/cpython/pull/18361/files
-#undef _Py_Dealloc
-PyAPI_FUNC(void) _Py_Dealloc(PyObject *o) { _Py_Dealloc_inline(o); }
-#endif
-
-#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 9
-// work around to provide required function that would be available by linking.
-#if OS_WINDOWS
-#pragma warning(push)
-#pragma warning(disable: 4273)  // do not warn about conflicting dllimport vs dllexport dll linkage.
-void _Py_Dealloc(PyObject* o) { (*(Py_TYPE(o)->tp_dealloc))(o); }
-#pragma warning(pop)
-#else
-PyAPI_FUNC(void) _Py_Dealloc(PyObject *o) { (*(Py_TYPE(o)->tp_dealloc))(o); }
-#endif
-#endif
-
 PythonWChar::PythonWChar(PyObject *o) : _s(nullptr)
 {
     _s = CALL_PY(PyUnicode_AsWideCharString)(o, &_size);
