@@ -11,6 +11,7 @@ env:
   tool-id: nionui-tool
   tool-package: nionui
   tool-exe: nionui
+  qt-version: "6.11.0"
 
 jobs:
   build_linux:
@@ -20,7 +21,6 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         python-version: ["3.14"]
-        qt-version: ["6.10.0"]
     outputs:
       artifact-id: ${{ steps.upload-wheel.outputs.artifact-id }}
     steps:
@@ -37,7 +37,7 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: ${{ matrix.qt-version }}
+        version: ${{ env.qt-version }}
         host: 'linux'
         target: 'desktop'
         arch: 'linux_gcc_64'
@@ -54,19 +54,19 @@ jobs:
         mkdir -p linux
         mv build linux/x64
         popd
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libQt6Core.so.6 launcher/linux/x64
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libQt6DBus.so.6 launcher/linux/x64
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libQt6Gui.so.6 launcher/linux/x64
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libQt6OpenGL.so.6 launcher/linux/x64
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libQt6Widgets.so.6 launcher/linux/x64
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libQt6XcbQpa.so.6 launcher/linux/x64
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libicui18n.so.73 launcher/linux/x64
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libicudata.so.73 launcher/linux/x64
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/lib/libicuuc.so.73 launcher/linux/x64
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6Core.so.6 launcher/linux/x64
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6DBus.so.6 launcher/linux/x64
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6Gui.so.6 launcher/linux/x64
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6OpenGL.so.6 launcher/linux/x64
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6Widgets.so.6 launcher/linux/x64
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6XcbQpa.so.6 launcher/linux/x64
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libicui18n.so.73 launcher/linux/x64
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libicudata.so.73 launcher/linux/x64
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libicuuc.so.73 launcher/linux/x64
         mkdir -p launcher/linux/x64/plugins/platforms
         mkdir -p launcher/linux/x64/plugins/imageformats
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/plugins/platforms/libqxcb.so launcher/linux/x64/plugins/platforms
-        cp ../Qt/${{ matrix.qt-version }}/gcc_64/plugins/imageformats/libq* launcher/linux/x64/plugins/imageformats
+        cp ../Qt/${{ env.qt-version }}/gcc_64/plugins/platforms/libqxcb.so launcher/linux/x64/plugins/platforms
+        cp ../Qt/${{ env.qt-version }}/gcc_64/plugins/imageformats/libq* launcher/linux/x64/plugins/imageformats
         rm launcher/linux/x64/plugins/imageformats/libqsvg.so
         sudo apt-get update
         sudo apt-get -y install chrpath
@@ -90,7 +90,6 @@ jobs:
         os: [macos-14]
         python-version: ["3.14"]
         architecture: [arm64]
-        qt-version: ["6.10.0"]
     outputs:
       artifact-id: ${{ steps.upload-wheel.outputs.artifact-id }}
     steps:
@@ -107,7 +106,7 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: ${{ matrix.qt-version }}
+        version: ${{ env.qt-version }}
         host: 'mac'
         target: 'desktop'
     - name: Build
@@ -180,7 +179,6 @@ jobs:
         os: [windows-2022]
         python-version: ["3.14"]
         arch_dir: ["x64"]
-        qt-version: ["6.10.0"]
         qt-host: ["windows"]
         qt-arch: ["win64_msvc2022_64"]
         include:
@@ -188,7 +186,6 @@ jobs:
             python-version: "3.14"
             arch_dir: "arm64"
             architecture: arm64
-            qt-version: "6.10.0"
             qt-host: "windows_arm64"
             qt-arch: "win64_msvc2022_arm64"
     outputs:
@@ -207,7 +204,7 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: ${{ matrix.qt-version }}
+        version: ${{ env.qt-version }}
         host: ${{ matrix.qt-host }}
         arch: ${{ matrix.qt-arch }}
         target: 'desktop'
@@ -307,7 +304,6 @@ jobs:
         os: [macos-14]
         python-version: ["3.12", "3.13", "3.14"]
         architecture: [arm64]
-        qt-version: ["6.10.0"]
     steps:
     - name: Use the ID
       run: echo "Using ID is ${{ needs.build_macos.outputs.artifact-id }}"
