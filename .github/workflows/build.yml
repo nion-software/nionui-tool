@@ -21,6 +21,16 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         python-version: ["3.14"]
+        qt-host: ["linux"]
+        qt-arch: ["linux_gcc_64"]
+        arch_dir: ["x64"]
+        include:
+          - os: ubuntu-22.04-arm64
+            python-version: "3.14"
+            qt-host: "linux_arm64"
+            qt-arch: "linux_gcc_arm64"
+            arch_dir: "arm64"
+            architecture: arm64
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -36,42 +46,43 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ env.qt-version }}
-        host: 'linux'
+        host: ${{ matrix.qt-host }}
+        arch: ${{ matrix.qt-arch }}
         target: 'desktop'
-        arch: 'linux_gcc_64'
     - name: Build
       shell: bash
       run: |
         python -m pip install --upgrade pip
         python -m pip install setuptools --upgrade
         python -m pip install packaging build cibuildwheel
+        python -c "import platform; print(f'PLATFORM: {platform.machine().lower()=}')"
         pushd launcher
         PYTHON=`python -c "import sys; print(sys.executable, end='')"`
         cmake CMakeLists.txt -DGIT_REPO=${{ github.repository }} -DGIT_REF="${{ github.ref }}" -DGIT_SHA=${{ github.sha }}
         cmake --build . --config Release
         mkdir -p linux
-        mv build linux/x64
+        mv build linux/${{ matrix.arch_dir }}
         popd
-        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6Core.so.6 launcher/linux/x64
-        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6DBus.so.6 launcher/linux/x64
-        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6Gui.so.6 launcher/linux/x64
-        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6OpenGL.so.6 launcher/linux/x64
-        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6Widgets.so.6 launcher/linux/x64
-        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6XcbQpa.so.6 launcher/linux/x64
-        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libicui18n.so.73 launcher/linux/x64
-        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libicudata.so.73 launcher/linux/x64
-        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libicuuc.so.73 launcher/linux/x64
-        mkdir -p launcher/linux/x64/plugins/platforms
-        mkdir -p launcher/linux/x64/plugins/imageformats
-        cp ../Qt/${{ env.qt-version }}/gcc_64/plugins/platforms/libqxcb.so launcher/linux/x64/plugins/platforms
-        cp ../Qt/${{ env.qt-version }}/gcc_64/plugins/imageformats/libq* launcher/linux/x64/plugins/imageformats
-        rm launcher/linux/x64/plugins/imageformats/libqsvg.so
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6Core.so.6 launcher/linux/${{ matrix.arch_dir }}
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6DBus.so.6 launcher/linux/${{ matrix.arch_dir }}
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6Gui.so.6 launcher/linux/${{ matrix.arch_dir }}
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6OpenGL.so.6 launcher/linux/${{ matrix.arch_dir }}
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6Widgets.so.6 launcher/linux/${{ matrix.arch_dir }}
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libQt6XcbQpa.so.6 launcher/linux/${{ matrix.arch_dir }}
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libicui18n.so.73 launcher/linux/${{ matrix.arch_dir }}
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libicudata.so.73 launcher/linux/${{ matrix.arch_dir }}
+        cp ../Qt/${{ env.qt-version }}/gcc_64/lib/libicuuc.so.73 launcher/linux/${{ matrix.arch_dir }}
+        mkdir -p launcher/linux/${{ matrix.arch_dir }}/plugins/platforms
+        mkdir -p launcher/linux/${{ matrix.arch_dir }}/plugins/imageformats
+        cp ../Qt/${{ env.qt-version }}/gcc_64/plugins/platforms/libqxcb.so launcher/linux/${{ matrix.arch_dir }}/plugins/platforms
+        cp ../Qt/${{ env.qt-version }}/gcc_64/plugins/imageformats/libq* launcher/linux/${{ matrix.arch_dir }}/plugins/imageformats
+        rm launcher/linux/${{ matrix.arch_dir }}/plugins/imageformats/libqsvg.so
         sudo apt-get update
         sudo apt-get -y install chrpath
-        chrpath -r "\$ORIGIN" launcher/linux/x64/libicu*.so.73
-        chrpath -r "\$ORIGIN/../.." launcher/linux/x64/plugins/platforms/libqxcb.so
-        chrpath -r "\$ORIGIN/../.." launcher/linux/x64/plugins/imageformats/*.so
-        printf "[Paths]\nPrefix=.\nPlugins=plugins\n" > launcher/linux/x64/qt.conf
+        chrpath -r "\$ORIGIN" launcher/linux/${{ matrix.arch_dir }}/libicu*.so.73
+        chrpath -r "\$ORIGIN/../.." launcher/linux/${{ matrix.arch_dir }}/plugins/platforms/libqxcb.so
+        chrpath -r "\$ORIGIN/../.." launcher/linux/${{ matrix.arch_dir }}/plugins/imageformats/*.so
+        printf "[Paths]\nPrefix=.\nPlugins=plugins\n" > launcher/linux/${{ matrix.arch_dir }}/qt.conf
         python -m build .
     - name: Upload Wheel
       uses: actions/upload-artifact@v7
@@ -235,6 +246,11 @@ jobs:
         os: [ubuntu-22.04, ubuntu-24.04]
         python-version: ["3.12", "3.13", "3.14"]
         wheel_match: ["manylinux1_x86_64"]
+        include:
+          - os: ubuntu-24.04-arm64
+            python-version: "3.14"
+            architecture: arm64
+            wheel_match: "manylinux1_aarch64"
     steps:
     - uses: actions/checkout@v5
     - name: Download Wheel

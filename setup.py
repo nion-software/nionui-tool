@@ -86,9 +86,9 @@ if sys.platform == "win32":
     dir_path = "launcher/x64/Release" if not is_arm64() else "launcher/arm64/Release"
     dest_drop = 3
 if sys.platform == "linux":
-    platform_tag = "manylinux1_x86_64"
+    platform_tag = "manylinux1_x86_64" if not is_arm64() else "manylinux1_aarch64"
     dest = f"bin/{launcher}"
-    dir_path = "launcher/linux/x64"
+    dir_path = "launcher/linux/x64" if not is_arm64() else "launcher/linux/arm64"
     dest_drop = 3
 
 data_files = package_files(dir_path, dest, dest_drop)
