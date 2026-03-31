@@ -25,7 +25,7 @@ jobs:
         qt-arch: ["linux_gcc_64"]
         arch_dir: ["x64"]
         include:
-          - os: ubuntu-22.04-arm64
+          - os: ubuntu-22.04-arm
             python-version: "3.14"
             qt-host: "linux_arm64"
             qt-arch: "linux_gcc_arm64"
@@ -247,7 +247,7 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
         wheel_match: ["manylinux1_x86_64"]
         include:
-          - os: ubuntu-24.04-arm64
+          - os: ubuntu-24.04-arm
             python-version: "3.14"
             architecture: arm64
             wheel_match: "manylinux1_aarch64"
