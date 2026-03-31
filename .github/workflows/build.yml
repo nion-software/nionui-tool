@@ -21,8 +21,6 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         python-version: ["3.14"]
-    outputs:
-      artifact-id: ${{ steps.upload-wheel.outputs.artifact-id }}
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -188,8 +186,6 @@ jobs:
             architecture: arm64
             qt-host: "windows_arm64"
             qt-arch: "win64_msvc2022_arm64"
-    outputs:
-      artifact-id: ${{ steps.upload-wheel.outputs.artifact-id }}
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -240,6 +236,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04]
         python-version: ["3.12", "3.13", "3.14"]
+        wheel_match: ["manylinux1_x86_64"]
     steps:
     - name: Use the ID
       run: echo "Using ID is ${{ needs.build_linux.outputs.artifact-id }}"
@@ -248,7 +245,7 @@ jobs:
       uses: actions/download-artifact@v8
       id: download_wheel
       with:
-        artifact-ids: ${{ needs.build_linux.outputs.artifact-id }}
+        pattern: "*${{ matrix.wheel_match }}*.whl"
         merge-multiple: true
         skip-decompress: true
         path: downloads
