@@ -18,6 +18,7 @@
 #undef _DEBUG
 #define PY_SSIZE_T_CLEAN
 #define MS_NO_COREDLL 1
+#define Py_LIMITED_API 0x03120000 // Target Python 3.12 and later
 #include <Python.h>
 #pragma pop_macro("_DEBUG")
 
