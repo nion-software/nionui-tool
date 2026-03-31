@@ -73,32 +73,11 @@ jobs:
         chrpath -r "\$ORIGIN/../.." launcher/linux/x64/plugins/imageformats/*.so
         printf "[Paths]\nPrefix=.\nPlugins=plugins\n" > launcher/linux/x64/qt.conf
         python -m build .
-    - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        auto-update-conda: true
-        python-version: "3.12"
-        miniconda-version: "latest"
-    - name: Build Conda Package
-      shell: bash -l {0}
-      run: |
-        python -c "import sys; print(sys.version)"
-        python -c "import sys; print(sys.executable)"
-        conda update --all -q -y
-        conda install -q conda-build -y
-        conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
-        OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
-        mv $OUT_FILE dist
     - name: Upload Wheel
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
         path: dist/*.whl
-    - name: Upload Conda Package
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
-        path: dist/*.conda
   build_macos:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -194,28 +173,6 @@ jobs:
       with:
         name: ${{ env.tool-id }}-macos-whl-${{ matrix.architecture }}-${{ matrix.python-version }}
         path: dist/*.whl
-    - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        auto-update-conda: true
-        python-version: "3.12"
-        miniconda-version: "latest"
-        architecture: ${{ matrix.architecture }}
-    - name: Build Conda Package
-      shell: bash -l {0}
-      run: |
-        python -c "import sys; print(sys.version)"
-        python -c "import sys; print(sys.executable)"
-        conda update --all -q -y
-        conda install -q conda-build -y
-        conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
-        OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
-        mv $OUT_FILE dist
-    - name: Upload Conda Package
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.tool-id }}-macos-conda-${{ matrix.architecture }}-${{ matrix.python-version }}
-        path: dist/*.conda
   build_win:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -258,32 +215,11 @@ jobs:
         Move-Item -Path build\Release -Destination x64
         popd
         python -m build .
-    - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        auto-update-conda: true
-        python-version: "3.12"
-        miniconda-version: "latest"
-    - name: Build Conda Package
-      shell: bash -l {0}
-      run: |
-        python -c "import sys; print(sys.version)"
-        python -c "import sys; print(sys.executable)"
-        conda update --all -q -y
-        conda install -q conda-build -y
-        conda build -q --python ${{ matrix.python-version }} ./.github/workflows/recipe
-        OUT_FILE=$(conda build --python ${{ matrix.python-version }} --output ./.github/workflows/recipe)
-        mv $OUT_FILE dist
     - name: Upload Wheel
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: dist/*.whl
-    - name: Upload Conda Package
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
-        path: dist/*.conda
   test_linux:
     needs: build_linux
     runs-on: ${{ matrix.os }}
@@ -300,12 +236,6 @@ jobs:
       with:
         name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
         path: downloads
-    - name: Download Conda
-      uses: actions/download-artifact@v4
-      id: download_conda
-      with:
-        name: ${{ env.tool-id }}-linux-conda-${{ matrix.python-version }}
-        path: conda_downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v6
       with:
@@ -349,88 +279,6 @@ jobs:
         xvfb-run -a ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         sleep 5
         deactivate
-    - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        auto-update-conda: true
-        activate-environment: test-environment
-        miniconda-version: "latest"
-        python-version: ${{ matrix.python-version }}
-        auto-activate-base: false
-    - name: Test Conda
-      shell: bash -l {0}
-      run: |
-        # use conda versions instead of pypi versions. install before anything else.
-        conda create -q -n test-env-conda -c conda-forge python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools pip -y
-        conda activate test-env-conda
-        # this does not work on ubuntu with Qt 6.8.
-        # until numpy 2 is available, use pip
-        # pip install numpy scipy h5py imageio setuptools
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # conda install -q -y -c nion ${{ env.tool-package }}
-        conda install -q -y ${{steps.download_conda.outputs.download-path}}/*.conda
-        pushd nionui_app_test
-        python -m pip install .
-        popd
-        echo "Running test..."
-        conda list
-        xvfb-run -a ${{ env.tool-exe }} nionui_app.test_ack
-        sleep 5
-        xvfb-run -a ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
-        sleep 5
-        conda deactivate
-    - name: Test Conda Forge
-      shell: bash -l {0}
-      run: |
-        # use conda versions instead of pypi versions. install before anything else.
-        conda create -q -n test-env -c conda-forge python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
-        conda activate test-env
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # conda install -q -y -c nion -c conda-forge ${{ env.tool-package }}
-        conda install -q -y -c conda-forge ${{steps.download_conda.outputs.download-path}}/*.conda
-        pushd nionui_app_test
-        python -m pip install .
-        popd
-        echo "Running test..."
-        conda list
-        xvfb-run -a ${{ env.tool-exe }} nionui_app.test_ack
-        sleep 5
-        xvfb-run -a ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
-        sleep 5
-        conda deactivate
-    - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-22.04'
-      shell: bash -l {0}
-      run: |
-        # make a directory to avoid name conflicts with the channel. argh.
-        mkdir conda_build
-        pushd conda_build
-        echo "conda create anaconda-client env"
-        conda create -n upload-env -q conda-build anaconda-client -y
-        echo "activate"
-        conda activate upload-env
-        echo "conda info"
-        conda info
-        echo "conda list"
-        conda list
-        echo "directory list"
-        ls -Rl ${{steps.download_conda.outputs.download-path}}
-        echo "anaconda upload"
-        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing ${{steps.download_conda.outputs.download-path}}/*.conda
-        echo "deactivate"
-        conda deactivate
-        echo "popd"
-        popd
   test_macos:
     needs: build_macos
     runs-on: ${{ matrix.os }}
@@ -458,12 +306,6 @@ jobs:
       with:
         name: ${{ env.tool-id }}-macos-whl-${{ matrix.architecture }}-${{ matrix.python-version }}
         path: downloads
-    - name: Download Conda
-      uses: actions/download-artifact@v4
-      id: download_conda
-      with:
-        name: ${{ env.tool-id }}-macos-conda-${{ matrix.architecture }}-${{ matrix.python-version }}
-        path: conda_downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v6
       with:
@@ -519,79 +361,6 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
-    - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        auto-update-conda: true
-        activate-environment: test-environment
-        miniconda-version: "latest"
-        python-version: ${{ matrix.python-version }}
-        architecture: ${{ matrix.architecture }}
-        auto-activate-base: false
-    - name: Test Conda
-      shell: bash -l {0}
-      run: |
-        # use conda versions instead of pypi versions. install before anything else.
-        # until numpy 2 is available, use pip
-        pip install numpy scipy h5py imageio setuptools
-        ## use nomkl until anaconda gets its act together
-        # conda install -q nomkl numpy scipy h5py imageio setuptools -y
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # conda install -q -y -c nion ${{ env.tool-package }}
-        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.conda")
-        echo "Installing '$FILENAME'"
-        conda install -q -y -c conda-forge $FILENAME
-        pushd nionui_app_test
-        python -m pip install .
-        popd
-        echo "Running test..."
-        conda list
-        ${{ env.tool-exe }} nionui_app.test_ack
-        ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
-    - name: Test Conda Forge
-      shell: bash -l {0}
-      run: |
-        # use conda versions instead of pypi versions. install before anything else.
-        # use nomkl until anaconda gets its act together
-        conda create -n test-env -c conda-forge -q python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
-        conda activate test-env
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # conda install -q -y -c nion -c conda-forge ${{ env.tool-package }}
-        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.conda")
-        echo "Installing '$FILENAME'"
-        conda install -q -y -c conda-forge $FILENAME
-        pushd nionui_app_test
-        python -m pip install .
-        popd
-        echo "Running test..."
-        conda list
-        ${{ env.tool-exe }} nionui_app.test_ack
-        ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
-        conda deactivate
-    - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-      shell: bash -l {0}
-      run: |
-        # make a directory to avoid name conflicts with the channel. argh.
-        mkdir conda_build
-        pushd conda_build
-        conda create -n upload-env -q conda-build anaconda-client -y
-        conda activate upload-env
-        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.conda")
-        echo "Send to Anaconda '$FILENAME'"
-        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing $FILENAME
-        conda deactivate
-        popd
   test_win:
     needs: build_win
     runs-on: ${{ matrix.os }}
@@ -608,12 +377,6 @@ jobs:
       with:
         name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
         path: downloads
-    - name: Download Conda
-      uses: actions/download-artifact@v4
-      id: download_conda
-      with:
-        name: ${{ env.tool-id }}-win-conda-${{ matrix.python-version }}
-        path: conda_downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v6
       with:
@@ -644,75 +407,6 @@ jobs:
         ${{ env.tool-exe }} nionui_app.test_ack
         ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
         deactivate
-    - name: Set up Miniconda ${{ matrix.python-version }}
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        auto-update-conda: true
-        activate-environment: test-environment
-        miniconda-version: "latest"
-        python-version: ${{ matrix.python-version }}
-        auto-activate-base: false
-    - name: Test Conda
-      shell: pwsh
-      run: |
-        # use conda versions instead of pypi versions. install before anything else.
-        conda update -q --all -y
-        # until numpy 2 is available, use pip
-        pip install numpy scipy h5py imageio setuptools
-        # conda install -q numpy scipy h5py imageio setuptools pip -y
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # conda install -q -y -c nion ${{ env.tool-package }}
-        $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.conda
-        conda install -q -y ${{steps.download_conda.outputs.download-path}}\$filename
-        pushd nionui_app_test
-        python -m pip install .
-        popd
-        echo "Running test..."
-        conda list
-        ${{ env.tool-exe }} nionui_app.test_ack
-        ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
-    - name: Test Conda Forge
-      shell: pwsh
-      run: |
-        # use conda versions instead of pypi versions. install before anything else.
-        conda create -n test-env -c conda-forge -q python=${{ matrix.python-version }} numpy scipy h5py imageio setuptools -y
-        conda activate test-env
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # conda install -q -y -c nion -c conda-forge ${{ env.tool-package }}
-        $filename = Get-ChildItem -name ${{steps.download_conda.outputs.download-path}}\*.conda
-        conda install -q -y -c conda-forge ${{steps.download_conda.outputs.download-path}}\$filename
-        pushd nionui_app_test
-        python -m pip install .
-        popd
-        echo "Running test..."
-        conda list
-        ${{ env.tool-exe }} nionui_app.test_ack
-        ${{ env.tool-exe }} nionui_app.test_ack | grep ACK
-        conda deactivate
-    - name: Build/publish anaconda package
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && matrix.os == 'windows-2022'
-      shell: bash -l {0}
-      run: |
-        # make a directory to avoid name conflicts with the channel. argh.
-        mkdir conda_build
-        pushd conda_build
-        conda create -n upload-env -q conda-build anaconda-client -y
-        conda activate upload-env
-        FILENAME=$(find '${{steps.download_conda.outputs.download-path}}' -name "*.conda")
-        echo "Send to Anaconda '$FILENAME'"
-        anaconda --token ${{ secrets.anaconda_token }} upload --user nion --skip-existing $FILENAME
-        conda deactivate
-        popd
   pypi-publish:
     name: Upload release to PyPI
     needs: [test_linux, test_macos, test_win]
