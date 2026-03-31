@@ -19,8 +19,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.14"]
         qt-version: ["6.10.0"]
+    outputs:
+      artifact-id: ${{ steps.upload-wheel.outputs.artifact-id }}
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -33,7 +35,7 @@ jobs:
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         version: ${{ matrix.qt-version }}
         host: 'linux'
@@ -74,9 +76,11 @@ jobs:
         printf "[Paths]\nPrefix=.\nPlugins=plugins\n" > launcher/linux/x64/qt.conf
         python -m build .
     - name: Upload Wheel
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
+      id: upload-wheel
       with:
-        name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
+        if-no-files-found: error
+        archive: False
         path: dist/*.whl
   build_macos:
     runs-on: ${{ matrix.os }}
@@ -84,9 +88,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-14]
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.14"]
         architecture: [arm64]
         qt-version: ["6.10.0"]
+    outputs:
+      artifact-id: ${{ steps.upload-wheel.outputs.artifact-id }}
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -99,7 +105,7 @@ jobs:
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         version: ${{ matrix.qt-version }}
         host: 'mac'
@@ -160,9 +166,11 @@ jobs:
         export CIBW_REPAIR_WHEEL_COMMAND=""
         python -m cibuildwheel --output-dir dist
     - name: Upload Wheel
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
+      id: upload-wheel
       with:
-        name: ${{ env.tool-id }}-macos-whl-${{ matrix.architecture }}-${{ matrix.python-version }}
+        if-no-files-found: error
+        archive: False
         path: dist/*.whl
   build_win:
     runs-on: ${{ matrix.os }}
@@ -170,8 +178,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2022]
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.14"]
         qt-version: ["6.10.0"]
+    outputs:
+      artifact-id: ${{ steps.upload-wheel.outputs.artifact-id }}
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -184,7 +194,7 @@ jobs:
         python -c "import sys; print(sys.version)"
         python -c "import sys; print(sys.executable)"
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         version: ${{ matrix.qt-version }}
         host: 'windows'
@@ -207,9 +217,11 @@ jobs:
         popd
         python -m build .
     - name: Upload Wheel
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
+      id: upload-wheel
       with:
-        name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
+        if-no-files-found: error
+        archive: False
         path: dist/*.whl
   test_linux:
     needs: build_linux
@@ -220,12 +232,16 @@ jobs:
         os: [ubuntu-22.04, ubuntu-24.04]
         python-version: ["3.12", "3.13", "3.14"]
     steps:
+    - name: Use the ID
+      run: echo "Using ID is ${{ needs.build_linux.outputs.artifact-id }}"
     - uses: actions/checkout@v5
     - name: Download Wheel
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       id: download_wheel
       with:
-        name: ${{ env.tool-id }}-linux-whl-${{ matrix.python-version }}
+        artifact-ids: ${{ needs.build_linux.outputs.artifact-id }}
+        merge-multiple: true
+        skip-decompress: true
         path: downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v6
@@ -283,10 +299,12 @@ jobs:
     steps:
     - uses: actions/checkout@v5
     - name: Download Wheel
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       id: download_wheel
       with:
-        name: ${{ env.tool-id }}-macos-whl-${{ matrix.architecture }}-${{ matrix.python-version }}
+        artifact-ids: ${{ needs.build_macos.outputs.artifact-id }}
+        merge-multiple: true
+        skip-decompress: true
         path: downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v6
@@ -354,10 +372,12 @@ jobs:
     steps:
     - uses: actions/checkout@v5
     - name: Download Wheel
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       id: download_wheel
       with:
-        name: ${{ env.tool-id }}-win-whl-${{ matrix.python-version }}
+        artifact-ids: ${{ needs.build_win.outputs.artifact-id }}
+        merge-multiple: true
+        skip-decompress: true
         path: downloads
     - name: Set up Python ${{ matrix.python-version }} with official build
       uses: actions/setup-python@v6
@@ -393,7 +413,6 @@ jobs:
     name: Upload release to PyPI
     needs: [test_linux, test_macos, test_win]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
     environment:
       name: release
       url: https://pypi.org/p/nionui-tool
@@ -401,15 +420,18 @@ jobs:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
     - name: Download All Artifacts
-      uses: actions/download-artifact@v4
-    - name: Remove all the files except the ones to upload to PyPI.
+      uses: actions/download-artifact@v8
+      with:
+        merge-multiple: true
+        skip-decompress: true
+        path: dist
+    - name: Show the files
       shell: bash
       run: |
-        mkdir dist
-        find . -name "*cp312*.whl" -exec cp {} dist \;
         ls -Rl .
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
       with:
         skip-existing: true
         print-hash: true

@@ -1,6 +1,5 @@
 import os
 import pathlib
-import platform
 import setuptools
 import sys
 import sysconfig
@@ -60,30 +59,25 @@ class bdist_wheel(bdist_wheel_.bdist_wheel):
         return python_tag, abi_tag, platform_tag
 
 
-python_tag = str()
-abi_tag = str()
+python_tag = "cp312"  # minimum version
+abi_tag = "abi3"
 platform_tag = str()
 dest = None
 dir_path = None
 dest_drop = None
 
+
 if sys.platform == "darwin":
-    python_tag = "cp312.cp313.cp314"
-    abi_tag = "abi3"
     platform_tag = sysconfig.get_platform().replace("-", "_").replace(".", "_")
     dest = "bin"
     dir_path = "launcher/build/Release"
     dest_drop = 3
 if sys.platform == "win32":
-    python_tag = "cp312.cp313.cp314"
-    abi_tag = "none"
     platform_tag = "win_amd64"
     dest = f"Scripts/{launcher}"
     dir_path = "launcher/x64/Release"
     dest_drop = 3
 if sys.platform == "linux":
-    python_tag = "cp312.cp313.cp314"
-    abi_tag = "abi3"
     platform_tag = "manylinux1_x86_64"
     dest = f"bin/{launcher}"
     dir_path = "launcher/linux/x64"
