@@ -87,15 +87,6 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
         architecture: [arm64]
         qt-version: ["6.10.0"]
-        include:
-            - os: macos-13
-              python-version: "3.12"
-              architecture: x86_64
-              qt-version: "6.10.0"
-            - os: macos-13
-              python-version: "3.13"
-              architecture: x86_64
-              qt-version: "6.10.0"
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -289,15 +280,6 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
         architecture: [arm64]
         qt-version: ["6.10.0"]
-        include:
-            - os: macos-13
-              python-version: "3.12"
-              architecture: x86_64
-              qt-version: "6.10.0"
-            - os: macos-13
-              python-version: "3.13"
-              architecture: x86_64
-              qt-version: "6.10.0"
     steps:
     - uses: actions/checkout@v5
     - name: Download Wheel
