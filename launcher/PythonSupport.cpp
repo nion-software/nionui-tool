@@ -2,8 +2,9 @@
  Copyright (c) 2012-2024 Bruker, Inc.
 */
 
-#include <stdint.h>
 #include <iostream>
+#include <stdint.h>
+#include <string.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #define OS_WINDOWS 1
