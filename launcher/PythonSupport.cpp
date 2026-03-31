@@ -621,11 +621,15 @@ PyObject *PythonValueVariantToPyObject(const PythonValueVariant &value_variant)
 
 PythonValueVariant PyObjectToValueVariant(PyObject *py_object)
 {
-    if (PyString_Check(py_object) || PyUnicode_Check(py_object))
+    if (CALL_PY(PyUnicode_Check)(py_object))
     {
         return PythonValueVariant{std::string(CALL_PY(PyUnicode_AsUTF8)(py_object))};
     }
-    else if (PyLong_Check(py_object))
+    else if (CALL_PY(PyBool_Check)(py_object))
+    {
+        return PythonValueVariant{static_cast<bool>(CALL_PY(PyObject_IsTrue)(py_object))};
+    }
+    else if (CALL_PY(PyLong_Check)(py_object))
     {
         return PythonValueVariant{PyInt_AsLong(py_object)};
     }
@@ -633,15 +637,11 @@ PythonValueVariant PyObjectToValueVariant(PyObject *py_object)
     {
         return PythonValueVariant{CALL_PY(PyFloat_AsDouble)(py_object)};
     }
-    else if (CALL_PY(PyBool_Check)(py_object))
-    {
-        return PythonValueVariant{static_cast<bool>(CALL_PY(PyObject_IsTrue)(py_object))};
-    }
     else if (CALL_PY(PyCapsule_IsValid)(py_object, PythonSupport::qobject_capsule_name) && CALL_PY(PyCapsule_CheckExact)(py_object))
     {
         return PythonValueVariant{CALL_PY(PyCapsule_GetPointer)(py_object, PythonSupport::qobject_capsule_name)};
     }
-    else if (PyDict_Check(py_object))
+    else if (CALL_PY(PyDict_Check)(py_object))
     {
         std::map<std::string, PythonValueVariant> map;
         PyObject *items = CALL_PY(PyMapping_Items)(py_object);
@@ -661,7 +661,7 @@ PythonValueVariant PyObjectToValueVariant(PyObject *py_object)
         }
         return PythonValueVariant{map};
     }
-    else if ((PyList_Check(py_object) || PyTuple_Check(py_object)) && CALL_PY(PySequence_Check)(py_object))
+    else if (((CALL_PY(PyList_Check)(py_object) || CALL_PY(PyTuple_Check)(py_object))) && CALL_PY(PySequence_Check)(py_object))
     {
         std::vector<PythonValueVariant> list;
         int count = (int)CALL_PY(PySequence_Size)(py_object);
