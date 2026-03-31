@@ -52,10 +52,6 @@ import packaging
 # this class overrides some methods of bdist_wheel to avoid its stricter tag checks.
 class bdist_wheel(bdist_wheel_.bdist_wheel):
     def get_tag(self) -> typing.Tuple[str, str, str]:
-        # cp310.cp311.cp312-abi3-manylinux1_x86_64.whl
-        # cp310.cp311.cp312-abi3-macosx_11_0_intel.whl
-        # cp310.cp311.cp312-abi3-macosx_11_0_arm64.whl
-        # cp310.cp311.cp312-none-win_amd64.whl
         global python_tag, abi_tag, platform_tag
         return python_tag, abi_tag, platform_tag
 
@@ -86,7 +82,7 @@ if sys.platform == "win32":
     dir_path = "launcher/x64/Release" if not is_arm64() else "launcher/arm64/Release"
     dest_drop = 3
 if sys.platform == "linux":
-    platform_tag = "manylinux1_x86_64" if not is_arm64() else "manylinux1_aarch64"
+    platform_tag = "manylinux_2_28_x86_64" if not is_arm64() else "manylinux_2_28_aarch64"
     dest = f"bin/{launcher}"
     dir_path = "launcher/linux/x64" if not is_arm64() else "launcher/linux/arm64"
     dest_drop = 3
