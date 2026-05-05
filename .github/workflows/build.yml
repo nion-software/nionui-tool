@@ -214,6 +214,8 @@ jobs:
         host: ${{ matrix.qt-host }}
         arch: ${{ matrix.qt-arch }}
         target: 'desktop'
+        # to install Qt 6.11, aqtinstall requires a release more recent than 3.3.0
+        aqtsource: "git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e"
     - name: Build
       shell: pwsh
       run: |
