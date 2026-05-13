@@ -32,7 +32,6 @@ jobs:
             qt-arch: "linux_gcc_arm64"
             qt-subdir: "gcc_arm64"
             arch_dir: "arm64"
-            architecture: arm64
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -193,7 +192,6 @@ jobs:
           - os: windows-11-arm
             python-version: "3.14"
             arch_dir: "arm64"
-            architecture: arm64
             qt-host: "windows_arm64"
             qt-arch: "win64_msvc2022_arm64"
     steps:
@@ -251,7 +249,6 @@ jobs:
         include:
           - os: ubuntu-24.04-arm
             python-version: "3.14"
-            architecture: arm64
             wheel_match: "manylinux_2_28_aarch64"
     steps:
     - uses: actions/checkout@v5
@@ -314,7 +311,6 @@ jobs:
       matrix:
         os: [macos-14]
         python-version: ["3.12", "3.13", "3.14"]
-        architecture: [arm64]
         wheel_match: ["macosx_11_0_arm64"]
     steps:
     - uses: actions/checkout@v5
@@ -393,8 +389,10 @@ jobs:
         include:
           - os: windows-11-arm
             python-version: "3.14"
-            architecture: arm64
             wheel_match: "win_arm64"
+          - os: windows-2025
+            python-version: "3.14"
+            wheel_match: "win_amd64"
     steps:
     - uses: actions/checkout@v5
     - name: Download Wheel
