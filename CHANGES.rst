@@ -1,6 +1,12 @@
 Changelog (nionui-tool)
 =======================
 
+5.3.0 (2026-06-05)
+------------------
+- Update to Qt 6.11.3
+- Add support for Python Limited API (stable ABI) to reduce dependence on Python version.
+- Add support for Windows Arm64, Linux Arm64.
+
 5.2.0 (2025-10-27)
 ------------------
 - Add support for Python 3.14; drop support for Python 3.11.
