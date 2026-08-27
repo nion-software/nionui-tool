@@ -1539,8 +1539,8 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         {
             QString text = args[0].toString();
             QPointF text_pos(args[1].toFloat() * display_scaling, args[2].toFloat() * display_scaling);
-            QFontMetrics fm(text_font);
-            int text_width = fm.horizontalAdvance(text);
+            QFontMetricsF fm(text_font);
+            float text_width = fm.horizontalAdvance(text);
             if (text_align == 2 || text_align == 5) // end or right
                 text_pos.setX(text_pos.x() - text_width);
             else if (text_align == 4) // center
@@ -2178,8 +2178,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
                 float arg2 = read_float(commands, command_index) * display_scaling;
                 read_float(commands, command_index); // max width
                 QPointF text_pos(arg1, arg2);
-                QFontMetrics fm(text_font);
-                int text_width = fm.horizontalAdvance(text);
+                QFontMetricsF fm(text_font);
+                float text_width = fm.horizontalAdvance(text);
                 if (text_align == 2 || text_align == 5) // end or right
                     text_pos.setX(text_pos.x() - text_width);
                 else if (text_align == 4) // center
@@ -2740,10 +2740,10 @@ void PyCanvas::paintEvent(QPaintEvent *event)
         painter.save();
         painter.setRenderHints(DEFAULT_RENDER_HINTS);
         QFont text_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-        QFontMetrics fm(text_font);
-        int text_width = fm.horizontalAdvance(drawnText.text);
-        int text_ascent = fm.ascent();
-        int text_height = fm.height();
+        QFontMetricsF fm(text_font);
+        float text_width = fm.horizontalAdvance(drawnText.text);
+        float text_ascent = fm.ascent();
+        float text_height = fm.height();
         QPointF text_pos(12, text_height + ((text_height + 12) * drawnText.line));
         painter.setWorldTransform(drawnText.world_transform);
         QPainterPath background;
