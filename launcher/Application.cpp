@@ -1489,10 +1489,10 @@ QFont ParseFontString(const QString &font_string, float display_scaling = 1.0)
                 font.setWeight(QFont::Medium);
             else if (font_part == "system")
                 font.setStyleHint(QFont::System);
-            else if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toInt() > 0)
+            else if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toFloat() > 0)
                 font.setPointSizeF(font_part.left(font_part.length() - 2).toFloat() * display_scaling);
-            else if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toInt() > 0)
-                font.setPixelSize(font_part.left(font_part.length() - 2).toInt() * display_scaling);
+            else if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toFloat() > 0)
+                font.setPixelSize(font_part.left(font_part.length() - 2).toFloat() * display_scaling);
             else
                 is_family = true;
         }
@@ -1577,7 +1577,7 @@ static PyObject *Core_getFontMetrics(PyObject * /*self*/, PyObject *args)
 
     QFont font = ParseFontString(font_c, display_scaling);
 
-    QFontMetrics font_metrics(font);
+    QFontMetricsF font_metrics(font);
 
     QVariantList result;
 
@@ -1735,7 +1735,29 @@ static PyObject *Core_truncateToWidth(PyObject * /*self*/, PyObject *args)
 
     QFont font = ParseFontString(font_c, display_scaling);
 
-    QFontMetrics font_metrics(font);
+    QFontMetricsF font_metrics(font);
+
+    QString truncated_str = font_metrics.elidedText(text, Qt::TextElideMode(mode), pixel_width);
+
+    return PythonSupport::instance()->build()("s", truncated_str.toUtf8().data());
+}
+
+static PyObject *Core_truncateToWidthF(PyObject * /*self*/, PyObject *args)
+{
+    char *font_c = NULL;
+    char *text_c = NULL;
+    float pixel_width = 0.0;
+    int mode = 0;
+    if (!PythonSupport::instance()->parse()(args, "szfi", &font_c, &text_c, &pixel_width, &mode))
+        return NULL;
+
+    float display_scaling = GetDisplayScaling();
+
+    QString text = (text_c != NULL) ? text_c : QString();
+
+    QFont font = ParseFontString(font_c, display_scaling);
+
+    QFontMetricsF font_metrics(font);
 
     QString truncated_str = font_metrics.elidedText(text, Qt::TextElideMode(mode), pixel_width);
 
@@ -6520,6 +6542,7 @@ static PyMethodDef Methods[] = {
     {"Core_setApplicationInfo", Core_setApplicationInfo, METH_VARARGS, "Core_setApplicationInfo."},
     {"Core_syncLatencyTimer", Core_syncLatencyTimer, METH_VARARGS, "Core_syncLatencyTimer"},
     {"Core_truncateToWidth", Core_truncateToWidth, METH_VARARGS, "Core_truncateToWidth."},
+    {"Core_truncateToWidthF", Core_truncateToWidthF, METH_VARARGS, "Core_truncateToWidthF."},
     {"Core_URLToPath", Core_URLToPath, METH_VARARGS, "Core_URLToPath."},
     {"Core_writeBinaryToImage", Core_writeBinaryToImage, METH_VARARGS, "Core_writeBinaryToImage."},
 
