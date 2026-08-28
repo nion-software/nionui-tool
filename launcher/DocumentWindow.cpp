@@ -131,19 +131,57 @@ public:
         // ideally only the passed widget could be updated; the widget may be a QDockWidget
         // which never calls update; so as a workaround, just update everything and clear the list.
         // this may be a problem (too many updates) in the future with multiple document windows.
-        QMutexLocker locker(&mutex);
+        //
+        // copy the pending requests out and release the lock before calling repaint()/update()
+        // on each widget below. r->repaint() (used while dragging, see below) synchronously
+        // forces Qt to flush pending paint/event processing, and during a native drag session
+        // this can reenter (e.g. this very timer firing again) before the call returns. QMutex
+        // is not recursive, so calling back into update() (and thus trying to lock `mutex`
+        // again on the same thread) while still holding it here would self-deadlock the GUI
+        // thread, which after a couple of seconds gets force-killed by the OS watchdog.
+        std::list<PyCanvas *> requests_copy;
+        bool dragging = false;
 
-        for (const auto &r : requests)
         {
-            r->update();
+            QMutexLocker locker(&mutex);
+            requests_copy = requests;
+            requests.clear();
+            dragging = m_dragging;
         }
 
-        requests.clear();
+        for (const auto &r : requests_copy)
+        {
+            // QWidget::update() only schedules a deferred paint event; it is not processed
+            // until the event queue is serviced by the normal Qt event loop. However, while a
+            // native drag-and-drop session is in progress (QDrag::exec has been called), the
+            // GUI thread is inside a native, OS-level event tracking loop (e.g. macOS'
+            // NSEventTrackingRunLoopMode / Windows' native OLE drag loop). That loop keeps
+            // servicing Qt timers (so periodic() keeps firing), but it does not reliably
+            // dispatch queued/deferred paint events, so update() effectively does nothing
+            // until the drag ends and the whole backlog flushes at once. Force an immediate,
+            // synchronous repaint instead while dragging so canvases keep rendering live.
+            if (dragging)
+                r->repaint();
+            else
+                r->update();
+        }
+    }
+
+    // called by Drag::execute() to bracket the native drag loop so update() above knows to
+    // force synchronous repaints instead of posting deferred update requests that would
+    // otherwise stall until the drag ends. Drag::execute always runs on the GUI thread, as
+    // does the periodic timer that calls update(), so this flag needs no special thread
+    // affinity beyond the existing mutex.
+    void setDragging(bool dragging)
+    {
+        QMutexLocker locker(&mutex);
+        m_dragging = dragging;
     }
 
 private:
     QMutex mutex;
     std::list<PyCanvas *> requests;
+    bool m_dragging = false;
 };
 
 RepaintManager repaintManager;
@@ -3519,7 +3557,13 @@ Drag::Drag(QWidget *widget)
 
 void Drag::execute()
 {
+    // exec() below runs a native, OS-level modal drag loop on the GUI thread until the drag
+    // ends. Bracket it so RepaintManager::update() forces synchronous repaints instead of
+    // deferred update() calls, which would otherwise not be serviced until the drag loop
+    // exits (see RepaintManager::update() for details).
+    repaintManager.setDragging(true);
     Qt::DropAction action = exec(Qt::CopyAction | Qt::MoveAction);
+    repaintManager.setDragging(false);
     QMap<Qt::DropAction, QString> mapping;
     mapping[Qt::CopyAction] = "copy";
     mapping[Qt::MoveAction] = "move";
