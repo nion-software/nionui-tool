@@ -1,6 +1,7 @@
 import importlib
 import importlib.util
 import os
+import pathlib
 import site
 import sys
 import HostLib  # host supplies this module
@@ -86,11 +87,11 @@ def load_module_as_package(package):
     return None
 
 
-def load_module_local(path=None):
+def load_module_local(path=None, name=None):
     try:
         if path:
-            sys.path.insert(0, path)
-        module = importlib.import_module("main")
+            sys.path.insert(0, str(path))
+        module = importlib.import_module(name or "main")
         main_fn = getattr(module, "main", None)
         if main_fn:
             return main_fn
@@ -148,11 +149,20 @@ def bootstrap_main(args):
     main_fn = None
     if len(args) > 2:
         path = os.path.abspath(args[2])
+        # try to load as an explicit file path, e.g. `nionui nionui_app/example/main.py`
         main_fn = load_module_as_path(path)
+        # try to load as an importable package, e.g. `nionui nionui_app.nionui_examples.ui_demo`
         main_fn = main_fn or load_module_as_package(args[2])
+        # try to load "main.py" from within the given directory, e.g. `nionui /path/to/some_dir`
         main_fn = main_fn or load_module_local(path)
+        # try to load a module by name relative to the current working directory, e.g.
+        # `nionui main` or `nionui my_module` when run from within that directory.
+        module_name = os.path.splitext(os.path.basename(args[2]))[0]
+        main_fn = main_fn or load_module_local(pathlib.Path.cwd(), module_name)
     if len(args) >= 1:
-        main_fn = main_fn or load_module_local()
+        # if no module was specified (or none of the above matched), try to load "main" from
+        # the current working directory.
+        main_fn = main_fn or load_module_local(pathlib.Path.cwd())
     if main_fn:
 
         # proxy the app so Application_setQuitOnLastWindowClosed can be called.
