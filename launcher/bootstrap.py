@@ -99,6 +99,31 @@ def load_module_local(path=None):
     return None
 
 
+def extract_bootstrap_args(args):
+    """Pull generic "--key" / "--key=value" style flags out of args.
+
+    "--key" (no value) becomes a boolean True entry; "--key=value" becomes a string value entry.
+    Dashes in the key are converted to underscores (e.g. "--some-flag" -> "some_flag"). This lets
+    new experimental bootstrap options (like "--canvas") be added and forwarded to the ui
+    implementation without requiring changes here for each new flag.
+
+    Returns the extracted flags as a dict, plus the remaining (non "--"-prefixed) args in order.
+    """
+    bootstrap_args = dict()
+    remaining = list()
+    for arg in args:
+        if isinstance(arg, str) and arg.startswith("--") and len(arg) > 2:
+            key_value = arg[2:]
+            if "=" in key_value:
+                key, _, value = key_value.partition("=")
+            else:
+                key, value = key_value, True
+            bootstrap_args[key.replace("-", "_")] = value
+        else:
+            remaining.append(arg)
+    return bootstrap_args, remaining
+
+
 def bootstrap_main(args):
     """
     Main function explicitly called from the C++ code.
@@ -115,12 +140,10 @@ def bootstrap_main(args):
     version_info = sys.version_info
     if version_info.major != 3 or version_info.minor < 6:
         return None, "python36"
-    # allow an optional "--canvas" flag anywhere in args to force the (non-standard, dev/test only)
-    # canvas-on-top-of-Qt user interface implementation. strip it out first so it does not shift
-    # the positional argument handling below (args[2] is expected to be the app path/package).
-    use_canvas = "--canvas" in args
-    if use_canvas:
-        args = [arg for arg in args if arg != "--canvas"]
+    # extract any "--key[=value]" style flags (e.g. the non-standard, dev/test only "--canvas"
+    # flag) and forward them as bootstrap args. strip them out first so they do not shift the
+    # positional argument handling below (args[2] is expected to be the app path/package).
+    extra_bootstrap_args, args = extract_bootstrap_args(args)
     proxy = HostLibProxy(HostLib)
     main_fn = None
     if len(args) > 2:
@@ -145,9 +168,7 @@ def bootstrap_main(args):
             def stop(self) -> None:
                 self.__app.stop()
 
-        bootstrap_args = {"proxy": proxy}
-        if use_canvas:
-            bootstrap_args["canvas"] = True
+        bootstrap_args = {"proxy": proxy, **extra_bootstrap_args}
         app = main_fn(args, bootstrap_args)
         return AppProxy(app), None
     return None, "main"
