@@ -2,6 +2,8 @@
  Copyright (c) 2012-2024 Bruker, Inc.
 */
 
+#include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <stdint.h>
 #include <string.h>
@@ -90,6 +92,62 @@ PlatformSupport::~PlatformSupport()
 {
 }
 
+// The platform-specific library search below used to hard-code every supported Python minor
+// version (3.12, 3.13, 3.14, ...) in near-identical lists that needed an edit every time a new
+// Python version shipped. Instead, each platform searches for a single glob pattern (e.g.
+// "libpython3.*.so") and the helpers below pick out the newest matching version, so new Python
+// releases are picked up automatically.
+
+// Extracts the Python minor version embedded in a candidate library/DLL file name, e.g.
+// "libpython3.14.dylib", "libpython3.14.so", and "Python314.dll" all yield 14. Returns -1 if no
+// version number could be found.
+static int pythonMinorVersion(const std::string &filePath)
+{
+    std::string lower = filePath;
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+    const std::string marker = "python3";
+    size_t pos = lower.rfind(marker);
+    if (pos == std::string::npos)
+        return -1;
+    pos += marker.size();
+    if (pos < lower.size() && lower[pos] == '.')
+        ++pos;
+    std::string digits;
+    while (pos < lower.size() && std::isdigit(static_cast<unsigned char>(lower[pos])))
+        digits += lower[pos++];
+    return digits.empty() ? -1 : std::stoi(digits);
+}
+
+// Lowest Python minor version this build supports, matching the Py_LIMITED_API target
+// (0x030C0000) in PythonSupport.h. Candidates for older interpreters are ignored so an
+// unsupported system Python is never picked up just because its name also matched the glob.
+static const int kMinSupportedPythonMinorVersion = 12;
+
+// Searches directoryPath (and its subdirectories) for files matching namePattern (a glob such as
+// "libpython3.*.so", with '*' standing in for the minor version) and appends any matches to
+// filePaths, skipping versions older than kMinSupportedPythonMinorVersion. If
+// requiredParentDirectoryName is non-empty, only matches whose immediate parent directory has
+// that name are kept, to avoid picking up unrelated nested copies of the library.
+static void collectVersionedFiles(FileSystem *fs, const std::string &directoryPath, const std::string &namePattern, std::list<std::string> &filePaths, const std::string &requiredParentDirectoryName = std::string())
+{
+    std::list<std::string> matches;
+    fs->iterateDirectory(directoryPath, std::list<std::string>{ namePattern }, matches);
+    for (auto &match : matches)
+        if (pythonMinorVersion(match) >= kMinSupportedPythonMinorVersion)
+            if (requiredParentDirectoryName.empty() || fs->directoryName(match) == requiredParentDirectoryName)
+                filePaths.push_back(match);
+}
+
+// Sorts candidate file paths so the newest Python version is tried first, while otherwise
+// preserving relative order (e.g. the priority of the directory a candidate was found in), since
+// std::list::sort is guaranteed stable.
+static void sortNewestVersionFirst(std::list<std::string> &filePaths)
+{
+    filePaths.sort([](const std::string &a, const std::string &b) {
+        return pythonMinorVersion(a) > pythonMinorVersion(b);
+    });
+}
+
 #if OS_MACOS
 class MacSupport : public PlatformSupport
 {
@@ -128,26 +186,16 @@ public:
         directories.push_back(fs->absoluteFilePath(home_bin_path, "../lib"));
         directories.push_back(fs->absoluteFilePath(home_bin_path, "/usr/local/Cellar/python@" + version));
 
-        std::list<std::string> variants;
-        variants.push_back("libpython3.14.dylib");
-        variants.push_back("libpython3.13.dylib");
-        variants.push_back("libpython3.12.dylib");
+        for (auto directory : directories)
+            collectVersionedFiles(fs, directory, "libpython3.*.dylib", filePaths, "lib");
 
-        for (auto directory: directories)
-        {
-            std::list<std::string> directoryFilePaths;
-            fs->iterateDirectory(directory, variants, directoryFilePaths);
-            for (auto filePath : directoryFilePaths)
-                if (fs->directoryName(filePath) == "lib")
-                    filePaths.push_back(filePath);
-        }
+        sortNewestVersionFirst(filePaths);
     }
 
     virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
     {
-        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.14.dylib"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.13.dylib"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.12.dylib"));
+        collectVersionedFiles(fs, fs->absoluteFilePath(python_home, "lib"), "libpython3.*.dylib", filePaths, "lib");
+        sortNewestVersionFirst(filePaths);
     }
 
     virtual void buildLibraryPaths(FileSystem *fs, const std::string &python_home, const std::string &python_home_new, std::list<std::string> &filePaths) override
@@ -206,19 +254,14 @@ public:
     virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) override
     {
         std::string homeParentDirectory = fs->parentDirectory(home_bin_path);
-        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.14/config-3.14-x86_64-linux-gnu/libpython3.14.so"));
-        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.13/config-3.13-x86_64-linux-gnu/libpython3.13.so"));
-        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/python3.12/config-3.12-x86_64-linux-gnu/libpython3.12.so"));
-        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.14.so"));
-        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.13.so"));
-        filePaths.push_back(fs->absoluteFilePath(homeParentDirectory, "lib/libpython3.12.so"));
+        collectVersionedFiles(fs, fs->absoluteFilePath(homeParentDirectory, "lib"), "libpython3.*.so", filePaths);
+        sortNewestVersionFirst(filePaths);
     }
 
     virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
     {
-        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.14.so"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.13.so"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "lib/libpython3.12.so"));
+        collectVersionedFiles(fs, fs->absoluteFilePath(python_home, "lib"), "libpython3.*.so", filePaths);
+        sortNewestVersionFirst(filePaths);
     }
 
     virtual void buildLibraryPaths(FileSystem *fs, const std::string &python_home, const std::string &python_home_new, std::list<std::string> &filePaths) override
@@ -311,34 +354,28 @@ public:
 
     virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) override
     {
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/Python314.dll"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Python314.dll"));
-        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python314.dll"));
-        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Python314.dll"));
+        std::list<std::string> directories;
+        directories.push_back(fs->absoluteFilePath(python_home, "Scripts"));
+        directories.push_back(python_home);
+        directories.push_back(fs->absoluteFilePath(home_bin_path, "Scripts"));
+        directories.push_back(home_bin_path);
 
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/Python313.dll"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Python313.dll"));
-        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python313.dll"));
-        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Python313.dll"));
+        for (auto directory : directories)
+            collectVersionedFiles(fs, directory, "Python3??.dll", filePaths);
 
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/Python312.dll"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Python312.dll"));
-        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Scripts/Python312.dll"));
-        filePaths.push_back(fs->absoluteFilePath(home_bin_path, "Python312.dll"));
+        sortNewestVersionFirst(filePaths);
     }
 
     virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
     {
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Python314.dll"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Python313.dll"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Python312.dll"));
+        collectVersionedFiles(fs, python_home, "Python3??.dll", filePaths);
+        sortNewestVersionFirst(filePaths);
     }
 
     virtual void buildLibraryPaths(FileSystem *fs, const std::string &python_home, const std::string &python_home_new, std::list<std::string> &filePaths) override
     {
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python314.zip"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python313.zip"));
-        filePaths.push_back(fs->absoluteFilePath(python_home, "Scripts/python312.zip"));
+        collectVersionedFiles(fs, fs->absoluteFilePath(python_home, "Scripts"), "python3??.zip", filePaths);
+        sortNewestVersionFirst(filePaths);
         filePaths.push_back(fs->absoluteFilePath(python_home_new, "DLLs"));
         filePaths.push_back(fs->absoluteFilePath(python_home_new, "lib"));
         filePaths.push_back(python_home_new);
