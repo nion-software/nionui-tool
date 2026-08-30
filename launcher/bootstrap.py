@@ -115,6 +115,12 @@ def bootstrap_main(args):
     version_info = sys.version_info
     if version_info.major != 3 or version_info.minor < 6:
         return None, "python36"
+    # allow an optional "--canvas" flag anywhere in args to force the (non-standard, dev/test only)
+    # canvas-on-top-of-Qt user interface implementation. strip it out first so it does not shift
+    # the positional argument handling below (args[2] is expected to be the app path/package).
+    use_canvas = "--canvas" in args
+    if use_canvas:
+        args = [arg for arg in args if arg != "--canvas"]
     proxy = HostLibProxy(HostLib)
     main_fn = None
     if len(args) > 2:
@@ -139,6 +145,9 @@ def bootstrap_main(args):
             def stop(self) -> None:
                 self.__app.stop()
 
-        app = main_fn(args, {"proxy": proxy})
+        bootstrap_args = {"proxy": proxy}
+        if use_canvas:
+            bootstrap_args["canvas"] = True
+        app = main_fn(args, bootstrap_args)
         return AppProxy(app), None
     return None, "main"
