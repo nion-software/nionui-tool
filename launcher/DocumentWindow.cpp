@@ -214,8 +214,21 @@ DocumentWindow::DocumentWindow(const QString &title, QWidget *parent)
 
 void DocumentWindow::initialize()
 {
-    // start the timer event
-    m_periodic_timer = startTimer(25);
+    // use Qt::PreciseTimer rather than the default Qt::CoarseTimer for both timers below: the
+    // default permits the OS to coalesce/delay firing by up to ~5% of the interval (more on some
+    // Windows power plans), which directly inflates repaint latency for the fast timer below.
+    // PreciseTimer asks for millisecond accuracy at negligible additional cost for these two
+    // low-frequency recurring timers.
+    m_periodic_timer = startTimer(25, Qt::PreciseTimer);
+
+    // separate, much shorter interval timer dedicated to draining pending repaints
+    // (repaintManager.update()) so a freshly rendered frame does not have to wait for the full
+    // 25ms python-periodic cadence above before it is even told to repaint. this reuses the
+    // same cheap, well-tested timer mechanism (no per-frame cross-thread dispatch/allocation)
+    // rather than adding a new one, while keeping the python "periodic" callback itself on its
+    // own, unchanged 25ms cadence -- python does not need to (and should not have to) run 5x
+    // more often just so repaints can be drained sooner.
+    m_repaint_timer = startTimer(5, Qt::PreciseTimer);
 
     // reset it here until it is really modified
     cleanDocument();
@@ -228,9 +241,12 @@ Application *DocumentWindow::application() const
 
 void DocumentWindow::timerEvent(QTimerEvent *event)
 {
-    if (event->timerId() == m_periodic_timer && isVisible())
+    if (event->timerId() == m_repaint_timer && isVisible())
     {
         repaintManager.update();
+    }
+    else if (event->timerId() == m_periodic_timer && isVisible())
+    {
         application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
     }
 }

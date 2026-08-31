@@ -89,6 +89,7 @@ private:
     QVariant m_py_object;
 
     int m_periodic_timer;
+    int m_repaint_timer;
 
     QMutex m_repaint_mutex;
 
