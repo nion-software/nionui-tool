@@ -2431,6 +2431,33 @@ PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const CanvasSectionShar
 
 void PyCanvasRenderTask::run()
 {
+    // loop instead of recursing/resubmitting to the thread pool: if continuePaintingSection()
+    // finds more pending drawing commands for this section immediately after finishing this
+    // render, render them directly on this same worker thread rather than handing the new task
+    // back to QThreadPool. Submitting to the pool would mean waiting for a (possibly different)
+    // worker thread to wake up, which adds avoidable latency when a section is backlogged (i.e.
+    // new commands keep arriving faster than they can be rendered). This is purely an
+    // optimization for the "hot" backlogged case; the very first render for a section still goes
+    // through the thread pool as usual (see PyCanvas::setBinarySectionCommands).
+    PyCanvasRenderTask *current = this;
+
+    while (current)
+    {
+        RenderResult render_result = current->renderOnce();
+        PyCanvasRenderTask *next = current->m_canvas->continuePaintingSection(render_result);
+
+        // the very first task (this) is owned by whoever invoked run() (the thread pool, which
+        // auto-deletes it once run() returns); any chained task created and consumed entirely
+        // within this loop is not, and must be deleted here.
+        if (current != this)
+            delete current;
+
+        current = next;
+    }
+}
+
+RenderResult PyCanvasRenderTask::renderOnce()
+{
     RenderResult render_result(m_section);
 
     auto const commands = m_drawing_commands->commands();
@@ -2460,7 +2487,7 @@ void PyCanvasRenderTask::run()
         render_result.record_latency = true;
     }
 
-    m_canvas->continuePaintingSection(render_result);
+    return render_result;
 }
 
 CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
@@ -2549,7 +2576,7 @@ PyCanvas::~PyCanvas()
  needed, determined by whether m_pending_drawing_commands is non-empty. The resulting bitmap
  will be painted during a subsequent paint event.
  */
-void PyCanvas::continuePaintingSection(const RenderResult &render_result)
+PyCanvasRenderTask *PyCanvas::continuePaintingSection(const RenderResult &render_result)
 {
     PyCanvasRenderTask *task = nullptr;
 
@@ -2578,9 +2605,10 @@ void PyCanvas::continuePaintingSection(const RenderResult &render_result)
             repaintManager.requestRepaint(this);
     }
 
-    // launch the task outside of the mutex.
-    if (task)
-        QThreadPool::globalInstance()->start(task);
+    // the caller (PyCanvasRenderTask::run(), already on a worker thread) renders this task
+    // directly instead of resubmitting it to the thread pool, avoiding the extra cross-thread
+    // wake-up latency for a backlogged section.
+    return task;
 }
 
 void PyCanvas::focusInEvent(QFocusEvent *event)
