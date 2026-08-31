@@ -290,6 +290,23 @@ struct RenderedTimeStamp
 
 typedef QList<RenderedTimeStamp> RenderedTimeStamps;
 
+// Per-frame pipeline instrumentation, in nanoseconds (same monotonic clock as GetCurrentTime()
+// and the python-embedded frame timestamp). A value of 0 means the stage has not happened yet
+// (or, in the case of embed_ns, that the frame carried no embedded timestamp). Exposed to python
+// via PyCanvas::getPerformanceStatistics() / Canvas_getPerformanceStatistics.
+struct FrameTiming
+{
+    int64_t embed_ns = 0;              // timestamp embedded by python when the frame's data was produced
+    int64_t received_ns = 0;           // setBinarySectionCommands(): commands arrived in this process
+    int64_t render_start_ns = 0;       // PyCanvasRenderTask::run(): thread pool task began executing
+    int64_t render_end_ns = 0;         // PyCanvasRenderTask::run(): rasterization finished (bitmap ready)
+    int64_t repaint_requested_ns = 0;  // continuePaintingSection(): bitmap handed to RepaintManager
+    int64_t repaint_dispatched_ns = 0; // RepaintManager::update(): update()/repaint() actually called
+    int64_t paint_start_ns = 0;        // paintEvent(): frame actually blitted to the screen
+};
+
+typedef QQueue<FrameTiming> FrameTimings;
+
 typedef std::shared_ptr<std::vector<quint32>> CommandsSharedPtr;
 
 RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const CommandsSharedPtr &commands, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling = 0.0, int section_id = 0, float devicePixelRatio = 1.0);
@@ -555,6 +572,13 @@ public:
     bool record_latency;
     bool closing;
 
+    // instrumentation: received_ns for the most recently arrived (possibly still pending)
+    // drawing commands, the in-flight timing for whichever task is currently rendering, and a
+    // rolling history of completed per-frame timings used to compute performance statistics.
+    int64_t pending_received_ns;
+    FrameTiming active_timing;
+    FrameTimings frame_timings;
+
     CanvasSection(int section_id, float device_pixel_ratio);
 };
 
@@ -576,6 +600,7 @@ struct RenderResult
     QSharedPointer<QImage> image;
     QRect image_rect;
     bool record_latency;
+    FrameTiming timing;
 
     RenderResult(const CanvasSectionSharedPtr &section) : section(section), record_latency(false) { }
 };
@@ -589,7 +614,7 @@ struct RenderResult
 class PyCanvasRenderTask : public QRunnable
 {
 public:
-    PyCanvasRenderTask(PyCanvas *canvas, const CanvasSectionSharedPtr &section, const DrawingCommandsSharedPtr &drawing_commands, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps);
+    PyCanvasRenderTask(PyCanvas *canvas, const CanvasSectionSharedPtr &section, const DrawingCommandsSharedPtr &drawing_commands, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps, const FrameTiming &timing);
 
     virtual void run() override;
 
@@ -603,6 +628,7 @@ private:
     const DrawingCommandsSharedPtr m_drawing_commands;
     float m_device_pixel_ratio;
     const RenderedTimeStamps m_rendered_timestamps;
+    const FrameTiming m_timing;
 };
 
 class PyCanvas : public QWidget
@@ -648,6 +674,18 @@ public:
     void releaseMouse0();
 
     PyCanvasRenderTask *continuePaintingSection(const RenderResult &render_result);
+
+    // called by RepaintManager right before update()/repaint() is invoked on this canvas, so the
+    // "time spent waiting for the periodic repaint timer" stage can be measured per frame.
+    void markRepaintDispatched();
+
+    // returns performance instrumentation (queue/render/repaint-wait/paint timings, in
+    // milliseconds) aggregated over recent frames for the given section (0 by default). intended
+    // to be exposed to python for diagnostics; the always-on "Latency" overlay text is unaffected.
+    // frames older than max_age_seconds are excluded (a value <= 0 disables the cutoff) so idle
+    // sections that rendered once long ago (e.g. during startup) report no data instead of stale,
+    // unrepresentative numbers.
+    QVariantMap getPerformanceStatistics(int section_id = 0, double max_age_seconds = 5.0) const;
 
 private:
     bool m_closing;

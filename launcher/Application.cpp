@@ -1057,6 +1057,34 @@ static PyObject *Canvas_removeSection(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+// Returns a dict of display pipeline performance instrumentation (embed_wait, queue_wait, render,
+// repaint_wait, paint_wait, total_latency, frame_interval), each a dict of
+// {average_ms, minimum_ms, maximum_ms, std_dev_ms, count}, aggregated over recent frames for the
+// given section (0, the default, when not using individual sections). Frames older than
+// max_age_seconds (default 5.0; a value <= 0 disables the cutoff) are excluded, so a section that
+// only rendered once a long time ago (e.g. a static toolbar/thumbnail canvas rendered once at
+// startup) reports no data instead of stale, unrepresentative numbers. See
+// PyCanvas::getPerformanceStatistics for details on what each stage measures. Intended for
+// diagnosing latency on a per-machine basis; the existing "Latency"/"Frame Rate" overlay text is
+// unaffected by this call.
+static PyObject *Canvas_getPerformanceStatistics(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    int section_id = 0;
+    double max_age_seconds = 5.0;
+
+    if (!PythonSupport::instance()->parse()(args, "O|id", &obj0, &section_id, &max_age_seconds))
+        return NULL;
+
+    PyCanvas *canvas = Unwrap<PyCanvas>(obj0);
+    if (canvas == NULL)
+        return NULL;
+
+    QVariantMap result = canvas->getPerformanceStatistics(section_id, max_age_seconds);
+
+    return QVariantToPyObject(result);
+}
+
 static PyObject *Canvas_setCursorShape(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
@@ -6508,6 +6536,7 @@ static PyMethodDef Methods[] = {
     {"Canvas_draw", Canvas_draw, METH_VARARGS, "Canvas_draw."},
     {"Canvas_draw_binary", Canvas_draw_binary, METH_VARARGS, "Canvas_draw."},
     {"Canvas_drawSection_binary", Canvas_drawSection_binary, METH_VARARGS, "Canvas_draw_section."},
+    {"Canvas_getPerformanceStatistics", Canvas_getPerformanceStatistics, METH_VARARGS, "Canvas_getPerformanceStatistics."},
     {"Canvas_grabMouse", Canvas_grabMouse, METH_VARARGS, "Canvas_grabMouse."},
     {"Canvas_releaseMouse", Canvas_releaseMouse, METH_VARARGS, "Canvas_releaseMouse."},
     {"Canvas_removeSection", Canvas_removeSection, METH_VARARGS, "Canvas_removeSection."},

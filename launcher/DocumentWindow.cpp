@@ -72,6 +72,10 @@ Q_DECLARE_METATYPE(std::string)
 // from application
 PyObject *QVariantToPyObject(const QVariant &value);
 
+// monotonic clock (nanoseconds) shared by the drawing pipeline instrumentation and the
+// python-embedded frame timestamps used for latency measurement. defined later in this file.
+int64_t GetCurrentTime();
+
 const auto DEFAULT_RENDER_HINTS = QPainter::Antialiasing | QPainter::TextAntialiasing;
 
 QFont ParseFontString(const QString &font_string, float display_scaling = 1.0);
@@ -169,6 +173,11 @@ public:
 
         for (const auto &r : requests_copy)
         {
+            // record the moment this canvas was actually told to repaint, so the
+            // "repaint wait" instrumentation stage (time spent sitting in this
+            // manager waiting for the periodic timer) can be measured per frame.
+            r->markRepaintDispatched();
+
             // QWidget::update() only schedules a deferred paint event; it is not processed
             // until the event queue is serviced by the normal Qt event loop. However, while a
             // native drag-and-drop session is in progress (QDrag::exec has been called), the
@@ -2437,12 +2446,13 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
     return rendered_timestamps;
 }
 
-PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const CanvasSectionSharedPtr &section, const DrawingCommandsSharedPtr &drawing_commands, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps)
+PyCanvasRenderTask::PyCanvasRenderTask(PyCanvas *canvas, const CanvasSectionSharedPtr &section, const DrawingCommandsSharedPtr &drawing_commands, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps, const FrameTiming &timing)
     : m_canvas(canvas)
     , m_section(section)
     , m_drawing_commands(drawing_commands)
     , m_device_pixel_ratio(devicePixelRatio)
     , m_rendered_timestamps(rendered_timestamps)
+    , m_timing(timing)
 {
     // NOTE: this class is a QRunnable and auto deletes when the run() method completes.
 }
@@ -2478,6 +2488,9 @@ RenderResult PyCanvasRenderTask::renderOnce()
 {
     RenderResult render_result(m_section);
 
+    FrameTiming timing = m_timing;
+    timing.render_start_ns = GetCurrentTime();
+
     auto const commands = m_drawing_commands->commands();
     auto const rect = m_drawing_commands->rect();
     auto const image_map = m_drawing_commands->imageMap();
@@ -2501,9 +2514,17 @@ RenderResult PyCanvasRenderTask::renderOnce()
             transform.translate(rect.left(), rect.top());
             transform = transform * QTransform::fromScale(1/m_device_pixel_ratio, 1/m_device_pixel_ratio);
             render_result.rendered_timestamps.append(RenderedTimeStamp(transform, r.timestamp_ns, r.section_id));
+            // pick up the python-embedded timestamp (if any) that PaintBinaryCommands decoded from
+            // the "time" command, so the full pipeline (embed -> screen) can be measured, not just
+            // the render-onward portion.
+            if (r.timestamp_ns && !timing.embed_ns)
+                timing.embed_ns = r.timestamp_ns;
         }
         render_result.record_latency = true;
     }
+
+    timing.render_end_ns = GetCurrentTime();
+    render_result.timing = timing;
 
     return render_result;
 }
@@ -2514,6 +2535,7 @@ CanvasSection::CanvasSection(int section_id, float device_pixel_ratio)
     , record_latency(false)
     , m_render_task(nullptr)
     , closing(false)
+    , pending_received_ns(0)
 {
     // m_render_task auto deletes after its run method finishes, so it should not be in a scoped or shared pointer.
 }
@@ -2610,12 +2632,21 @@ PyCanvasRenderTask *PyCanvas::continuePaintingSection(const RenderResult &render
         section->image = render_result.image;
         section->image_rect = render_result.image_rect;
         section->record_latency = render_result.record_latency;
+        // stamp and record the completed frame's timing before possibly overwriting
+        // active_timing below for the next (pending) task.
+        FrameTiming finished_timing = render_result.timing;
+        finished_timing.repaint_requested_ns = GetCurrentTime();
+        section->frame_timings.enqueue(finished_timing);
+        while (section->frame_timings.size() > 120)
+            section->frame_timings.dequeue();
         auto pending_commands = section->m_pending_drawing_commands;
         section->m_pending_drawing_commands.reset();
         // do not start a new task if closing.
         if (!m_closing && !section->closing && pending_commands)
         {
-            task = new PyCanvasRenderTask(this, section, pending_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
+            section->active_timing = FrameTiming();
+            section->active_timing.received_ns = section->pending_received_ns;
+            task = new PyCanvasRenderTask(this, section, pending_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps, section->active_timing);
             section->m_render_task = task;
         }
         // note: this may be occurring during a delete, in which case even the window may not be available.
@@ -2627,6 +2658,23 @@ PyCanvasRenderTask *PyCanvas::continuePaintingSection(const RenderResult &render
     // directly instead of resubmitting it to the thread pool, avoiding the extra cross-thread
     // wake-up latency for a backlogged section.
     return task;
+}
+
+void PyCanvas::markRepaintDispatched()
+{
+    QMutexLocker locker(&m_sections_mutex);
+
+    auto now = GetCurrentTime();
+
+    for (auto const &section : m_sections)
+    {
+        if (!section->frame_timings.isEmpty())
+        {
+            auto &last_timing = section->frame_timings.last();
+            if (!last_timing.repaint_dispatched_ns)
+                last_timing.repaint_dispatched_ns = now;
+        }
+    }
 }
 
 void PyCanvas::focusInEvent(QFocusEvent *event)
@@ -2778,6 +2826,17 @@ void PyCanvas::paintEvent(QPaintEvent *event)
             if (section->image && !section->image->isNull() && section->image_rect.intersects(event->rect()))
                 imageAndRects.push_back(ImageAndRect(section->image, section->image_rect));
 
+            // stamp the most recently completed frame's paint_start_ns the first time it is
+            // actually painted (a section may repaint multiple times, e.g. due to unrelated
+            // expose events, before a newer frame replaces it -- only the first paint matters
+            // for latency purposes).
+            if (!section->frame_timings.isEmpty())
+            {
+                auto &last_timing = section->frame_timings.last();
+                if (!last_timing.paint_start_ns)
+                    last_timing.paint_start_ns = current_time_ns;
+            }
+
             for (auto &rendered_timestamp : section->m_rendered_timestamps)
             {
                 if (!rendered_timestamp.elapsed_ns)
@@ -2854,6 +2913,116 @@ void PyCanvas::paintEvent(QPaintEvent *event)
         painter.fillPath(path, Qt::black);
         painter.restore();
     }
+}
+
+/*
+ Return performance instrumentation for a section, aggregated over recent completed frames
+ (up to the last 120). Intended to be called from python for diagnostics; unlike the always-on
+ "Latency"/"Frame Rate" overlay text, this breaks the pipeline down into named stages so a slow
+ machine can be diagnosed without guessing:
+
+   embed_wait     embed (python-side timestamp, if the frame carried a "time" command) -> received
+                  (setBinarySectionCommands): python-side processing, IPC/marshalling, or GIL
+                  contention before the native call is even made.
+   queue_wait     received -> render_start (thread pool picked up the task)
+   render         render_start -> render_end (QPainter rasterization of the drawing commands)
+   repaint_wait   repaint_requested (bitmap ready) -> repaint_dispatched (repaint timer told Qt to repaint)
+   paint_wait     repaint_dispatched -> paint_start (Qt event loop/compositor actually delivered paintEvent)
+   total_latency  embed -> paint_start
+   frame_interval paint_start -> next paint_start (delivered frame rate)
+
+ Each stage is reported as {average_ms, minimum_ms, maximum_ms, std_dev_ms, count}; a stage is
+ omitted if there were no completed frames with both of its endpoints recorded.
+ */
+QVariantMap PyCanvas::getPerformanceStatistics(int section_id, double max_age_seconds) const
+{
+    QVariantMap result;
+
+    // locking is required for thread-safety even though this method is logically read-only.
+    QMutexLocker locker(const_cast<QMutex *>(&m_sections_mutex));
+
+    auto section = m_sections.value(section_id);
+    if (!section)
+        return result;
+
+    QQueue<int64_t> embed_wait_ns;
+    QQueue<int64_t> queue_wait_ns;
+    QQueue<int64_t> render_ns;
+    QQueue<int64_t> repaint_wait_ns;
+    QQueue<int64_t> paint_wait_ns;
+    QQueue<int64_t> total_latency_ns;
+    QQueue<int64_t> frame_interval_ns;
+
+    // many sections (e.g. static toolbar/thumbnail canvases) draw once and never again. without
+    // an age cutoff, their single old FrameTiming would sit in the history forever and get
+    // reported as if it were current -- and since it was likely recorded during busy application
+    // startup, its repaint/paint wait times are typically much worse than steady-state, making an
+    // idle widget look like the source of ongoing latency. exclude frames older than
+    // max_age_seconds (a value <= 0 disables the cutoff) so only actively-updating sections
+    // produce a non-empty result.
+    int64_t current_time_ns = GetCurrentTime();
+    int64_t max_age_ns = max_age_seconds > 0.0 ? static_cast<int64_t>(max_age_seconds * 1.0e9) : -1;
+
+    int64_t previous_paint_start_ns = 0;
+    int recent_frame_count = 0;
+
+    for (auto const &timing : section->frame_timings)
+    {
+        // only consider frames that have actually reached the screen; the newest entry may
+        // still be in flight through later pipeline stages.
+        if (!timing.paint_start_ns)
+            continue;
+
+        if (max_age_ns >= 0 && (current_time_ns - timing.paint_start_ns) > max_age_ns)
+            continue;
+
+        ++recent_frame_count;
+
+        if (timing.embed_ns && timing.received_ns)
+            embed_wait_ns.enqueue(timing.received_ns - timing.embed_ns);
+        if (timing.received_ns)
+            queue_wait_ns.enqueue(timing.render_start_ns - timing.received_ns);
+        render_ns.enqueue(timing.render_end_ns - timing.render_start_ns);
+        if (timing.repaint_dispatched_ns)
+            repaint_wait_ns.enqueue(timing.repaint_dispatched_ns - timing.repaint_requested_ns);
+        if (timing.repaint_dispatched_ns)
+            paint_wait_ns.enqueue(timing.paint_start_ns - timing.repaint_dispatched_ns);
+        if (timing.embed_ns)
+            total_latency_ns.enqueue(timing.paint_start_ns - timing.embed_ns);
+        if (previous_paint_start_ns)
+            frame_interval_ns.enqueue(timing.paint_start_ns - previous_paint_start_ns);
+        previous_paint_start_ns = timing.paint_start_ns;
+    }
+
+    auto add_stage = [&result](const QString &name, const QQueue<int64_t> &values_ns)
+    {
+        if (values_ns.isEmpty())
+            return;
+        Measurements<int64_t> m(values_ns);
+        QVariantMap stage;
+        stage["average_ms"] = m.average / 1.0e6;
+        stage["minimum_ms"] = m.minimum / 1.0e6;
+        stage["maximum_ms"] = m.maximum / 1.0e6;
+        stage["std_dev_ms"] = m.std_dev / 1.0e6;
+        stage["count"] = values_ns.size();
+        result[name] = stage;
+    };
+
+    add_stage("embed_wait", embed_wait_ns);
+    add_stage("queue_wait", queue_wait_ns);
+    add_stage("render", render_ns);
+    add_stage("repaint_wait", repaint_wait_ns);
+    add_stage("paint_wait", paint_wait_ns);
+    add_stage("total_latency", total_latency_ns);
+    add_stage("frame_interval", frame_interval_ns);
+
+    // only report a frame_count (and thus a non-empty result, from the caller's point of view)
+    // when at least one frame within max_age_seconds was found; otherwise this section is idle
+    // (or was only ever rendered once, long ago) and has nothing current to report.
+    if (recent_frame_count > 0)
+        result["frame_count"] = recent_frame_count;
+
+    return result;
 }
 
 bool PyCanvas::event(QEvent *event)
@@ -3112,6 +3281,11 @@ void PyCanvas::setBinarySectionCommands(int section_id, const DrawingCommandsSha
 
     PyCanvasRenderTask *task = nullptr;
 
+    // instrumentation: the moment these drawing commands arrived in this process, on whatever
+    // thread the hosted python application is running. captured before the lock so it isn't
+    // inflated by mutex contention.
+    int64_t received_ns = GetCurrentTime();
+
     {
         QMutexLocker locker(&m_sections_mutex);
 
@@ -3137,12 +3311,15 @@ void PyCanvas::setBinarySectionCommands(int section_id, const DrawingCommandsSha
 
             if (!section->m_render_task && !section->closing)
             {
-                task = new PyCanvasRenderTask(this, section, drawing_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps);
+                section->active_timing = FrameTiming();
+                section->active_timing.received_ns = received_ns;
+                task = new PyCanvasRenderTask(this, section, drawing_commands, section->m_device_pixel_ratio, section->m_rendered_timestamps, section->active_timing);
                 section->m_render_task = task;
             }
             else
             {
                 section->m_pending_drawing_commands = drawing_commands;
+                section->pending_received_ns = received_ns;
             }
         }
     }
