@@ -37,6 +37,7 @@
 #include <QtGui/QStyleHints>
 #include <QtGui/QWindow>
 
+#include <QtWidgets/QApplication>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QFileDialog>
@@ -100,15 +101,32 @@ public:
 
     void requestRepaint(PyCanvas *canvas)
     {
-        QMutexLocker locker(&mutex);
+        bool was_empty = false;
 
-        for (const auto &r : requests)
         {
-            if (r == canvas)
-                return;
+            QMutexLocker locker(&mutex);
+
+            for (const auto &r : requests)
+            {
+                if (r == canvas)
+                    return;
+            }
+
+            was_empty = requests.empty();
+
+            requests.push_back(canvas);
         }
 
-        requests.push_back(canvas);
+        // the queue was fully drained before this request arrived, meaning the fast repaint
+        // timer (see DocumentWindow::timerEvent) has nothing scheduled to wake it up sooner
+        // than its next regular tick (up to 5ms away). dispatch update() immediately via the
+        // event loop in that case only, so a newly rendered frame is not left waiting on the
+        // timer to catch up. skip this when the queue was already non-empty (i.e. a backlog
+        // is being processed): the timer will pick those up shortly anyway, and firing an
+        // extra immediate dispatch per frame while backlogged only adds overhead without
+        // reducing latency (confirmed to regress the CPU-constrained case).
+        if (was_empty)
+            QTimer::singleShot(0, qApp, [this]() { update(); });
     }
 
     void cancelRepaintRequest(PyCanvas *canvas)
