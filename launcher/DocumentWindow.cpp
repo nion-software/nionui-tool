@@ -215,6 +215,7 @@ RepaintManager repaintManager;
 
 DocumentWindow::DocumentWindow(const QString &title, QWidget *parent)
     : QMainWindow(parent)
+    , m_last_repaint_timer_ns(0)
     , m_closed(false)
 {
     setAttribute(Qt::WA_DeleteOnClose, true);
@@ -270,11 +271,28 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == m_repaint_timer && isVisible())
     {
+        int64_t now = GetCurrentTime();
+        if (m_last_repaint_timer_ns)
+        {
+            m_repaint_timer_interval_ns.enqueue(now - m_last_repaint_timer_ns);
+            while (m_repaint_timer_interval_ns.size() > 120)
+                m_repaint_timer_interval_ns.dequeue();
+        }
+        m_last_repaint_timer_ns = now;
+
+        int64_t update_start = GetCurrentTime();
         repaintManager.update();
+        m_repaint_update_duration_ns.enqueue(GetCurrentTime() - update_start);
+        while (m_repaint_update_duration_ns.size() > 120)
+            m_repaint_update_duration_ns.dequeue();
     }
     else if (event->timerId() == m_periodic_timer && isVisible())
     {
+        int64_t start = GetCurrentTime();
         application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
+        m_periodic_duration_ns.enqueue(GetCurrentTime() - start);
+        while (m_periodic_duration_ns.size() > 120)
+            m_periodic_duration_ns.dequeue();
     }
 }
 
@@ -3021,6 +3039,57 @@ QVariantMap PyCanvas::getPerformanceStatistics(int section_id, double max_age_se
     // (or was only ever rendered once, long ago) and has nothing current to report.
     if (recent_frame_count > 0)
         result["frame_count"] = recent_frame_count;
+
+    return result;
+}
+
+QVariantMap DocumentWindow::getEventLoopStatistics() const
+{
+    // GUI-thread only (see header comment on the member queues) -- called via python during
+    // periodic(), which itself only ever runs on the GUI thread, so no locking is needed here,
+    // unlike PyCanvas::getPerformanceStatistics which must guard against a worker thread writing
+    // concurrently.
+    QVariantMap result;
+
+    auto add_stage = [&result](const QString &name, const QQueue<int64_t> &values_ns)
+    {
+        if (values_ns.isEmpty())
+            return;
+        Measurements<int64_t> m(values_ns);
+        QVariantMap stage;
+        stage["average_ms"] = m.average / 1.0e6;
+        stage["minimum_ms"] = m.minimum / 1.0e6;
+        stage["maximum_ms"] = m.maximum / 1.0e6;
+        stage["std_dev_ms"] = m.std_dev / 1.0e6;
+        stage["count"] = values_ns.size();
+        result[name] = stage;
+    };
+
+    // how long each dispatchPyMethod(..., "periodic", ...) call took. a large value here (close
+    // to or exceeding the nominal 25ms periodic interval) directly indicates that python-side
+    // work is occupying the GUI thread for a substantial fraction of the time, which will delay
+    // repaint_timer's ticks (and thus repaint_wait/paint_wait) even though the two timers are
+    // otherwise independent.
+    add_stage("periodic_duration", m_periodic_duration_ns);
+
+    // the actual observed interval between consecutive repaint_timer fires, vs. its nominal 5ms
+    // period. if the GUI thread is kept busy (by periodic(), by paint events, by anything else),
+    // this interval will grow well beyond 5ms -- making that condition directly visible instead
+    // of only showing up as unexplained inflation in the per-canvas repaint_wait statistic.
+    add_stage("repaint_timer_interval", m_repaint_timer_interval_ns);
+
+    // how long repaintManager.update() itself took (calling update()/repaint() on each pending
+    // canvas -- see RepaintManager::update). Normally this just posts deferred paint events and
+    // should be very fast (well under a millisecond even for several canvases); it can grow if
+    // update() is forced to be synchronous (e.g. while dragging, see RepaintManager::update) or
+    // if a large number of canvases are pending at once. Comparing this against
+    // repaint_timer_interval isolates two different explanations for a slow GUI thread: time
+    // spent actually doing repaint work here vs. periodic_duration vs. still-unaccounted time
+    // (e.g. other Qt/OS event processing) if repaint_timer_interval exceeds
+    // periodic_duration + repaint_update_duration by a wide margin.
+    add_stage("repaint_update_duration", m_repaint_update_duration_ns);
+
+    result["logical_processor_count"] = QThread::idealThreadCount();
 
     return result;
 }

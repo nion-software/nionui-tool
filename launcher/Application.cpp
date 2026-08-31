@@ -2073,6 +2073,29 @@ static PyObject *DocumentWindow_getDisplayScaling(PyObject * /*self*/, PyObject 
 #endif
 }
 
+// Returns a dict of GUI event loop instrumentation (periodic_duration, repaint_timer_interval,
+// repaint_update_duration), each a dict of {average_ms, minimum_ms, maximum_ms, std_dev_ms,
+// count}. Both timers run on the same GUI thread, so a slow python "periodic" callback
+// (periodic_duration) can delay the dedicated repaint-draining timer's ticks (visible as
+// repaint_timer_interval growing beyond its nominal 5ms period) even though the two timers are
+// otherwise independent. See DocumentWindow::getEventLoopStatistics for details. Intended for
+// diagnosing whether GUI-thread contention from python is a contributing factor to display
+// latency on a per-machine basis.
+static PyObject *DocumentWindow_getEventLoopStatistics(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
+    if (document_window == NULL)
+        return NULL;
+
+    QVariantMap result = document_window->getEventLoopStatistics();
+
+    return QVariantToPyObject(result);
+}
+
 static PyObject *DocumentWindow_getColorDialog(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -6585,6 +6608,7 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_connect", DocumentWindow_connect, METH_VARARGS, "DocumentWindow_connect."},
     {"DocumentWindow_create", DocumentWindow_create, METH_VARARGS, "DocumentWindow_create."},
     {"DocumentWindow_getDisplayScaling", DocumentWindow_getDisplayScaling, METH_VARARGS, "DocumentWindow_getDisplayScaling."},
+    {"DocumentWindow_getEventLoopStatistics", DocumentWindow_getEventLoopStatistics, METH_VARARGS, "DocumentWindow_getEventLoopStatistics."},
     {"DocumentWindow_getColorDialog", DocumentWindow_getColorDialog, METH_VARARGS, "DocumentWindow_getColorDialog."},
     {"DocumentWindow_getColorScheme", DocumentWindow_getColorScheme, METH_VARARGS, "DocumentWindow_getColorScheme."},
     {"DocumentWindow_getFilePath", DocumentWindow_getFilePath, METH_VARARGS, "DocumentWindow_getFilePath."},

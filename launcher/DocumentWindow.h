@@ -63,6 +63,15 @@ public:
     void requestRepaint(PyCanvas *canvas);
     void cancelRepaintRequest(PyCanvas *canvas);
 
+    // instrumentation: how long the python "periodic" callback takes, and how much the
+    // dedicated repaint-draining timer's actual firing interval deviates from its nominal
+    // interval (see m_repaint_timer / timerEvent). both timers share the single GUI thread, so
+    // if periodic() (or anything else running on that thread) blocks for a while, the repaint
+    // timer's ticks get delayed right along with it even though the two timers are otherwise
+    // independent -- this makes that condition directly observable instead of just showing up
+    // as unexplained repaint_wait/paint_wait inflation in the per-canvas statistics.
+    QVariantMap getEventLoopStatistics() const;
+
 public Q_SLOTS:
     void screenChanged(QScreen *screen);
     void logicalDotsPerInchChanged(qreal dpi);
@@ -90,6 +99,14 @@ private:
 
     int m_periodic_timer;
     int m_repaint_timer;
+
+    // rolling history for getEventLoopStatistics(); GUI-thread only, no locking needed since
+    // both are written from timerEvent() and read from getEventLoopStatistics(), which is only
+    // ever called (via python) while already running on the GUI thread.
+    QQueue<int64_t> m_periodic_duration_ns;
+    QQueue<int64_t> m_repaint_timer_interval_ns;
+    QQueue<int64_t> m_repaint_update_duration_ns;
+    int64_t m_last_repaint_timer_ns;
 
     QMutex m_repaint_mutex;
 
