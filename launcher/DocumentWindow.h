@@ -596,6 +596,8 @@ public:
     const CanvasSectionSharedPtr section() const { return m_section; }
 
 private:
+    RenderResult renderOnce();
+
     PyCanvas *m_canvas;
     const CanvasSectionSharedPtr m_section;
     const DrawingCommandsSharedPtr m_drawing_commands;
@@ -645,7 +647,7 @@ public:
     void grabMouse0(const QPoint &gp);
     void releaseMouse0();
 
-    void continuePaintingSection(const RenderResult &render_result);
+    PyCanvasRenderTask *continuePaintingSection(const RenderResult &render_result);
 
 private:
     bool m_closing;
