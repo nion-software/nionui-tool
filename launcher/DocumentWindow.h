@@ -13,6 +13,7 @@
 #include <QtCore/QRunnable>
 #include <QtCore/QThread>
 #include <QtCore/QWaitCondition>
+#include <atomic>
 #include <QtGui/QAction>
 #include <QtGui/QDrag>
 #include <QtGui/QWheelEvent>
@@ -328,13 +329,36 @@ struct FrameTiming
     // CPU/scheduler is just slow to run an already-available thread".
     int thread_pool_active_at_start = 0;
     int thread_pool_max = 0;
+
+    // Time spent (summed across all "image"/"data" draw commands in this frame's render task)
+    // waiting to acquire the Python GIL vs. actually doing the ndarray->QImage conversion once
+    // acquired. Lets getPerformanceStatistics distinguish "render is slow because other threads
+    // are holding the GIL" (gil_wait) from "render is slow because the conversion itself is CPU-
+    // bound on this machine" (image_convert).
+    int64_t gil_wait_ns = 0;
+    int64_t image_convert_ns = 0;
+
+    // portion of gil_wait_ns (above) during which g_periodic_active (see below) was observed true
+    // at either the start or the end of the wait -- a direct, causal check of whether the GUI
+    // thread's periodic() callback (which holds the GIL for its whole call) was plausibly the
+    // thing this render task was waiting on, rather than inferring it indirectly by comparing
+    // separately-averaged gil_wait/periodic_duration statistics.
+    int64_t gil_wait_periodic_ns = 0;
 };
+
+// Set to true for the duration of each dispatchPyMethod(..., "periodic", ...) call (which runs on
+// the GUI thread and holds the GIL for its entire duration -- see DocumentWindow::timerEvent).
+// Read (without synchronization beyond relaxed atomicity) by render worker threads immediately
+// before/after acquiring the GIL themselves, purely for diagnostics: it lets getPerformanceStatistics
+// report what fraction of GIL-wait time directly overlapped with an in-flight periodic() call,
+// instead of relying on inference from separately-averaged stats.
+extern std::atomic<bool> g_periodic_active;
 
 typedef QQueue<FrameTiming> FrameTimings;
 
 typedef std::shared_ptr<std::vector<quint32>> CommandsSharedPtr;
 
-RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const CommandsSharedPtr &commands, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling = 0.0, int section_id = 0, float devicePixelRatio = 1.0);
+RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const CommandsSharedPtr &commands, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling = 0.0, int section_id = 0, float devicePixelRatio = 1.0, int64_t *gil_wait_ns = nullptr, int64_t *image_convert_ns = nullptr, int64_t *gil_wait_periodic_ns = nullptr);
 
 class PyStyledItemDelegate : public QStyledItemDelegate
 {

@@ -76,6 +76,9 @@ PyObject *QVariantToPyObject(const QVariant &value);
 // python-embedded frame timestamps used for latency measurement. defined later in this file.
 int64_t GetCurrentTime();
 
+// see declaration in DocumentWindow.h
+std::atomic<bool> g_periodic_active{false};
+
 const auto DEFAULT_RENDER_HINTS = QPainter::Antialiasing | QPainter::TextAntialiasing;
 
 QFont ParseFontString(const QString &font_string, float display_scaling = 1.0);
@@ -289,7 +292,9 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
     else if (event->timerId() == m_periodic_timer && isVisible())
     {
         int64_t start = GetCurrentTime();
+        g_periodic_active.store(true, std::memory_order_relaxed);
         application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
+        g_periodic_active.store(false, std::memory_order_relaxed);
         m_periodic_duration_ns.enqueue(GetCurrentTime() - start);
         while (m_periodic_duration_ns.size() > 120)
             m_periodic_duration_ns.dequeue();
@@ -1798,7 +1803,7 @@ inline QString read_string(const quint32 *commands, unsigned int &command_index)
 
 struct NullDeleter {template<typename T> void operator()(T*) {} };
 
-RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsSharedPtr &commands_v, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling, int section_id, float devicePixelRatio)
+RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsSharedPtr &commands_v, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling, int section_id, float devicePixelRatio, int64_t *gil_wait_ns, int64_t *image_convert_ns, int64_t *gil_wait_periodic_ns)
 {
     QSharedPointer<QPainter> painter(rawPainter, NullDeleter());
 
@@ -2152,7 +2157,15 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
 
                 if (imageMap.contains(image_key))
                 {
+                    int64_t gil_wait_start_ns = GetCurrentTime();
+                    bool periodic_active_before = g_periodic_active.load(std::memory_order_relaxed);
                     Python_ThreadBlock thread_block;
+                    int64_t gil_acquired_ns = GetCurrentTime();
+                    bool periodic_active_after = g_periodic_active.load(std::memory_order_relaxed);
+                    if (gil_wait_ns)
+                        *gil_wait_ns += gil_acquired_ns - gil_wait_start_ns;
+                    if (gil_wait_periodic_ns && (periodic_active_before || periodic_active_after))
+                        *gil_wait_periodic_ns += gil_acquired_ns - gil_wait_start_ns;
 
                     // Put the ndarray in image
                     PyObjectPtr ndarray_py(QVariantToPyObject(imageMap[image_key]));
@@ -2163,6 +2176,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
                         PythonSupport::instance()->imageFromRGBA(ndarray_py, &image);
                     }
                     // std::cout << "Using cached image" << std::endl;
+                    if (image_convert_ns)
+                        *image_convert_ns += GetCurrentTime() - gil_acquired_ns;
                 }
                 else
                     qDebug() << "missing " << image_key;
@@ -2208,7 +2223,15 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
 
                 if (imageMap.contains(image_key))
                 {
+                    int64_t gil_wait_start_ns = GetCurrentTime();
+                    bool periodic_active_before = g_periodic_active.load(std::memory_order_relaxed);
                     Python_ThreadBlock thread_block;
+                    int64_t gil_acquired_ns = GetCurrentTime();
+                    bool periodic_active_after = g_periodic_active.load(std::memory_order_relaxed);
+                    if (gil_wait_ns)
+                        *gil_wait_ns += gil_acquired_ns - gil_wait_start_ns;
+                    if (gil_wait_periodic_ns && (periodic_active_before || periodic_active_after))
+                        *gil_wait_periodic_ns += gil_acquired_ns - gil_wait_start_ns;
 
                     // Put the ndarray in image
                     PyObjectPtr ndarray_py(QVariantToPyObject(imageMap[image_key]));
@@ -2226,6 +2249,8 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
 //                          PythonSupport::instance()->imageFromArray(ndarray_py, low, high, colormap_ndarray_py, &image);
                         PythonSupport::instance()->scaledImageFromArray(ndarray_py, device_destination_size.width(), device_destination_size.height(), context_scaling, low, high, colormap_ndarray_py, &image);
                     }
+                    if (image_convert_ns)
+                        *image_convert_ns += GetCurrentTime() - gil_acquired_ns;
                 }
                 else
                     qDebug() << "missing " << image_key;
@@ -2524,7 +2549,7 @@ RenderResult PyCanvasRenderTask::renderOnce()
         painter.setRenderHints(DEFAULT_RENDER_HINTS);
         // draw everything at the higher scale of the section's screen.
         painter.scale(m_device_pixel_ratio, m_device_pixel_ratio);
-        auto new_rendered_timestamps = PaintBinaryCommands(&painter, commands, image_map, m_rendered_timestamps, 0.0, m_section->m_section_id, m_device_pixel_ratio);
+        auto new_rendered_timestamps = PaintBinaryCommands(&painter, commands, image_map, m_rendered_timestamps, 0.0, m_section->m_section_id, m_device_pixel_ratio, &timing.gil_wait_ns, &timing.image_convert_ns, &timing.gil_wait_periodic_ns);
         painter.end();  // ending painter here speeds up QImage assignment below (Windows)
         render_result.image = image;
         render_result.image_rect = rect;
@@ -2968,6 +2993,18 @@ void PyCanvas::paintEvent(QPaintEvent *event)
                   contention before the native call is even made.
    queue_wait     received -> render_start (thread pool picked up the task)
    render         render_start -> render_end (QPainter rasterization of the drawing commands)
+   gil_wait       portion of render spent waiting to acquire the Python GIL before an "image"/"data"
+                  command's ndarray->QImage conversion could begin (contention with other threads
+                  holding the GIL, e.g. other canvases rendering concurrently, or Python-side work)
+   gil_wait_periodic  portion of gil_wait during which the GUI thread's periodic() callback (see
+                  g_periodic_active) was observed in-flight at either the start or end of the wait --
+                  a direct check of whether periodic() (which holds the GIL for its whole call) was
+                  plausibly the thing this render task was blocked on, rather than another render
+                  task's own (typically much shorter) GIL-held conversion work.
+   image_convert  portion of render spent actually doing the ndarray->QImage conversion once the GIL
+                  was acquired (colormap/scaling/pixel-format conversion cost). gil_wait + image_convert
+                  does not equal render exactly -- render also includes non-GIL painter work (paths,
+                  fills, etc.) for frames with additional draw commands beyond images.
    repaint_wait   repaint_requested (bitmap ready) -> repaint_dispatched (repaint timer told Qt to repaint)
    paint_wait     repaint_dispatched -> paint_start (Qt event loop/compositor actually delivered paintEvent)
    paint_duration paint_start -> paint_end (actual QPainter blit cost inside paintEvent, once delivered)
@@ -3005,6 +3042,9 @@ QVariantMap PyCanvas::getPerformanceStatistics(int section_id, double max_age_se
     QQueue<int64_t> total_latency_ns;
     QQueue<int64_t> frame_interval_ns;
     QQueue<int64_t> thread_pool_active_ns; // not a duration; reused as an int64 sample queue for Measurements
+    QQueue<int64_t> gil_wait_ns;      // portion of render spent waiting to acquire the Python GIL
+    QQueue<int64_t> gil_wait_periodic_ns; // portion of gil_wait_ns that overlapped an in-flight periodic() call
+    QQueue<int64_t> image_convert_ns; // portion of render spent doing the ndarray->QImage conversion
     int thread_pool_max = 0;
 
     // many sections (e.g. static toolbar/thumbnail canvases) draw once and never again. without
@@ -3037,6 +3077,9 @@ QVariantMap PyCanvas::getPerformanceStatistics(int section_id, double max_age_se
         if (timing.received_ns)
             queue_wait_ns.enqueue(timing.render_start_ns - timing.received_ns);
         render_ns.enqueue(timing.render_end_ns - timing.render_start_ns);
+        gil_wait_ns.enqueue(timing.gil_wait_ns);
+        gil_wait_periodic_ns.enqueue(timing.gil_wait_periodic_ns);
+        image_convert_ns.enqueue(timing.image_convert_ns);
         if (timing.repaint_dispatched_ns)
             repaint_wait_ns.enqueue(timing.repaint_dispatched_ns - timing.repaint_requested_ns);
         if (timing.repaint_dispatched_ns)
@@ -3085,6 +3128,9 @@ QVariantMap PyCanvas::getPerformanceStatistics(int section_id, double max_age_se
     add_stage("embed_wait", embed_wait_ns);
     add_stage("queue_wait", queue_wait_ns);
     add_stage("render", render_ns);
+    add_stage("gil_wait", gil_wait_ns);
+    add_stage("gil_wait_periodic", gil_wait_periodic_ns);
+    add_stage("image_convert", image_convert_ns);
     add_stage("repaint_wait", repaint_wait_ns);
     add_stage("paint_wait", paint_wait_ns);
     add_stage("paint_duration", paint_duration_ns);
