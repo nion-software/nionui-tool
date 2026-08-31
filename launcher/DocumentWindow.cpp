@@ -9,6 +9,12 @@
 #endif
 #if defined(_WIN32) || defined(_WIN64)
 #include <chrono>
+#include <windows.h>
+// <windows.h> (via winbase.h) #defines GetCurrentTime as GetTickCount for legacy MFC
+// compatibility, which collides with this file's own GetCurrentTime() (the monotonic-nanoseconds
+// clock declared below and used throughout for latency instrumentation). Undo that macro so our
+// GetCurrentTime keeps meaning what it always has here.
+#undef GetCurrentTime
 #endif
 #if defined(__linux__)
 #include <time.h>
@@ -3196,6 +3202,56 @@ QVariantMap DocumentWindow::getEventLoopStatistics() const
     add_stage("repaint_update_duration", m_repaint_update_duration_ns);
 
     result["logical_processor_count"] = QThread::idealThreadCount();
+
+#if defined(_WIN32) || defined(_WIN64)
+    // process/GUI-thread scheduling priority and system-wide (all-process) CPU load, to help
+    // distinguish "this process's threads are being starved because something else is contending
+    // for CPU, or because this process/thread has an unfavorable priority" from other
+    // explanations for elevated queue_wait/render times. Windows-only: reported here because a
+    // hardware-support DLL is known to raise this process's priority class on at least one
+    // machine, and Windows exposes priority classes/GetSystemTimes directly, unlike macOS/Linux.
+    {
+        DWORD priority_class = GetPriorityClass(GetCurrentProcess());
+        const char *priority_class_name = "UNKNOWN";
+        switch (priority_class)
+        {
+            case IDLE_PRIORITY_CLASS: priority_class_name = "IDLE"; break;
+            case BELOW_NORMAL_PRIORITY_CLASS: priority_class_name = "BELOW_NORMAL"; break;
+            case NORMAL_PRIORITY_CLASS: priority_class_name = "NORMAL"; break;
+            case ABOVE_NORMAL_PRIORITY_CLASS: priority_class_name = "ABOVE_NORMAL"; break;
+            case HIGH_PRIORITY_CLASS: priority_class_name = "HIGH"; break;
+            case REALTIME_PRIORITY_CLASS: priority_class_name = "REALTIME"; break;
+        }
+        result["process_priority_class"] = QString(priority_class_name);
+
+        // this call always executes on the GUI thread (see comment at top of this function), so
+        // GetCurrentThread() here refers to the GUI thread specifically, not a render worker.
+        result["gui_thread_priority"] = GetThreadPriority(GetCurrentThread());
+
+        // system-wide CPU utilization since the previous call, computed from the standard
+        // GetSystemTimes() delta technique (kernel_time as reported already includes idle_time).
+        // static/function-local (rather than member) since this is GUI-thread-only by contract.
+        static FILETIME s_last_idle = {0, 0};
+        static FILETIME s_last_kernel = {0, 0};
+        static FILETIME s_last_user = {0, 0};
+        FILETIME idle_time, kernel_time, user_time;
+        if (GetSystemTimes(&idle_time, &kernel_time, &user_time))
+        {
+            auto to_u64 = [](const FILETIME &ft) { return (static_cast<uint64_t>(ft.dwHighDateTime) << 32) | ft.dwLowDateTime; };
+            uint64_t idle = to_u64(idle_time), kernel = to_u64(kernel_time), user = to_u64(user_time);
+            if (s_last_kernel.dwLowDateTime || s_last_kernel.dwHighDateTime)
+            {
+                uint64_t idle_delta = idle - to_u64(s_last_idle);
+                uint64_t total_delta = (kernel - to_u64(s_last_kernel)) + (user - to_u64(s_last_user));
+                if (total_delta > 0)
+                    result["system_cpu_percent"] = 100.0 * (1.0 - static_cast<double>(idle_delta) / static_cast<double>(total_delta));
+            }
+            s_last_idle = idle_time;
+            s_last_kernel = kernel_time;
+            s_last_user = user_time;
+        }
+    }
+#endif
 
     return result;
 }
