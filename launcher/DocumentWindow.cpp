@@ -2508,6 +2508,8 @@ RenderResult PyCanvasRenderTask::renderOnce()
 
     FrameTiming timing = m_timing;
     timing.render_start_ns = GetCurrentTime();
+    timing.thread_pool_active_at_start = QThreadPool::globalInstance()->activeThreadCount();
+    timing.thread_pool_max = QThreadPool::globalInstance()->maxThreadCount();
 
     auto const commands = m_drawing_commands->commands();
     auto const rect = m_drawing_commands->rect();
@@ -2834,10 +2836,13 @@ void PyCanvas::paintEvent(QPaintEvent *event)
 
     RenderedTimeStamps rendered_timestamps;
 
+    int64_t paint_started_at_ns = 0;
+
     {
         QMutexLocker locker(&m_sections_mutex);
 
         auto current_time_ns = GetCurrentTime();
+        paint_started_at_ns = current_time_ns;
 
         for (auto const &section : m_sections)
         {
@@ -2931,6 +2936,25 @@ void PyCanvas::paintEvent(QPaintEvent *event)
         painter.fillPath(path, Qt::black);
         painter.restore();
     }
+
+    painter.end();
+
+    // record how long the actual blit (drawImage + overlay text) took, distinct from paint_wait
+    // (which measures how long it took Qt/the OS to deliver this paintEvent at all). A large
+    // paint_duration points at GPU/video-card or software-rasterization cost; a large paint_wait
+    // with a small paint_duration points at GUI-thread/event-loop scheduling instead.
+    {
+        int64_t paint_ended_at_ns = GetCurrentTime();
+        QMutexLocker locker(&m_sections_mutex);
+        for (auto const &section : m_sections)
+        {
+            if (section->frame_timings.isEmpty())
+                continue;
+            auto &last_timing = section->frame_timings.last();
+            if (last_timing.paint_start_ns == paint_started_at_ns && !last_timing.paint_end_ns)
+                last_timing.paint_end_ns = paint_ended_at_ns;
+        }
+    }
 }
 
 /*
@@ -2946,11 +2970,20 @@ void PyCanvas::paintEvent(QPaintEvent *event)
    render         render_start -> render_end (QPainter rasterization of the drawing commands)
    repaint_wait   repaint_requested (bitmap ready) -> repaint_dispatched (repaint timer told Qt to repaint)
    paint_wait     repaint_dispatched -> paint_start (Qt event loop/compositor actually delivered paintEvent)
+   paint_duration paint_start -> paint_end (actual QPainter blit cost inside paintEvent, once delivered)
    total_latency  embed -> paint_start
    frame_interval paint_start -> next paint_start (delivered frame rate)
+   thread_pool_active  QThreadPool::globalInstance()->activeThreadCount() sampled when this frame's
+                        render task started running (not a duration; reported as raw counts, see
+                        thread_pool_max below, rather than {..._ms} fields). A high value close to
+                        thread_pool_max when queue_wait is also high indicates the shared render
+                        thread pool itself is saturated, rather than the CPU/scheduler being slow.
 
- Each stage is reported as {average_ms, minimum_ms, maximum_ms, std_dev_ms, count}; a stage is
- omitted if there were no completed frames with both of its endpoints recorded.
+ Each stage is reported as {average_ms, minimum_ms, maximum_ms, std_dev_ms, count}, except
+ thread_pool_active which is reported as raw counts ({average, minimum, maximum, std_dev, count});
+ a stage is omitted if there were no completed frames with both of its endpoints recorded.
+ thread_pool_max (QThreadPool::globalInstance()->maxThreadCount() as of the most recent frame) is
+ reported alongside thread_pool_active as a single scalar, not a stage.
  */
 QVariantMap PyCanvas::getPerformanceStatistics(int section_id, double max_age_seconds) const
 {
@@ -2968,8 +3001,11 @@ QVariantMap PyCanvas::getPerformanceStatistics(int section_id, double max_age_se
     QQueue<int64_t> render_ns;
     QQueue<int64_t> repaint_wait_ns;
     QQueue<int64_t> paint_wait_ns;
+    QQueue<int64_t> paint_duration_ns;
     QQueue<int64_t> total_latency_ns;
     QQueue<int64_t> frame_interval_ns;
+    QQueue<int64_t> thread_pool_active_ns; // not a duration; reused as an int64 sample queue for Measurements
+    int thread_pool_max = 0;
 
     // many sections (e.g. static toolbar/thumbnail canvases) draw once and never again. without
     // an age cutoff, their single old FrameTiming would sit in the history forever and get
@@ -3005,11 +3041,15 @@ QVariantMap PyCanvas::getPerformanceStatistics(int section_id, double max_age_se
             repaint_wait_ns.enqueue(timing.repaint_dispatched_ns - timing.repaint_requested_ns);
         if (timing.repaint_dispatched_ns)
             paint_wait_ns.enqueue(timing.paint_start_ns - timing.repaint_dispatched_ns);
+        if (timing.paint_end_ns)
+            paint_duration_ns.enqueue(timing.paint_end_ns - timing.paint_start_ns);
         if (timing.embed_ns)
             total_latency_ns.enqueue(timing.paint_start_ns - timing.embed_ns);
         if (previous_paint_start_ns)
             frame_interval_ns.enqueue(timing.paint_start_ns - previous_paint_start_ns);
         previous_paint_start_ns = timing.paint_start_ns;
+        thread_pool_active_ns.enqueue(timing.thread_pool_active_at_start);
+        thread_pool_max = timing.thread_pool_max;
     }
 
     auto add_stage = [&result](const QString &name, const QQueue<int64_t> &values_ns)
@@ -3026,13 +3066,33 @@ QVariantMap PyCanvas::getPerformanceStatistics(int section_id, double max_age_se
         result[name] = stage;
     };
 
+    // like add_stage, but for plain counts (e.g. thread pool occupancy) rather than durations --
+    // reports raw values instead of dividing by 1.0e6 to convert nanoseconds to milliseconds.
+    auto add_count_stage = [&result](const QString &name, const QQueue<int64_t> &values)
+    {
+        if (values.isEmpty())
+            return;
+        Measurements<int64_t> m(values);
+        QVariantMap stage;
+        stage["average"] = m.average;
+        stage["minimum"] = static_cast<qlonglong>(m.minimum);
+        stage["maximum"] = static_cast<qlonglong>(m.maximum);
+        stage["std_dev"] = m.std_dev;
+        stage["count"] = values.size();
+        result[name] = stage;
+    };
+
     add_stage("embed_wait", embed_wait_ns);
     add_stage("queue_wait", queue_wait_ns);
     add_stage("render", render_ns);
     add_stage("repaint_wait", repaint_wait_ns);
     add_stage("paint_wait", paint_wait_ns);
+    add_stage("paint_duration", paint_duration_ns);
     add_stage("total_latency", total_latency_ns);
     add_stage("frame_interval", frame_interval_ns);
+    add_count_stage("thread_pool_active", thread_pool_active_ns);
+    if (thread_pool_max > 0)
+        result["thread_pool_max"] = thread_pool_max;
 
     // only report a frame_count (and thus a non-empty result, from the caller's point of view)
     // when at least one frame within max_age_seconds was found; otherwise this section is idle

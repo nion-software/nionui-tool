@@ -320,6 +320,14 @@ struct FrameTiming
     int64_t repaint_requested_ns = 0;  // continuePaintingSection(): bitmap handed to RepaintManager
     int64_t repaint_dispatched_ns = 0; // RepaintManager::update(): update()/repaint() actually called
     int64_t paint_start_ns = 0;        // paintEvent(): frame actually blitted to the screen
+    int64_t paint_end_ns = 0;          // paintEvent(): frame finished blitting (QPainter ended)
+
+    // QThreadPool::globalInstance() occupancy sampled the moment this frame's render task began
+    // running (not when it was submitted) -- lets getPerformanceStatistics distinguish "queue_wait
+    // is high because the shared thread pool is saturated" from "queue_wait is high because the
+    // CPU/scheduler is just slow to run an already-available thread".
+    int thread_pool_active_at_start = 0;
+    int thread_pool_max = 0;
 };
 
 typedef QQueue<FrameTiming> FrameTimings;
