@@ -2,6 +2,7 @@
  Copyright (c) 2012-2015 Nion Company.
  */
 
+#include <algorithm>
 #include <stdint.h>
 
 #if defined(__APPLE__)
@@ -3014,7 +3015,11 @@ void PyCanvas::paintEvent(QPaintEvent *event)
    repaint_wait   repaint_requested (bitmap ready) -> repaint_dispatched (repaint timer told Qt to repaint)
    paint_wait     repaint_dispatched -> paint_start (Qt event loop/compositor actually delivered paintEvent)
    paint_duration paint_start -> paint_end (actual QPainter blit cost inside paintEvent, once delivered)
-   total_latency  embed -> paint_start
+   total_latency  embed -> paint_start. NOTE: paint_start is entry to PyCanvas::paintEvent, i.e.
+                  when Qt delivers the paint event and QPainter blitting begins -- it is NOT the
+                  time the pixels actually become visible on screen. Compositor
+                  (DWM/Wayland/Quartz) composition, GPU driver frame pacing/vsync, and scanout are
+                  all downstream of this measurement and are not captured by any stage here.
    frame_interval paint_start -> next paint_start (delivered frame rate)
    thread_pool_active  QThreadPool::globalInstance()->activeThreadCount() sampled when this frame's
                         render task started running (not a duration; reported as raw counts, see
@@ -3022,9 +3027,15 @@ void PyCanvas::paintEvent(QPaintEvent *event)
                         thread_pool_max when queue_wait is also high indicates the shared render
                         thread pool itself is saturated, rather than the CPU/scheduler being slow.
 
- Each stage is reported as {average_ms, minimum_ms, maximum_ms, std_dev_ms, count}, except
- thread_pool_active which is reported as raw counts ({average, minimum, maximum, std_dev, count});
- a stage is omitted if there were no completed frames with both of its endpoints recorded.
+ Each stage is reported as {average_ms, minimum_ms, maximum_ms, raw_maximum_ms, std_dev_ms, count},
+ except thread_pool_active which is reported as raw counts ({average, minimum, maximum,
+ raw_maximum, std_dev, count}); a stage is omitted if there were no completed frames with both of
+ its endpoints recorded. minimum_ms/maximum_ms (and minimum/maximum for thread_pool_active) are
+ computed after discarding the most extreme 10% of samples in the window (see Measurements), to
+ keep the headline average/std_dev from being dominated by rare outliers -- so they are NOT the
+ true worst-case. raw_maximum_ms/raw_maximum is the untrimmed maximum of every sample in the
+ window, and should be used instead of maximum_ms when checking for rare tail-latency spikes
+ (e.g. an intermittent 100ms+ frame that would otherwise be trimmed away and invisible).
  thread_pool_max (QThreadPool::globalInstance()->maxThreadCount() as of the most recent frame) is
  reported alongside thread_pool_active as a single scalar, not a stage.
  */
@@ -3111,6 +3122,13 @@ QVariantMap PyCanvas::getPerformanceStatistics(int section_id, double max_age_se
         stage["minimum_ms"] = m.minimum / 1.0e6;
         stage["maximum_ms"] = m.maximum / 1.0e6;
         stage["std_dev_ms"] = m.std_dev / 1.0e6;
+        // Measurements discards the top/bottom 10% of samples before computing minimum/maximum
+        // (to keep the headline average/std_dev from being dominated by rare outliers), so
+        // maximum_ms above is a trimmed max, not the true worst-case. raw_maximum_ms is the
+        // untrimmed maximum of every sample in the window, so an intermittent tail-latency spike
+        // (e.g. an occasional 100ms+ frame) is still visible even when it is rare enough to be
+        // trimmed away from maximum_ms.
+        stage["raw_maximum_ms"] = *std::max_element(values_ns.begin(), values_ns.end()) / 1.0e6;
         stage["count"] = values_ns.size();
         result[name] = stage;
     };
@@ -3127,6 +3145,8 @@ QVariantMap PyCanvas::getPerformanceStatistics(int section_id, double max_age_se
         stage["minimum"] = static_cast<qlonglong>(m.minimum);
         stage["maximum"] = static_cast<qlonglong>(m.maximum);
         stage["std_dev"] = m.std_dev;
+        // see add_stage above -- maximum is a trimmed max; raw_maximum is untrimmed.
+        stage["raw_maximum"] = static_cast<qlonglong>(*std::max_element(values.begin(), values.end()));
         stage["count"] = values.size();
         result[name] = stage;
     };
@@ -3173,6 +3193,10 @@ QVariantMap DocumentWindow::getEventLoopStatistics() const
         stage["minimum_ms"] = m.minimum / 1.0e6;
         stage["maximum_ms"] = m.maximum / 1.0e6;
         stage["std_dev_ms"] = m.std_dev / 1.0e6;
+        // see the identical comment in PyCanvas::getPerformanceStatistics's add_stage --
+        // maximum_ms is a trimmed max (Measurements drops the top/bottom 10% of samples);
+        // raw_maximum_ms is the untrimmed worst-case sample in the window.
+        stage["raw_maximum_ms"] = *std::max_element(values_ns.begin(), values_ns.end()) / 1.0e6;
         stage["count"] = values_ns.size();
         result[name] = stage;
     };
@@ -3196,9 +3220,11 @@ QVariantMap DocumentWindow::getEventLoopStatistics() const
     // update() is forced to be synchronous (e.g. while dragging, see RepaintManager::update) or
     // if a large number of canvases are pending at once. Comparing this against
     // repaint_timer_interval isolates two different explanations for a slow GUI thread: time
-    // spent actually doing repaint work here vs. periodic_duration vs. still-unaccounted time
-    // (e.g. other Qt/OS event processing) if repaint_timer_interval exceeds
-    // periodic_duration + repaint_update_duration by a wide margin.
+    // spent actually doing repaint work here vs. periodic_duration vs. unattributed time (e.g.
+    // other Qt/OS event processing, or simply normal idle time between ticks for a lightly-loaded
+    // timer) if repaint_timer_interval exceeds periodic_duration + repaint_update_duration by a
+    // wide margin. See the python-side __print_event_loop_stats for why this residual should not
+    // be treated as proof of hidden GUI-thread cost on its own.
     add_stage("repaint_update_duration", m_repaint_update_duration_ns);
 
     result["logical_processor_count"] = QThread::idealThreadCount();

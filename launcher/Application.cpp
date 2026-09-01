@@ -1059,7 +1059,9 @@ static PyObject *Canvas_removeSection(PyObject * /*self*/, PyObject *args)
 
 // Returns a dict of display pipeline performance instrumentation (embed_wait, queue_wait, render,
 // repaint_wait, paint_wait, total_latency, frame_interval), each a dict of
-// {average_ms, minimum_ms, maximum_ms, std_dev_ms, count}, aggregated over recent frames for the
+// {average_ms, minimum_ms, maximum_ms, raw_maximum_ms, std_dev_ms, count} (minimum_ms/maximum_ms
+// are trimmed -- see PyCanvas::getPerformanceStatistics -- raw_maximum_ms is the untrimmed
+// worst-case sample), aggregated over recent frames for the
 // given section (0, the default, when not using individual sections). Frames older than
 // max_age_seconds (default 5.0; a value <= 0 disables the cutoff) are excluded, so a section that
 // only rendered once a long time ago (e.g. a static toolbar/thumbnail canvas rendered once at
