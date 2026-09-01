@@ -2457,7 +2457,19 @@ void PyCanvasRenderTask::run()
     // new commands keep arriving faster than they can be rendered). This is purely an
     // optimization for the "hot" backlogged case; the very first render for a section still goes
     // through the thread pool as usual (see PyCanvas::setBinarySectionCommands).
+    //
+    // MAX_CHAIN_LENGTH bounds how many consecutive renders a single worker thread will run
+    // in-place for one continuously-backlogged section before yielding: without a bound, a
+    // section that is updated faster than it can be rendered could keep one worker thread
+    // permanently busy chaining its own renders, denying that thread to the shared QThreadPool
+    // for the duration (starving other sections/canvases of a worker on a small pool, or reducing
+    // fairness generally on any pool). Once the bound is hit, the next pending render is
+    // resubmitted to QThreadPool as usual, giving other queued work a chance to run before this
+    // section's backlog resumes (possibly on a different worker thread).
+    static constexpr int MAX_CHAIN_LENGTH = 4;
+
     PyCanvasRenderTask *current = this;
+    int chain_length = 1;
 
     while (current)
     {
@@ -2470,7 +2482,16 @@ void PyCanvasRenderTask::run()
         if (current != this)
             delete current;
 
+        if (next && chain_length >= MAX_CHAIN_LENGTH)
+        {
+            // yield: hand the next render back to the thread pool (which will delete it via its
+            // default QRunnable::autoDelete()) instead of continuing the in-place chain.
+            QThreadPool::globalInstance()->start(next);
+            next = nullptr;
+        }
+
         current = next;
+        chain_length += 1;
     }
 }
 
