@@ -2075,14 +2075,16 @@ static PyObject *DocumentWindow_getDisplayScaling(PyObject * /*self*/, PyObject 
 #endif
 }
 
-// Returns a dict of GUI event loop instrumentation (periodic_duration, repaint_timer_interval,
-// repaint_update_duration), each a dict of {average_ms, minimum_ms, maximum_ms, std_dev_ms,
-// count}. Both timers run on the same GUI thread, so a slow python "periodic" callback
-// (periodic_duration) can delay the dedicated repaint-draining timer's ticks (visible as
-// repaint_timer_interval growing beyond its nominal 5ms period) even though the two timers are
-// otherwise independent. See DocumentWindow::getEventLoopStatistics for details. Intended for
-// diagnosing whether GUI-thread contention from python is a contributing factor to display
-// latency on a per-machine basis.
+// Returns a dict of GUI event loop instrumentation (periodic_duration, periodic_gil_wait,
+// periodic_invoke_duration, repaint_timer_interval, repaint_update_duration), each a dict of
+// {average_ms, minimum_ms, maximum_ms, raw_maximum_ms, std_dev_ms, count}. Both timers run on the
+// same GUI thread, so a slow python "periodic" callback (periodic_duration) can delay the
+// dedicated repaint-draining timer's ticks (visible as repaint_timer_interval growing beyond its
+// nominal 5ms period) even though the two timers are otherwise independent. periodic_gil_wait/
+// periodic_invoke_duration split periodic_duration into GIL-contention time vs. actual python-side
+// call time. See DocumentWindow::getEventLoopStatistics for details. Intended for diagnosing
+// whether GUI-thread contention from python is a contributing factor to display latency on a
+// per-machine basis.
 static PyObject *DocumentWindow_getEventLoopStatistics(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
@@ -7080,14 +7082,14 @@ QString Application::resourcesPath() const
 #endif
 }
 
-QVariant Application::invokePyMethod(PyObjectPtr *object, const QString &method, const QVariantList &qargs)
+QVariant Application::invokePyMethod(PyObjectPtr *object, const QString &method, const QVariantList &qargs, int64_t *gil_wait_ns, int64_t *body_ns)
 {
     std::list<PythonValueVariant> args;
     Q_FOREACH(const QVariant &variant, qargs)
     {
         args.push_back(QVariantToPythonValueVariant(variant));
     }
-    return PythonValueVariantToQVariant(PythonSupport::instance()->invokePyMethod(object, method.toStdString(), args));
+    return PythonValueVariantToQVariant(PythonSupport::instance()->invokePyMethod(object, method.toStdString(), args, gil_wait_ns, body_ns));
 }
 
 bool Application::setPyObjectAttribute(PyObjectPtr *object, const QString &attribute, const QVariant &value)
@@ -7100,9 +7102,9 @@ QVariant Application::getPyObjectAttribute(PyObjectPtr *object, const QString &a
     return PythonValueVariantToQVariant(PythonSupport::instance()->getAttribute(object, attribute.toStdString()));
 }
 
-QVariant Application::dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args)
+QVariant Application::dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args, int64_t *gil_wait_ns, int64_t *body_ns)
 {
-    return invokePyMethod(m_bootstrap_module.get(), "bootstrap_dispatch", QVariantList() << object << method << QVariant(args));
+    return invokePyMethod(m_bootstrap_module.get(), "bootstrap_dispatch", QVariantList() << object << method << QVariant(args), gil_wait_ns, body_ns);
 }
 
 void Application::closeSplashScreen()

@@ -85,6 +85,8 @@ int64_t GetCurrentTime();
 
 // see declaration in DocumentWindow.h
 std::atomic<bool> g_periodic_active{false};
+std::atomic<int64_t> g_periodic_start_ns{0};
+std::atomic<int64_t> g_periodic_end_ns{0};
 
 const auto DEFAULT_RENDER_HINTS = QPainter::Antialiasing | QPainter::TextAntialiasing;
 
@@ -284,9 +286,41 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
         int64_t now = GetCurrentTime();
         if (m_last_repaint_timer_ns)
         {
-            m_repaint_timer_interval_ns.enqueue(now - m_last_repaint_timer_ns);
+            int64_t gap_start_ns = m_last_repaint_timer_ns;
+            int64_t interval_ns = now - gap_start_ns;
+            m_repaint_timer_interval_ns.enqueue(interval_ns);
             while (m_repaint_timer_interval_ns.size() > 120)
                 m_repaint_timer_interval_ns.dequeue();
+
+            // Event-correlated anomaly trace (added in response to rubber-duck review): the
+            // aggregate stats above can only show that periodic_duration and repaint_timer_interval
+            // spike within the same ~1s reporting window -- they cannot prove that a *specific*
+            // long gap was actually caused by a *specific* periodic() call, since both stats are
+            // independently averaged over the whole window. Here, for any individual gap that
+            // exceeds ANOMALY_THRESHOLD_NS, directly compute how much of *this* gap overlapped
+            // the most recent periodic() call (whether it is still running or has already
+            // finished), using the global timestamps below. This gives a real per-event answer
+            // instead of an inference from separately-averaged statistics.
+            static constexpr int64_t ANOMALY_THRESHOLD_NS = 20 * 1000000; // 4x the nominal 5ms period
+            if (interval_ns > ANOMALY_THRESHOLD_NS)
+            {
+                // rate-limited (per window) so a persistently overloaded machine (e.g. the 2012
+                // machine, where nearly every gap is anomalous) does not flood the console.
+                if (now - m_last_anomaly_trace_ns > 250 * 1000000) // 250ms
+                {
+                    m_last_anomaly_trace_ns = now;
+                    bool periodic_active = g_periodic_active.load(std::memory_order_relaxed);
+                    int64_t periodic_start_ns = g_periodic_start_ns.load(std::memory_order_relaxed);
+                    int64_t periodic_end_ns = periodic_active ? now : g_periodic_end_ns.load(std::memory_order_relaxed);
+                    int64_t overlap_start_ns = qMax(gap_start_ns, periodic_start_ns);
+                    int64_t overlap_end_ns = qMin(now, periodic_end_ns);
+                    int64_t overlap_ns = overlap_end_ns > overlap_start_ns ? overlap_end_ns - overlap_start_ns : 0;
+                    qDebug() << "[latency-trace] window" << (void*)this
+                             << "repaint gap" << (interval_ns / 1000000) << "ms"
+                             << "periodic overlap" << (overlap_ns / 1000000) << "ms"
+                             << (periodic_active ? "(periodic() still running)" : "");
+                }
+            }
         }
         m_last_repaint_timer_ns = now;
 
@@ -299,12 +333,22 @@ void DocumentWindow::timerEvent(QTimerEvent *event)
     else if (event->timerId() == m_periodic_timer && isVisible())
     {
         int64_t start = GetCurrentTime();
+        g_periodic_start_ns.store(start, std::memory_order_relaxed);
         g_periodic_active.store(true, std::memory_order_relaxed);
-        application()->dispatchPyMethod(m_py_object, "periodic", QVariantList());
+        int64_t gil_wait_ns = 0, invoke_ns = 0;
+        application()->dispatchPyMethod(m_py_object, "periodic", QVariantList(), &gil_wait_ns, &invoke_ns);
+        int64_t end = GetCurrentTime();
         g_periodic_active.store(false, std::memory_order_relaxed);
-        m_periodic_duration_ns.enqueue(GetCurrentTime() - start);
+        g_periodic_end_ns.store(end, std::memory_order_relaxed);
+        m_periodic_duration_ns.enqueue(end - start);
         while (m_periodic_duration_ns.size() > 120)
             m_periodic_duration_ns.dequeue();
+        m_periodic_gil_wait_ns.enqueue(gil_wait_ns);
+        while (m_periodic_gil_wait_ns.size() > 120)
+            m_periodic_gil_wait_ns.dequeue();
+        m_periodic_invoke_ns.enqueue(invoke_ns);
+        while (m_periodic_invoke_ns.size() > 120)
+            m_periodic_invoke_ns.dequeue();
     }
 }
 
@@ -3228,6 +3272,18 @@ QVariantMap DocumentWindow::getEventLoopStatistics() const
     // repaint_timer's ticks (and thus repaint_wait/paint_wait) even though the two timers are
     // otherwise independent.
     add_stage("periodic_duration", m_periodic_duration_ns);
+
+    // sub-breakdown of periodic_duration: periodic_gil_wait is the portion spent blocked in
+    // Python_ThreadBlock waiting for some other thread (e.g. a render worker) to release the GIL;
+    // periodic_invoke_duration is everything after the GIL was acquired (attribute lookup, the
+    // "periodic" call itself, argument/result conversion). A periodic_duration spike dominated by
+    // periodic_gil_wait points to GIL contention from another thread; one dominated by
+    // periodic_invoke_duration points to genuinely slow python-side work inside periodic() (or
+    // whatever it calls). Added specifically to test -- rather than only infer from separately-
+    // averaged stats -- whether occasional slow periodic() calls are a GIL-contention artifact or
+    // real python-side cost.
+    add_stage("periodic_gil_wait", m_periodic_gil_wait_ns);
+    add_stage("periodic_invoke_duration", m_periodic_invoke_ns);
 
     // the actual observed interval between consecutive repaint_timer fires, vs. its nominal 5ms
     // period. if the GUI thread is kept busy (by periodic(), by paint events, by anything else),

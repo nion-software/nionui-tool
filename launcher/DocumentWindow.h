@@ -105,9 +105,18 @@ private:
     // both are written from timerEvent() and read from getEventLoopStatistics(), which is only
     // ever called (via python) while already running on the GUI thread.
     QQueue<int64_t> m_periodic_duration_ns;
+    // sub-breakdown of periodic_duration (above): how much of it was spent blocked waiting to
+    // acquire the GIL (periodic_gil_wait) vs. everything after acquiring it -- attribute lookup,
+    // the actual "periodic" python call, argument/result conversion (periodic_invoke_duration).
+    // Lets a large periodic_duration spike be attributed to GIL contention from another thread
+    // (e.g. a render worker) vs. genuinely slow python-side work, instead of only being inferable
+    // indirectly from separately-averaged gil_wait/gil_wait_periodic_pct render-side stats.
+    QQueue<int64_t> m_periodic_gil_wait_ns;
+    QQueue<int64_t> m_periodic_invoke_ns;
     QQueue<int64_t> m_repaint_timer_interval_ns;
     QQueue<int64_t> m_repaint_update_duration_ns;
     int64_t m_last_repaint_timer_ns;
+    int64_t m_last_anomaly_trace_ns = 0;
 
     QMutex m_repaint_mutex;
 
@@ -353,6 +362,16 @@ struct FrameTiming
 // report what fraction of GIL-wait time directly overlapped with an in-flight periodic() call,
 // instead of relying on inference from separately-averaged stats.
 extern std::atomic<bool> g_periodic_active;
+
+// Timestamps (GetCurrentTime()) bracketing the most recent periodic() dispatch, regardless of
+// which window/DocumentWindow it belongs to (there is only ever one GUI thread, so at most one
+// periodic() call can be in flight at a time). Used by DocumentWindow::timerEvent's repaint_timer
+// branch to directly measure -- for any individual anomalously long repaint-timer gap -- how much
+// of that specific gap actually overlapped a periodic() call, rather than only observing that the
+// two stats' aggregate maxima spike within the same ~1s reporting window (which does not by itself
+// prove a causal link for any particular gap).
+extern std::atomic<int64_t> g_periodic_start_ns;
+extern std::atomic<int64_t> g_periodic_end_ns;
 
 typedef QQueue<FrameTiming> FrameTimings;
 
