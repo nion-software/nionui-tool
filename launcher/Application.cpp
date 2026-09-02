@@ -2446,6 +2446,29 @@ static PyObject *DocumentWindow_setSize(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *DocumentWindow_setMinimumSize(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    int width, height;
+    if (!PythonSupport::instance()->parse()(args, "Oii", &obj0, &width, &height))
+        return NULL;
+
+    // Grab the document window
+    DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
+    if (document_window == NULL)
+        return NULL;
+
+    document_window->setMinimumSize(QSize(width, height));
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *DocumentWindow_setTitle(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -6568,6 +6591,7 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_setCentralWidget", DocumentWindow_setCentralWidget, METH_VARARGS, "DocumentWindow_setCentralWidget."},
     {"DocumentWindow_setPosition", DocumentWindow_setPosition, METH_VARARGS, "DocumentWindow_setPosition."},
     {"DocumentWindow_setSize", DocumentWindow_setSize, METH_VARARGS, "DocumentWindow_setSize."},
+    {"DocumentWindow_setMinimumSize", DocumentWindow_setMinimumSize, METH_VARARGS, "DocumentWindow_setMinimumSize."},
     {"DocumentWindow_setTitle", DocumentWindow_setTitle, METH_VARARGS, "DocumentWindow_setTitle."},
     {"DocumentWindow_setWindowFilePath", DocumentWindow_setWindowFilePath, METH_VARARGS, "DocumentWindow_setWindowFilePath."},
     {"DocumentWindow_setWindowStyle", DocumentWindow_setWindowStyle, METH_VARARGS, "DocumentWindow_setWindowStyle."},
