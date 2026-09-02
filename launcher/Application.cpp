@@ -19,11 +19,13 @@
 #include <QtCore/QRegularExpression>
 #include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
+#include <QtCore/QTextBoundaryFinder>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
 #include <QtGui/QClipboard>
 #include <QtGui/QFontDatabase>
+#include <QtGui/QFontInfo>
 #include <QtGui/QImageReader>
 #include <QtGui/QImageWriter>
 #include <QtGui/QPainter>
@@ -1586,6 +1588,78 @@ static PyObject *Core_getFontMetrics(PyObject * /*self*/, PyObject *args)
     result << font_metrics.ascent() / display_scaling;
     result << font_metrics.descent() / display_scaling;
     result << font_metrics.leading() / display_scaling;
+
+    return QVariantToPyObject(result);
+}
+
+static PyObject *Core_getTextOffsets(PyObject * /*self*/, PyObject *args)
+{
+    char *font_c = NULL;
+    char *text_c = NULL;
+    if (!PythonSupport::instance()->parse()(args, "sz", &font_c, &text_c))
+        return NULL;
+
+    float display_scaling = GetDisplayScaling();
+
+    QString text = (text_c != NULL) ? text_c : QString();
+
+    QFont font = ParseFontString(font_c, display_scaling);
+
+    QFontMetricsF font_metrics(font);
+
+    // Offsets are computed via successive prefixes of the text (rather than
+    // per-glyph advances, e.g. QRawFont) so that the final offset always
+    // agrees exactly with the width reported by Core_getFontMetrics /
+    // Core_truncateToWidth for the same font/text.
+    QVariantList result;
+    result << 0.0;
+    for (int i = 1; i <= text.length(); ++i)
+        result << font_metrics.horizontalAdvance(text.left(i)) / display_scaling;
+
+    return QVariantToPyObject(result);
+}
+
+static PyObject *Core_getFontFamilies(PyObject * /*self*/, PyObject *args)
+{
+    Q_UNUSED(args)
+
+    QVariantList result;
+    Q_FOREACH(const QString &family, QFontDatabase::families())
+        result << family;
+
+    return QVariantToPyObject(result);
+}
+
+static PyObject *Core_resolveFontFamily(PyObject * /*self*/, PyObject *args)
+{
+    char *font_c = NULL;
+    if (!PythonSupport::instance()->parse()(args, "s", &font_c))
+        return NULL;
+
+    QFont font = ParseFontString(font_c);
+
+    QFontInfo font_info(font);
+
+    return PythonSupport::instance()->build()("s", font_info.family().toUtf8().data());
+}
+
+static PyObject *Core_getLineBreakOpportunities(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *text_u = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &text_u))
+        return NULL;
+
+    QString text = PyObjectToQString(text_u);
+
+    QTextBoundaryFinder boundary_finder(QTextBoundaryFinder::Line, text);
+
+    QVariantList result;
+    int position = boundary_finder.toNextBoundary();
+    while (position != -1)
+    {
+        result << position;
+        position = boundary_finder.toNextBoundary();
+    }
 
     return QVariantToPyObject(result);
 }
@@ -6556,12 +6630,16 @@ static PyMethodDef Methods[] = {
     {"ComboBox_removeAllItems", ComboBox_removeAllItems, METH_VARARGS, "ComboBox_removeAllItems."},
     {"ComboBox_setCurrentText", ComboBox_setCurrentText, METH_VARARGS, "ComboBox_setCurrentText."},
 
+    {"Core_getFontFamilies", Core_getFontFamilies, METH_VARARGS, "Core_getFontFamilies."},
     {"Core_getFontMetrics", Core_getFontMetrics, METH_VARARGS, "Core_getFontMetrics."},
+    {"Core_getLineBreakOpportunities", Core_getLineBreakOpportunities, METH_VARARGS, "Core_getLineBreakOpportunities."},
     {"Core_getLocation", Core_getLocation, METH_VARARGS, "Core_getLocation."},
     {"Core_getQtVersion", Core_getQtVersion, METH_VARARGS, "Core_getQtVersion."},
     {"Core_getBuildVersion", Core_getBuildVersion, METH_VARARGS, "Core_getBuildVersion."},
+    {"Core_getTextOffsets", Core_getTextOffsets, METH_VARARGS, "Core_getTextOffsets."},
     {"Core_out", Core_out, METH_VARARGS, "Core_out."},
     {"Core_pathToURL", Core_pathToURL, METH_VARARGS, "Core_pathToURL."},
+    {"Core_resolveFontFamily", Core_resolveFontFamily, METH_VARARGS, "Core_resolveFontFamily."},
     {"Core_setApplicationInfo", Core_setApplicationInfo, METH_VARARGS, "Core_setApplicationInfo."},
     {"Core_syncLatencyTimer", Core_syncLatencyTimer, METH_VARARGS, "Core_syncLatencyTimer"},
     {"Core_truncateToWidth", Core_truncateToWidth, METH_VARARGS, "Core_truncateToWidth."},
