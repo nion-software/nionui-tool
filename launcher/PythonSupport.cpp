@@ -33,6 +33,10 @@
 #define LOOKUP_SYMBOL GetProcAddress
 #endif
 
+// monotonic clock (nanoseconds), defined in DocumentWindow.cpp -- used below to time the
+// GIL-wait vs. call-body portions of invokePyMethod when the optional out-params are supplied.
+extern int64_t GetCurrentTime();
+
 #include "PythonSupport.h"
 #include "PythonStubs.h"
 
@@ -42,6 +46,13 @@
 #if OS_WINDOWS
 #include <Windows.h>
 #include <WinBase.h>
+// <Windows.h> (via WinBase.h) #defines GetCurrentTime as GetTickCount for legacy MFC
+// compatibility, which would otherwise silently replace this file's uses of the monotonic-
+// nanoseconds GetCurrentTime() (declared above, defined in DocumentWindow.cpp) with the coarse
+// (~15ms resolution) Win32 GetTickCount -- see the identical guard/comment in DocumentWindow.cpp.
+// Without this, gil_wait_ns/body_ns in invokePyMethod below would silently measure near-zero
+// deltas for any call shorter than a tick, rather than a real error.
+#undef GetCurrentTime
 #endif
 
 static PythonSupport *thePythonSupport = NULL;
@@ -734,9 +745,19 @@ void PythonSupport::addResourcePath(const std::string &resources_path)
     PyDecRef(sys_module);
 }
 
-PythonValueVariant PythonSupport::invokePyMethod(PyObjectPtr *object, const std::string &method, const std::list<PythonValueVariant> &args)
+PythonValueVariant PythonSupport::invokePyMethod(PyObjectPtr *object, const std::string &method, const std::list<PythonValueVariant> &args, int64_t *gil_wait_ns, int64_t *body_ns)
 {
+    // see header comment: only pay for the timestamps when a caller actually wants them.
+    int64_t wait_start_ns = (gil_wait_ns || body_ns) ? GetCurrentTime() : 0;
     Python_ThreadBlock thread_block;
+    int64_t gil_acquired_ns = (gil_wait_ns || body_ns) ? GetCurrentTime() : 0;
+    if (gil_wait_ns)
+        *gil_wait_ns = gil_acquired_ns - wait_start_ns;
+
+    // note: PythonValueVariant is not copy/move-assignable (see std::variant<..., PyObjectPtr>
+    // member), so record body_ns via a small helper that runs just before each return below
+    // rather than assigning through a single local result variable.
+    auto mark_body_end = [&]() { if (body_ns) *body_ns = GetCurrentTime() - gil_acquired_ns; };
 
     PyObject *py_object = object->get();
 
@@ -774,6 +795,7 @@ PythonValueVariant PythonSupport::invokePyMethod(PyObjectPtr *object, const std:
                 PyObjectPtr py_result(CALL_PY(PyObject_CallObject)(callable, py_args));
                 if (py_result)
                 {
+                    mark_body_end();
                     return PyObjectToValueVariant(py_result);
                 }
                 else
@@ -784,6 +806,8 @@ PythonValueVariant PythonSupport::invokePyMethod(PyObjectPtr *object, const std:
             }
         }
     }
+
+    mark_body_end();
 
     return PythonValueVariant();
 }

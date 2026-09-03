@@ -1057,6 +1057,36 @@ static PyObject *Canvas_removeSection(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+// Returns a dict of display pipeline performance instrumentation (embed_wait, queue_wait, render,
+// repaint_wait, paint_wait, total_latency, frame_interval), each a dict of
+// {average_ms, minimum_ms, maximum_ms, raw_maximum_ms, std_dev_ms, count} (minimum_ms/maximum_ms
+// are trimmed -- see PyCanvas::getPerformanceStatistics -- raw_maximum_ms is the untrimmed
+// worst-case sample), aggregated over recent frames for the
+// given section (0, the default, when not using individual sections). Frames older than
+// max_age_seconds (default 5.0; a value <= 0 disables the cutoff) are excluded, so a section that
+// only rendered once a long time ago (e.g. a static toolbar/thumbnail canvas rendered once at
+// startup) reports no data instead of stale, unrepresentative numbers. See
+// PyCanvas::getPerformanceStatistics for details on what each stage measures. Intended for
+// diagnosing latency on a per-machine basis; the existing "Latency"/"Frame Rate" overlay text is
+// unaffected by this call.
+static PyObject *Canvas_getPerformanceStatistics(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    int section_id = 0;
+    double max_age_seconds = 5.0;
+
+    if (!PythonSupport::instance()->parse()(args, "O|id", &obj0, &section_id, &max_age_seconds))
+        return NULL;
+
+    PyCanvas *canvas = Unwrap<PyCanvas>(obj0);
+    if (canvas == NULL)
+        return NULL;
+
+    QVariantMap result = canvas->getPerformanceStatistics(section_id, max_age_seconds);
+
+    return QVariantToPyObject(result);
+}
+
 static PyObject *Canvas_setCursorShape(PyObject * /*self*/, PyObject *args)
 {
     PyObject *obj0 = NULL;
@@ -2043,6 +2073,31 @@ static PyObject *DocumentWindow_getDisplayScaling(PyObject * /*self*/, PyObject 
 #else
     return PythonSupport::instance()->build()("f", document_window->logicalDpiY() / 96.0);
 #endif
+}
+
+// Returns a dict of GUI event loop instrumentation (periodic_duration, periodic_gil_wait,
+// periodic_invoke_duration, repaint_timer_interval, repaint_update_duration), each a dict of
+// {average_ms, minimum_ms, maximum_ms, raw_maximum_ms, std_dev_ms, count}. Both timers run on the
+// same GUI thread, so a slow python "periodic" callback (periodic_duration) can delay the
+// dedicated repaint-draining timer's ticks (visible as repaint_timer_interval growing beyond its
+// nominal 5ms period) even though the two timers are otherwise independent. periodic_gil_wait/
+// periodic_invoke_duration split periodic_duration into GIL-contention time vs. actual python-side
+// call time. See DocumentWindow::getEventLoopStatistics for details. Intended for diagnosing
+// whether GUI-thread contention from python is a contributing factor to display latency on a
+// per-machine basis.
+static PyObject *DocumentWindow_getEventLoopStatistics(PyObject * /*self*/, PyObject *args)
+{
+    PyObject *obj0 = NULL;
+    if (!PythonSupport::instance()->parse()(args, "O", &obj0))
+        return NULL;
+
+    DocumentWindow *document_window = Unwrap<DocumentWindow>(obj0);
+    if (document_window == NULL)
+        return NULL;
+
+    QVariantMap result = document_window->getEventLoopStatistics();
+
+    return QVariantToPyObject(result);
 }
 
 static PyObject *DocumentWindow_getColorDialog(PyObject * /*self*/, PyObject *args)
@@ -6531,6 +6586,7 @@ static PyMethodDef Methods[] = {
     {"Canvas_draw", Canvas_draw, METH_VARARGS, "Canvas_draw."},
     {"Canvas_draw_binary", Canvas_draw_binary, METH_VARARGS, "Canvas_draw."},
     {"Canvas_drawSection_binary", Canvas_drawSection_binary, METH_VARARGS, "Canvas_draw_section."},
+    {"Canvas_getPerformanceStatistics", Canvas_getPerformanceStatistics, METH_VARARGS, "Canvas_getPerformanceStatistics."},
     {"Canvas_grabMouse", Canvas_grabMouse, METH_VARARGS, "Canvas_grabMouse."},
     {"Canvas_releaseMouse", Canvas_releaseMouse, METH_VARARGS, "Canvas_releaseMouse."},
     {"Canvas_removeSection", Canvas_removeSection, METH_VARARGS, "Canvas_removeSection."},
@@ -6579,6 +6635,7 @@ static PyMethodDef Methods[] = {
     {"DocumentWindow_connect", DocumentWindow_connect, METH_VARARGS, "DocumentWindow_connect."},
     {"DocumentWindow_create", DocumentWindow_create, METH_VARARGS, "DocumentWindow_create."},
     {"DocumentWindow_getDisplayScaling", DocumentWindow_getDisplayScaling, METH_VARARGS, "DocumentWindow_getDisplayScaling."},
+    {"DocumentWindow_getEventLoopStatistics", DocumentWindow_getEventLoopStatistics, METH_VARARGS, "DocumentWindow_getEventLoopStatistics."},
     {"DocumentWindow_getColorDialog", DocumentWindow_getColorDialog, METH_VARARGS, "DocumentWindow_getColorDialog."},
     {"DocumentWindow_getColorScheme", DocumentWindow_getColorScheme, METH_VARARGS, "DocumentWindow_getColorScheme."},
     {"DocumentWindow_getFilePath", DocumentWindow_getFilePath, METH_VARARGS, "DocumentWindow_getFilePath."},
@@ -7049,14 +7106,14 @@ QString Application::resourcesPath() const
 #endif
 }
 
-QVariant Application::invokePyMethod(PyObjectPtr *object, const QString &method, const QVariantList &qargs)
+QVariant Application::invokePyMethod(PyObjectPtr *object, const QString &method, const QVariantList &qargs, int64_t *gil_wait_ns, int64_t *body_ns)
 {
     std::list<PythonValueVariant> args;
     Q_FOREACH(const QVariant &variant, qargs)
     {
         args.push_back(QVariantToPythonValueVariant(variant));
     }
-    return PythonValueVariantToQVariant(PythonSupport::instance()->invokePyMethod(object, method.toStdString(), args));
+    return PythonValueVariantToQVariant(PythonSupport::instance()->invokePyMethod(object, method.toStdString(), args, gil_wait_ns, body_ns));
 }
 
 bool Application::setPyObjectAttribute(PyObjectPtr *object, const QString &attribute, const QVariant &value)
@@ -7069,9 +7126,9 @@ QVariant Application::getPyObjectAttribute(PyObjectPtr *object, const QString &a
     return PythonValueVariantToQVariant(PythonSupport::instance()->getAttribute(object, attribute.toStdString()));
 }
 
-QVariant Application::dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args)
+QVariant Application::dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args, int64_t *gil_wait_ns, int64_t *body_ns)
 {
-    return invokePyMethod(m_bootstrap_module.get(), "bootstrap_dispatch", QVariantList() << object << method << QVariant(args));
+    return invokePyMethod(m_bootstrap_module.get(), "bootstrap_dispatch", QVariantList() << object << method << QVariant(args), gil_wait_ns, body_ns);
 }
 
 void Application::closeSplashScreen()

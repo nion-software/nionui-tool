@@ -13,6 +13,7 @@
 #include <QtCore/QRunnable>
 #include <QtCore/QThread>
 #include <QtCore/QWaitCondition>
+#include <atomic>
 #include <QtGui/QAction>
 #include <QtGui/QDrag>
 #include <QtGui/QWheelEvent>
@@ -63,6 +64,15 @@ public:
     void requestRepaint(PyCanvas *canvas);
     void cancelRepaintRequest(PyCanvas *canvas);
 
+    // instrumentation: how long the python "periodic" callback takes, and how much the
+    // dedicated repaint-draining timer's actual firing interval deviates from its nominal
+    // interval (see m_repaint_timer / timerEvent). both timers share the single GUI thread, so
+    // if periodic() (or anything else running on that thread) blocks for a while, the repaint
+    // timer's ticks get delayed right along with it even though the two timers are otherwise
+    // independent -- this makes that condition directly observable instead of just showing up
+    // as unexplained repaint_wait/paint_wait inflation in the per-canvas statistics.
+    QVariantMap getEventLoopStatistics() const;
+
 public Q_SLOTS:
     void screenChanged(QScreen *screen);
     void logicalDotsPerInchChanged(qreal dpi);
@@ -90,6 +100,23 @@ private:
 
     int m_periodic_timer;
     int m_repaint_timer;
+
+    // rolling history for getEventLoopStatistics(); GUI-thread only, no locking needed since
+    // both are written from timerEvent() and read from getEventLoopStatistics(), which is only
+    // ever called (via python) while already running on the GUI thread.
+    QQueue<int64_t> m_periodic_duration_ns;
+    // sub-breakdown of periodic_duration (above): how much of it was spent blocked waiting to
+    // acquire the GIL (periodic_gil_wait) vs. everything after acquiring it -- attribute lookup,
+    // the actual "periodic" python call, argument/result conversion (periodic_invoke_duration).
+    // Lets a large periodic_duration spike be attributed to GIL contention from another thread
+    // (e.g. a render worker) vs. genuinely slow python-side work, instead of only being inferable
+    // indirectly from separately-averaged gil_wait/gil_wait_periodic_pct render-side stats.
+    QQueue<int64_t> m_periodic_gil_wait_ns;
+    QQueue<int64_t> m_periodic_invoke_ns;
+    QQueue<int64_t> m_repaint_timer_interval_ns;
+    QQueue<int64_t> m_repaint_update_duration_ns;
+    int64_t m_last_repaint_timer_ns;
+    int64_t m_last_anomaly_trace_ns = 0;
 
     QMutex m_repaint_mutex;
 
@@ -290,9 +317,67 @@ struct RenderedTimeStamp
 
 typedef QList<RenderedTimeStamp> RenderedTimeStamps;
 
+// Per-frame pipeline instrumentation, in nanoseconds (same monotonic clock as GetCurrentTime()
+// and the python-embedded frame timestamp). A value of 0 means the stage has not happened yet
+// (or, in the case of embed_ns, that the frame carried no embedded timestamp). Exposed to python
+// via PyCanvas::getPerformanceStatistics() / Canvas_getPerformanceStatistics.
+struct FrameTiming
+{
+    int64_t embed_ns = 0;              // timestamp embedded by python when the frame's data was produced
+    int64_t received_ns = 0;           // setBinarySectionCommands(): commands arrived in this process
+    int64_t render_start_ns = 0;       // PyCanvasRenderTask::run(): thread pool task began executing
+    int64_t render_end_ns = 0;         // PyCanvasRenderTask::run(): rasterization finished (bitmap ready)
+    int64_t repaint_requested_ns = 0;  // continuePaintingSection(): bitmap handed to RepaintManager
+    int64_t repaint_dispatched_ns = 0; // RepaintManager::update(): update()/repaint() actually called
+    int64_t paint_start_ns = 0;        // paintEvent(): frame actually blitted to the screen
+    int64_t paint_end_ns = 0;          // paintEvent(): frame finished blitting (QPainter ended)
+
+    // QThreadPool::globalInstance() occupancy sampled the moment this frame's render task began
+    // running (not when it was submitted) -- lets getPerformanceStatistics distinguish "queue_wait
+    // is high because the shared thread pool is saturated" from "queue_wait is high because the
+    // CPU/scheduler is just slow to run an already-available thread".
+    int thread_pool_active_at_start = 0;
+    int thread_pool_max = 0;
+
+    // Time spent (summed across all "image"/"data" draw commands in this frame's render task)
+    // waiting to acquire the Python GIL vs. actually doing the ndarray->QImage conversion once
+    // acquired. Lets getPerformanceStatistics distinguish "render is slow because other threads
+    // are holding the GIL" (gil_wait) from "render is slow because the conversion itself is CPU-
+    // bound on this machine" (image_convert).
+    int64_t gil_wait_ns = 0;
+    int64_t image_convert_ns = 0;
+
+    // portion of gil_wait_ns (above) during which g_periodic_active (see below) was observed true
+    // at either the start or the end of the wait -- a direct, causal check of whether the GUI
+    // thread's periodic() callback (which holds the GIL for its whole call) was plausibly the
+    // thing this render task was waiting on, rather than inferring it indirectly by comparing
+    // separately-averaged gil_wait/periodic_duration statistics.
+    int64_t gil_wait_periodic_ns = 0;
+};
+
+// Set to true for the duration of each dispatchPyMethod(..., "periodic", ...) call (which runs on
+// the GUI thread and holds the GIL for its entire duration -- see DocumentWindow::timerEvent).
+// Read (without synchronization beyond relaxed atomicity) by render worker threads immediately
+// before/after acquiring the GIL themselves, purely for diagnostics: it lets getPerformanceStatistics
+// report what fraction of GIL-wait time directly overlapped with an in-flight periodic() call,
+// instead of relying on inference from separately-averaged stats.
+extern std::atomic<bool> g_periodic_active;
+
+// Timestamps (GetCurrentTime()) bracketing the most recent periodic() dispatch, regardless of
+// which window/DocumentWindow it belongs to (there is only ever one GUI thread, so at most one
+// periodic() call can be in flight at a time). Used by DocumentWindow::timerEvent's repaint_timer
+// branch to directly measure -- for any individual anomalously long repaint-timer gap -- how much
+// of that specific gap actually overlapped a periodic() call, rather than only observing that the
+// two stats' aggregate maxima spike within the same ~1s reporting window (which does not by itself
+// prove a causal link for any particular gap).
+extern std::atomic<int64_t> g_periodic_start_ns;
+extern std::atomic<int64_t> g_periodic_end_ns;
+
+typedef QQueue<FrameTiming> FrameTimings;
+
 typedef std::shared_ptr<std::vector<quint32>> CommandsSharedPtr;
 
-RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const CommandsSharedPtr &commands, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling = 0.0, int section_id = 0, float devicePixelRatio = 1.0);
+RenderedTimeStamps PaintBinaryCommands(QPainter *painter, const CommandsSharedPtr &commands, const QMap<QString, QVariant> &imageMap, const RenderedTimeStamps &lastRenderedTimestamps, float display_scaling = 0.0, int section_id = 0, float devicePixelRatio = 1.0, int64_t *gil_wait_ns = nullptr, int64_t *image_convert_ns = nullptr, int64_t *gil_wait_periodic_ns = nullptr);
 
 class PyStyledItemDelegate : public QStyledItemDelegate
 {
@@ -555,6 +640,13 @@ public:
     bool record_latency;
     bool closing;
 
+    // instrumentation: received_ns for the most recently arrived (possibly still pending)
+    // drawing commands, the in-flight timing for whichever task is currently rendering, and a
+    // rolling history of completed per-frame timings used to compute performance statistics.
+    int64_t pending_received_ns;
+    FrameTiming active_timing;
+    FrameTimings frame_timings;
+
     CanvasSection(int section_id, float device_pixel_ratio);
 };
 
@@ -576,6 +668,7 @@ struct RenderResult
     QSharedPointer<QImage> image;
     QRect image_rect;
     bool record_latency;
+    FrameTiming timing;
 
     RenderResult(const CanvasSectionSharedPtr &section) : section(section), record_latency(false) { }
 };
@@ -589,7 +682,7 @@ struct RenderResult
 class PyCanvasRenderTask : public QRunnable
 {
 public:
-    PyCanvasRenderTask(PyCanvas *canvas, const CanvasSectionSharedPtr &section, const DrawingCommandsSharedPtr &drawing_commands, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps);
+    PyCanvasRenderTask(PyCanvas *canvas, const CanvasSectionSharedPtr &section, const DrawingCommandsSharedPtr &drawing_commands, float devicePixelRatio, const RenderedTimeStamps &rendered_timestamps, const FrameTiming &timing);
 
     virtual void run() override;
 
@@ -603,6 +696,7 @@ private:
     const DrawingCommandsSharedPtr m_drawing_commands;
     float m_device_pixel_ratio;
     const RenderedTimeStamps m_rendered_timestamps;
+    const FrameTiming m_timing;
 };
 
 class PyCanvas : public QWidget
@@ -648,6 +742,18 @@ public:
     void releaseMouse0();
 
     PyCanvasRenderTask *continuePaintingSection(const RenderResult &render_result);
+
+    // called by RepaintManager right before update()/repaint() is invoked on this canvas, so the
+    // "time spent waiting for the periodic repaint timer" stage can be measured per frame.
+    void markRepaintDispatched();
+
+    // returns performance instrumentation (queue/render/repaint-wait/paint timings, in
+    // milliseconds) aggregated over recent frames for the given section (0 by default). intended
+    // to be exposed to python for diagnostics; the always-on "Latency" overlay text is unaffected.
+    // frames older than max_age_seconds are excluded (a value <= 0 disables the cutoff) so idle
+    // sections that rendered once long ago (e.g. during startup) report no data instead of stale,
+    // unrepresentative numbers.
+    QVariantMap getPerformanceStatistics(int section_id = 0, double max_age_seconds = 5.0) const;
 
 private:
     bool m_closing;
