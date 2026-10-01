@@ -3,7 +3,17 @@ Changelog (nionui-tool)
 
 UNRELEASED
 ----------
-- Fix canvas rendering during native drag-and-drop by update.
+- Update to Qt 6.12.0.
+- Fix canvas rendering during native drag-and-drop.
+- Improve canvas repaint responsiveness.
+- Improve text measurement precision.
+- Add text measurement, font family, and line break functions for text editing.
+- Add ability to set a minimum window size.
+- Add ability to set a preferred width and height on widgets.
+- Add ability to size scroll areas to their content.
+- Find newer Python versions automatically.
+- Pass command line flags such as --canvas through to the app.
+- Allow launching a module by name from the current directory.
 
 5.3.0 (2026-06-05)
 ------------------
