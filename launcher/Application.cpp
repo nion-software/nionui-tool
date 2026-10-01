@@ -6923,12 +6923,12 @@ public:
         return false;
     }
 
-    void iterateDirectory(const std::string &directoryPath, const std::list<std::string> &nameFilters, std::list<std::string> &filePaths)
+    void iterateDirectory(const std::string &directoryPath, const std::list<std::string> &nameFilters, bool recursive, std::list<std::string> &filePaths)
     {
         QStringList nameFiltersQ;
         for (auto nameFilter : nameFilters)
             nameFiltersQ.append(QString::fromStdString(nameFilter));
-        QDirIterator it(QString::fromStdString(directoryPath), nameFiltersQ, QDir::NoFilter, QDirIterator::Subdirectories);
+        QDirIterator it(QString::fromStdString(directoryPath), nameFiltersQ, QDir::NoFilter, recursive ? QDirIterator::Subdirectories : QDirIterator::NoIteratorFlags);
         while (it.hasNext())
             filePaths.push_back(it.next().toStdString());
     }
