@@ -9,7 +9,7 @@ public:
     virtual bool exists(const std::string &filePath) = 0;
     virtual std::string toNativeSeparators(const std::string &filePath) = 0;
     virtual bool parseConfigFile(const std::string &filePath, std::string &home, std::string &version) = 0;
-    virtual void iterateDirectory(const std::string &directoryPath, const std::list<std::string> &nameFilters, std::list<std::string> &filePaths) = 0;
+    virtual void iterateDirectory(const std::string &directoryPath, const std::list<std::string> &nameFilters, bool recursive, std::list<std::string> &filePaths) = 0;
     virtual std::string directoryName(const std::string &filePath) = 0;
     virtual std::string directory(const std::string &filePath) = 0;
     virtual std::string parentDirectory(const std::string &filePath) = 0;

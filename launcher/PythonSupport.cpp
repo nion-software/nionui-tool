@@ -123,15 +123,15 @@ static int pythonMinorVersion(const std::string &filePath)
 // unsupported system Python is never picked up just because its name also matched the glob.
 static const int kMinSupportedPythonMinorVersion = 12;
 
-// Searches directoryPath (and its subdirectories) for files matching namePattern (a glob such as
-// "libpython3.*.so", with '*' standing in for the minor version) and appends any matches to
-// filePaths, skipping versions older than kMinSupportedPythonMinorVersion. If
-// requiredParentDirectoryName is non-empty, only matches whose immediate parent directory has
-// that name are kept, to avoid picking up unrelated nested copies of the library.
-static void collectVersionedFiles(FileSystem *fs, const std::string &directoryPath, const std::string &namePattern, std::list<std::string> &filePaths, const std::string &requiredParentDirectoryName = std::string())
+// Searches directoryPath for files matching namePattern (a glob such as "libpython3.*.so", with '*'
+// standing in for the minor version) and appends any matches to filePaths, skipping versions older
+// than kMinSupportedPythonMinorVersion. Subdirectories are searched only if recursive is true. If
+// requiredParentDirectoryName is non-empty, only matches whose immediate parent directory has that
+// name are kept, to avoid picking up unrelated nested copies of the library.
+static void collectVersionedFiles(FileSystem *fs, const std::string &directoryPath, const std::string &namePattern, std::list<std::string> &filePaths, bool recursive = false, const std::string &requiredParentDirectoryName = std::string())
 {
     std::list<std::string> matches;
-    fs->iterateDirectory(directoryPath, std::list<std::string>{ namePattern }, matches);
+    fs->iterateDirectory(directoryPath, std::list<std::string>{ namePattern }, recursive, matches);
     for (auto &match : matches)
         if (pythonMinorVersion(match) >= kMinSupportedPythonMinorVersion)
             if (requiredParentDirectoryName.empty() || fs->directoryName(match) == requiredParentDirectoryName)
@@ -182,19 +182,17 @@ public:
 
     virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) override
     {
-        std::list<std::string> directories;
-        directories.push_back(fs->absoluteFilePath(home_bin_path, "../lib"));
-        directories.push_back(fs->absoluteFilePath(home_bin_path, "/usr/local/Cellar/python@" + version));
+        collectVersionedFiles(fs, fs->absoluteFilePath(home_bin_path, "../lib"), "libpython3.*.dylib", filePaths);
 
-        for (auto directory : directories)
-            collectVersionedFiles(fs, directory, "libpython3.*.dylib", filePaths, "lib");
+        // the Homebrew Cellar keeps the library several levels deep within a framework bundle.
+        collectVersionedFiles(fs, "/usr/local/Cellar/python@" + version, "libpython3.*.dylib", filePaths, true, "lib");
 
         sortNewestVersionFirst(filePaths);
     }
 
     virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
     {
-        collectVersionedFiles(fs, fs->absoluteFilePath(python_home, "lib"), "libpython3.*.dylib", filePaths, "lib");
+        collectVersionedFiles(fs, fs->absoluteFilePath(python_home, "lib"), "libpython3.*.dylib", filePaths);
         sortNewestVersionFirst(filePaths);
     }
 
@@ -220,6 +218,22 @@ public:
 #endif
 
 #if OS_LINUX
+// Appends the libpython3.X.so candidates within libDirectory, looking in each
+// "python3.X/config-3.X-<platform>" directory first and then in libDirectory itself.
+static void collectLinuxLibraries(FileSystem *fs, const std::string &libDirectory, std::list<std::string> &filePaths)
+{
+    std::list<std::string> versionDirectories;
+    fs->iterateDirectory(libDirectory, std::list<std::string>{ "python3.*" }, false, versionDirectories);
+    for (auto &versionDirectory : versionDirectories)
+    {
+        std::list<std::string> configDirectories;
+        fs->iterateDirectory(versionDirectory, std::list<std::string>{ "config-3.*" }, false, configDirectories);
+        for (auto &configDirectory : configDirectories)
+            collectVersionedFiles(fs, configDirectory, "libpython3.*.so", filePaths);
+    }
+    collectVersionedFiles(fs, libDirectory, "libpython3.*.so", filePaths);
+}
+
 class LinuxSupport : public PlatformSupport
 {
     void *dl;
@@ -254,13 +268,13 @@ public:
     virtual void buildVirtualEnvironmentPaths(FileSystem *fs, const std::string &python_home, const std::string &home_bin_path, const std::string &version, std::list<std::string> &filePaths) override
     {
         std::string homeParentDirectory = fs->parentDirectory(home_bin_path);
-        collectVersionedFiles(fs, fs->absoluteFilePath(homeParentDirectory, "lib"), "libpython3.*.so", filePaths);
+        collectLinuxLibraries(fs, fs->absoluteFilePath(homeParentDirectory, "lib"), filePaths);
         sortNewestVersionFirst(filePaths);
     }
 
     virtual void buildStandardPaths(FileSystem *fs, const std::string &python_home, std::list<std::string> &filePaths) override
     {
-        collectVersionedFiles(fs, fs->absoluteFilePath(python_home, "lib"), "libpython3.*.so", filePaths);
+        collectLinuxLibraries(fs, fs->absoluteFilePath(python_home, "lib"), filePaths);
         sortNewestVersionFirst(filePaths);
     }
 
