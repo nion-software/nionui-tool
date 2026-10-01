@@ -178,7 +178,7 @@ def bootstrap_main(args):
             def stop(self) -> None:
                 self.__app.stop()
 
-        bootstrap_args = {"proxy": proxy, **extra_bootstrap_args}
+        bootstrap_args = {**extra_bootstrap_args, "proxy": proxy}
         app = main_fn(args, bootstrap_args)
         return AppProxy(app), None
     return None, "main"
