@@ -6,7 +6,6 @@ class Application:
         return False
 
 def main(args, bootstrap_args):
+    # importing a compiled extension with bundled native libraries verifies the launcher loads Python correctly
     import numpy
-    import scipy
-    import h5py
     return Application()

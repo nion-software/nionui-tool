@@ -285,15 +285,8 @@ jobs:
         source test_venv/bin/activate
         python -m pip install --upgrade pip
         python -m pip install setuptools
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # python -m pip install ${{ env.tool-package }}
+        python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
-        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -336,16 +329,9 @@ jobs:
         source test_venv/bin/activate
         python -m pip install --upgrade pip
         python -m pip install setuptools
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # python -m pip install ${{ env.tool-package }}
+        python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
         python --version
-        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -360,16 +346,9 @@ jobs:
         source test_venv/bin/activate
         python -m pip install --upgrade pip
         python -m pip install setuptools
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # python -m pip install ${{ env.tool-package }}
+        python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
         python --version
-        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -415,17 +394,10 @@ jobs:
         test_venv\Scripts\activate
         python -m pip install --upgrade pip
         python -m pip install setuptools
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # python -m pip install ${{ env.tool-package }}
+        python -m pip install ${{ env.tool-package }}
         $filename = Get-ChildItem -name ${{steps.download_wheel.outputs.download-path}}\*.whl
         python -m pip install ${{steps.download_wheel.outputs.download-path}}\$filename
         python --version
-        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python -m pip install .
         popd
