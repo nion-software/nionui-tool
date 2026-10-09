@@ -5,6 +5,8 @@
 #ifndef DOCUMENT_WINDOW_H
 #define DOCUMENT_WINDOW_H
 
+#include <optional>
+
 #include <QtCore/QAbstractListModel>
 #include <QtCore/QDateTime>
 #include <QtCore/QElapsedTimer>
@@ -357,13 +359,44 @@ private:
     QVariant m_py_object;
 };
 
-class PyTextEdit : public QTextEdit
+// The preferred width and height given to a widget by its 'preferred-width' and 'preferred-height' properties.
+//
+// The preferred size replaces the natural size hint of the widget, so that a layout such as a dock area starts the
+// widget at that size but can still shrink it to its minimum size. A layout never makes a widget smaller than its
+// minimum size, so a preferred size below the minimum size has no effect.
+class PreferredSizeHint
+{
+public:
+    virtual ~PreferredSizeHint() = default;
+
+    void setPreferredWidth(int width) { m_preferred_width = width; }
+    void setPreferredHeight(int height) { m_preferred_height = height; }
+
+protected:
+    // return the size hint with its width and height replaced by the preferred width and height, where given.
+    QSize applyPreferredSize(const QSize &size_hint) const { return QSize(m_preferred_width.value_or(size_hint.width()), m_preferred_height.value_or(size_hint.height())); }
+
+private:
+    std::optional<int> m_preferred_width;
+    std::optional<int> m_preferred_height;
+};
+
+// A row or column widget, laid out by a box layout, which can be given a preferred size.
+class PyBoxWidget : public QWidget, public PreferredSizeHint
+{
+public:
+    virtual QSize sizeHint() const override { return applyPreferredSize(QWidget::sizeHint()); }
+};
+
+class PyTextEdit : public QTextEdit, public PreferredSizeHint
 {
     Q_OBJECT
 public:
     PyTextEdit();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
+
+    virtual QSize sizeHint() const override { return applyPreferredSize(QTextEdit::sizeHint()); }
 
     virtual void focusInEvent(QFocusEvent *event) override;
     virtual void focusOutEvent(QFocusEvent *event) override;
@@ -471,13 +504,15 @@ private:
     QVariant m_py_object;
 };
 
-class PyScrollArea : public QScrollArea
+class PyScrollArea : public QScrollArea, public PreferredSizeHint
 {
     Q_OBJECT
 public:
     PyScrollArea();
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
+
+    virtual QSize sizeHint() const override { return applyPreferredSize(QScrollArea::sizeHint()); }
 
     virtual void resizeEvent(QResizeEvent *event) override;
     virtual bool eventFilter(QObject *obj, QEvent *event) override;

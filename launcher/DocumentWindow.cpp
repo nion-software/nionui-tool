@@ -3360,7 +3360,7 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
 {
     if (intrinsic_id == "row")
     {
-        QWidget *row = new QWidget();
+        PyBoxWidget *row = new PyBoxWidget();
         QHBoxLayout *row_layout = new QHBoxLayout(row);
         row_layout->setContentsMargins(0, 0, 0, 0);
         row_layout->setSpacing(0);
@@ -3369,7 +3369,7 @@ QWidget *Widget_makeIntrinsicWidget(const QString &intrinsic_id)
     }
     else if (intrinsic_id == "column")
     {
-        QWidget *column = new QWidget();
+        PyBoxWidget *column = new PyBoxWidget();
         QVBoxLayout *column_layout = new QVBoxLayout(column);
         column_layout->setContentsMargins(0, 0, 0, 0);
         column_layout->setSpacing(0);
@@ -3569,6 +3569,25 @@ void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const Q
     else if (property == "max-height")
     {
         widget->setMaximumHeight(int(variant.toInt() * GetDisplayScaling()));
+    }
+    else if (property == "preferred-width")
+    {
+        // widgets without a preferred size hint, such as buttons, ignore the preferred size.
+        PreferredSizeHint *preferred_size_hint = dynamic_cast<PreferredSizeHint *>(widget);
+        if (preferred_size_hint)
+        {
+            preferred_size_hint->setPreferredWidth(int(variant.toInt() * GetDisplayScaling()));
+            widget->updateGeometry();
+        }
+    }
+    else if (property == "preferred-height")
+    {
+        PreferredSizeHint *preferred_size_hint = dynamic_cast<PreferredSizeHint *>(widget);
+        if (preferred_size_hint)
+        {
+            preferred_size_hint->setPreferredHeight(int(variant.toInt() * GetDisplayScaling()));
+            widget->updateGeometry();
+        }
     }
     else if (property == "size-policy-horizontal")
     {
