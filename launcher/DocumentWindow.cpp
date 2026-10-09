@@ -1084,7 +1084,43 @@ bool PyScrollArea::eventFilter(QObject *obj, QEvent *event)
     {
         notifyViewportChanged();
     }
+    // a change to the layout of the content changes the size hints of a scroll area which sizes to its content.
+    if (m_size_to_content && event->type() == QEvent::LayoutRequest && obj == viewport())
+    {
+        updateGeometry();
+    }
     return result;
+}
+
+void PyScrollArea::setSizeToContent(bool size_to_content)
+{
+    m_size_to_content = size_to_content;
+    updateGeometry();
+}
+
+QSize PyScrollArea::sizeAroundContent(const QSize &content_size) const
+{
+    // the frame surrounds the content, and a vertical scroll bar, when it can be shown, sits beside it.
+    int frame_size = 2 * frameWidth();
+    int scroll_bar_width = verticalScrollBarPolicy() != Qt::ScrollBarAlwaysOff ? verticalScrollBar()->sizeHint().width() : 0;
+    return QSize(content_size.width() + frame_size + scroll_bar_width, content_size.height() + frame_size);
+}
+
+QSize PyScrollArea::sizeHint() const
+{
+    QWidget *content = widget();
+    if (m_size_to_content && content)
+        return applyPreferredSize(sizeAroundContent(content->sizeHint().expandedTo(content->minimumSize())));
+    return applyPreferredSize(QScrollArea::sizeHint());
+}
+
+QSize PyScrollArea::minimumSizeHint() const
+{
+    QSize minimum_size_hint = QScrollArea::minimumSizeHint();
+    QWidget *content = widget();
+    if (m_size_to_content && content && horizontalScrollBarPolicy() == Qt::ScrollBarAlwaysOff)
+        minimum_size_hint.setWidth(sizeAroundContent(content->minimumSizeHint().expandedTo(content->minimumSize())).width());
+    return minimum_size_hint;
 }
 
 void PyScrollArea::notifyViewportChanged()
@@ -3588,6 +3624,12 @@ void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const Q
             preferred_size_hint->setPreferredHeight(int(variant.toInt() * GetDisplayScaling()));
             widget->updateGeometry();
         }
+    }
+    else if (property == "size-to-content")
+    {
+        PyScrollArea *scroll_area = dynamic_cast<PyScrollArea *>(widget);
+        if (scroll_area)
+            scroll_area->setSizeToContent(variant.toBool());
     }
     else if (property == "size-policy-horizontal")
     {
