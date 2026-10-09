@@ -512,7 +512,10 @@ public:
 
     void setPyObject(const QVariant &py_object) { m_py_object = py_object; }
 
-    virtual QSize sizeHint() const override { return applyPreferredSize(QScrollArea::sizeHint()); }
+    void setSizeToContent(bool size_to_content);
+
+    virtual QSize sizeHint() const override;
+    virtual QSize minimumSizeHint() const override;
 
     virtual void resizeEvent(QResizeEvent *event) override;
     virtual bool eventFilter(QObject *obj, QEvent *event) override;
@@ -526,6 +529,11 @@ public Q_SLOTS:
 private:
     QVariant m_py_object;
 
+    // when sizing to content, the scroll area starts at the size of its content and is never narrower than its
+    // content, but it can still be made shorter than its content, in which case it scrolls.
+    bool m_size_to_content = false;
+
+    QSize sizeAroundContent(const QSize &content_size) const;
     void notifyViewportChanged();
 };
 
