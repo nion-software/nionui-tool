@@ -11,7 +11,7 @@ env:
   tool-id: nionui-tool
   tool-package: nionui
   tool-exe: nionui
-  qt-version: "6.11.1"
+  qt-version: "6.12.0"
 
 jobs:
   build_linux:
@@ -96,7 +96,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14]
+        os: [macos-15]
         python-version: ["3.14"]
         architecture: [arm64]
     steps:
@@ -212,7 +212,7 @@ jobs:
         host: ${{ matrix.qt-host }}
         arch: ${{ matrix.qt-arch }}
         target: 'desktop'
-        # to install Qt 6.11, aqtinstall requires a release more recent than 3.3.0
+        # to install Qt 6.11 and later, aqtinstall requires a release more recent than 3.3.0
         aqtsource: "git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e"
     - name: Build
       shell: pwsh
@@ -285,15 +285,8 @@ jobs:
         source test_venv/bin/activate
         python -m pip install --upgrade pip
         python -m pip install setuptools
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # python -m pip install ${{ env.tool-package }}
+        python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
-        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -309,7 +302,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14]
+        os: [macos-15]
         python-version: ["3.12", "3.13", "3.14"]
         wheel_match: ["macosx_11_0_arm64"]
     steps:
@@ -336,16 +329,9 @@ jobs:
         source test_venv/bin/activate
         python -m pip install --upgrade pip
         python -m pip install setuptools
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # python -m pip install ${{ env.tool-package }}
+        python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
         python --version
-        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -360,16 +346,9 @@ jobs:
         source test_venv/bin/activate
         python -m pip install --upgrade pip
         python -m pip install setuptools
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # python -m pip install ${{ env.tool-package }}
+        python -m pip install ${{ env.tool-package }}
         python -m pip install ${{steps.download_wheel.outputs.download-path}}/*.whl
         python --version
-        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python -m pip install .
         popd
@@ -415,17 +394,10 @@ jobs:
         test_venv\Scripts\activate
         python -m pip install --upgrade pip
         python -m pip install setuptools
-        # until numpy 2 compatible versions are on nion channel, use direct source
-        pip install git+https://github.com/nion-software/nionutils.git#egg=nionutils
-        pip install git+https://github.com/nion-software/nionui.git#egg=nionui
-        pip install git+https://github.com/nion-software/niondata.git#egg=niondata
-        pip install git+https://github.com/nion-software/nionswift-io.git#egg=nionswift-io
-        pip install git+https://github.com/nion-software/nionswift.git#egg=nionswift
-        # python -m pip install ${{ env.tool-package }}
+        python -m pip install ${{ env.tool-package }}
         $filename = Get-ChildItem -name ${{steps.download_wheel.outputs.download-path}}\*.whl
         python -m pip install ${{steps.download_wheel.outputs.download-path}}\$filename
         python --version
-        python -m pip install numpy scipy h5py
         pushd nionui_app_test
         python -m pip install .
         popd
