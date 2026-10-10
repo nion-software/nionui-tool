@@ -1,8 +1,8 @@
 Changelog (nionui-tool)
 =======================
 
-UNRELEASED
-----------
+5.4.0 (2026-10-10)
+------------------
 - Update to Qt 6.12.0.
 - Add support for Python 3.15.
 - Fix canvas rendering during native drag-and-drop.
