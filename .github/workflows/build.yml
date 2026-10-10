@@ -96,7 +96,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14]
+        os: [macos-15]
         python-version: ["3.14"]
         architecture: [arm64]
     steps:
@@ -302,7 +302,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14]
+        os: [macos-15]
         python-version: ["3.12", "3.13", "3.14"]
         wheel_match: ["macosx_11_0_arm64"]
     steps:
