@@ -1278,7 +1278,6 @@ struct DrawingContextState
     QFont text_font;
     int text_baseline;
     int text_align;
-    QMap<int, QGradient> gradients;
     float context_scaling_x;
     float context_scaling_y;
 };
@@ -1333,12 +1332,12 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             values.text_font = text_font;
             values.text_baseline = text_baseline;
             values.text_align = text_align;
-            values.gradients = gradients;
             values.context_scaling_x = context_scaling_x;
             values.context_scaling_y = context_scaling_y;
-            // the current path is not part of the saved state, matching the HTML canvas. a path built before or
-            // inside a save/restore pair stays current afterwards, so a fill or stroke after the restore uses the
-            // path most recently built.
+            // the current path and the gradient definitions are not part of the saved state, matching the HTML
+            // canvas. a path built before or inside a save/restore pair stays current afterwards, so a fill or
+            // stroke after the restore uses the path most recently built. a gradient defined inside a save/restore
+            // pair remains defined afterwards.
             stack.push_back(values);
             painter.save();
             break;
@@ -1356,7 +1355,6 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             text_font = values.text_font;
             text_baseline = values.text_baseline;
             text_align = values.text_align;
-            gradients = values.gradients;
             context_scaling_x = values.context_scaling_x;
             context_scaling_y = values.context_scaling_y;
             painter.restore();
@@ -1871,10 +1869,10 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
                 values.text_font = text_font;
                 values.text_baseline = text_baseline;
                 values.text_align = text_align;
-                values.gradients = gradients;
-                // the current path is not part of the saved state, matching the HTML canvas. a path built before or
-                // inside a save/restore pair stays current afterwards, so a fill or stroke after the restore uses the
-                // path most recently built.
+                // the current path and the gradient definitions are not part of the saved state, matching the HTML
+                // canvas. a path built before or inside a save/restore pair stays current afterwards, so a fill or
+                // stroke after the restore uses the path most recently built. a gradient defined inside a
+                // save/restore pair remains defined afterwards.
                 values.context_scaling_x = context_scaling_x;
                 values.context_scaling_y = context_scaling_y;
                 stack.push_back(values);
@@ -1894,7 +1892,6 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
                 text_font = values.text_font;
                 text_baseline = values.text_baseline;
                 text_align = values.text_align;
-                gradients = values.gradients;
                 context_scaling_x = values.context_scaling_x;
                 context_scaling_y = values.context_scaling_y;
                 painter->restore();
