@@ -1279,7 +1279,6 @@ struct DrawingContextState
     int text_baseline;
     int text_align;
     QMap<int, QGradient> gradients;
-    QPainterPath path;
     float context_scaling_x;
     float context_scaling_y;
 };
@@ -1335,9 +1334,11 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             values.text_baseline = text_baseline;
             values.text_align = text_align;
             values.gradients = gradients;
-            values.path = path;
             values.context_scaling_x = context_scaling_x;
             values.context_scaling_y = context_scaling_y;
+            // the current path is not part of the saved state, matching the HTML canvas. a path built before or
+            // inside a save/restore pair stays current afterwards, so a fill or stroke after the restore uses the
+            // path most recently built.
             stack.push_back(values);
             painter.save();
             break;
@@ -1356,7 +1357,6 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             text_baseline = values.text_baseline;
             text_align = values.text_align;
             gradients = values.gradients;
-            path = values.path;
             context_scaling_x = values.context_scaling_x;
             context_scaling_y = values.context_scaling_y;
             painter.restore();
@@ -1872,7 +1872,9 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
                 values.text_baseline = text_baseline;
                 values.text_align = text_align;
                 values.gradients = gradients;
-                values.path = path;
+                // the current path is not part of the saved state, matching the HTML canvas. a path built before or
+                // inside a save/restore pair stays current afterwards, so a fill or stroke after the restore uses the
+                // path most recently built.
                 values.context_scaling_x = context_scaling_x;
                 values.context_scaling_y = context_scaling_y;
                 stack.push_back(values);
@@ -1893,7 +1895,6 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
                 text_baseline = values.text_baseline;
                 text_align = values.text_align;
                 gradients = values.gradients;
-                path = values.path;
                 context_scaling_x = values.context_scaling_x;
                 context_scaling_y = values.context_scaling_y;
                 painter->restore();
