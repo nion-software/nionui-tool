@@ -5,6 +5,8 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#include <cstdint>
+
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QSplashScreen>
 #include <QtCore/QFile>
@@ -36,8 +38,11 @@ public:
     QString resourcesPath() const;
 
     // Python related methods
-    QVariant invokePyMethod(PyObjectPtr *object, const QString &method, const QVariantList &args);
-    QVariant dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args);
+    // gil_wait_ns/body_ns (optional, default NULL) split the total call time into GIL-wait vs.
+    // call-body time -- see PythonSupport::invokePyMethod for details. Only used so far by
+    // DocumentWindow::timerEvent's periodic() dispatch.
+    QVariant invokePyMethod(PyObjectPtr *object, const QString &method, const QVariantList &args, int64_t *gil_wait_ns = NULL, int64_t *body_ns = NULL);
+    QVariant dispatchPyMethod(const QVariant &object, const QString &method, const QVariantList &args, int64_t *gil_wait_ns = NULL, int64_t *body_ns = NULL);
     bool setPyObjectAttribute(PyObjectPtr *object, const QString &attribute, const QVariant &value);
     QVariant getPyObjectAttribute(PyObjectPtr *object, const QString &attribute);
     void closeSplashScreen();

@@ -6,6 +6,7 @@
 #define PYTHON_SUPPORT_H
 
 #include <algorithm>
+#include <cstdint>
 #include <list>
 #include <map>
 #include <memory>
@@ -167,7 +168,13 @@ public:
     void arrayFromImage(const ImageInterface &image, PyObject *target);
     void shapeFromImage(PyObject *image, int &width, int &height);
     void bufferRelease(Py_buffer *buffer);
-    PythonValueVariant invokePyMethod(PyObjectPtr *object, const std::string &method, const std::list<PythonValueVariant> &args);
+    // gil_wait_ns/body_ns (both optional, default NULL for existing call sites) split the total
+    // call time into time spent blocked in Python_ThreadBlock waiting to acquire the GIL vs. time
+    // spent afterward (attribute lookup, the call itself, argument/result conversion) -- used by
+    // DocumentWindow::timerEvent's periodic() dispatch to distinguish "periodic() is slow because
+    // it is genuinely doing more/slower Python-side work" from "periodic() is slow because the
+    // GUI thread had to wait for some other thread (e.g. a render worker) to release the GIL".
+    PythonValueVariant invokePyMethod(PyObjectPtr *object, const std::string &method, const std::list<PythonValueVariant> &args, int64_t *gil_wait_ns = NULL, int64_t *body_ns = NULL);
     bool setAttribute(PyObjectPtr *object, const std::string &attribute, const PythonValueVariant &value);
     PythonValueVariant getAttribute(PyObjectPtr *object, const std::string &attribute);
     void setErrorString(const std::string &error_string);
