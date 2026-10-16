@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+UNRELEASED
+----------
+- Add a function to scroll a text edit to its end.
+
 5.4.0 (2026-10-10)
 ------------------
 - Update to Qt 6.12.0.
