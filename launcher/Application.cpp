@@ -1711,19 +1711,46 @@ static PyObject *Core_getLocation(PyObject * /*self*/, PyObject *args)
 
     QString location_str(location_c);
 
-    QStandardPaths::StandardLocation location = QStandardPaths::DocumentsLocation;
-    if (location_str == "data")
-        location = QStandardPaths::AppDataLocation;
-    else if (location_str == "documents")
+    // the standard locations of Qt by the names Python asks for them with, so that a location Python starts to use needs
+    // no change here. a name which is not known gives the documents folder. locations which some platforms lack, such as
+    // fonts or applications, are left out.
+    static const QMap<QString, QStandardPaths::StandardLocation> locations = {
+        {"data", QStandardPaths::AppDataLocation},
+        {"documents", QStandardPaths::DocumentsLocation},
+        {"temporary", QStandardPaths::TempLocation},
+        {"configuration", QStandardPaths::AppConfigLocation},
+        {"desktop", QStandardPaths::DesktopLocation},
+        {"pictures", QStandardPaths::PicturesLocation},
+        {"movies", QStandardPaths::MoviesLocation},
+        {"music", QStandardPaths::MusicLocation},
+        {"downloads", QStandardPaths::DownloadLocation},
+        {"home", QStandardPaths::HomeLocation},
+        {"cache", QStandardPaths::CacheLocation},
+        {"local_data", QStandardPaths::AppLocalDataLocation},
+    };
+    // the folders of auto-created locations are created when asked for if they do not exist: the application's own
+    // folders, and the documents and temporary folders as before. the user's own folders, such as pictures, are not, so
+    // that one the user removed is not created again.
+    static const QList<QStandardPaths::StandardLocation> auto_created_locations = {
+        QStandardPaths::AppDataLocation,
+        QStandardPaths::DocumentsLocation,
+        QStandardPaths::TempLocation,
+        QStandardPaths::AppConfigLocation,
+        QStandardPaths::CacheLocation,
+        QStandardPaths::AppLocalDataLocation,
+    };
+    QStandardPaths::StandardLocation location = locations.value(location_str, QStandardPaths::DocumentsLocation);
+    QString location_path = QStandardPaths::writableLocation(location);
+    if (location_path.isEmpty())
+    {
+        // a location which Qt cannot find gives the documents folder, as an unknown name does, rather than the working
+        // directory, which an empty path would give.
         location = QStandardPaths::DocumentsLocation;
-    else if (location_str == "temporary")
-        location = QStandardPaths::TempLocation;
-    else if (location_str == "configuration")
-        location = QStandardPaths::AppConfigLocation;
-    QDir dir(QStandardPaths::writableLocation(location));
-    QString data_location;
-    data_location = dir.absolutePath();
-    QDir().mkpath(data_location);
+        location_path = QStandardPaths::writableLocation(location);
+    }
+    QString data_location = QDir(location_path).absolutePath();
+    if (auto_created_locations.contains(location))
+        QDir().mkpath(data_location);
 
     return PythonSupport::instance()->build()("s", data_location.toUtf8().data());
 }
