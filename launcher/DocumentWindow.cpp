@@ -648,7 +648,7 @@ void PyComboBox::wheelEvent(QWheelEvent* event)
 bool PyComboBox::isExpanded()
 {
     auto view = this->view();
-    if (view == nullptr) 
+    if (view == nullptr)
         return false; //It can't be expanded if it doesn't exist.
     return view->isVisible();
 }

@@ -2244,7 +2244,7 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
 
     if (strcmp(mode_c, "save")==0)
     {
-		QString selected_filter = PyObjectToQString(selected_filter_u);
+        QString selected_filter = PyObjectToQString(selected_filter_u);
         QDir selected_dir;
 
         QString ret;
@@ -2261,7 +2261,7 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
     }
     else if (strcmp(mode_c, "load")==0)
     {
-		QString selected_filter = PyObjectToQString(selected_filter_u);
+        QString selected_filter = PyObjectToQString(selected_filter_u);
         QDir selected_dir;
 
         QString ret;
@@ -2296,7 +2296,7 @@ static PyObject *DocumentWindow_getFilePath(PyObject * /*self*/, PyObject *args)
     }
     else if (strcmp(mode_c, "loadmany") == 0)
     {
-		QString selected_filter = PyObjectToQString(selected_filter_u);
+        QString selected_filter = PyObjectToQString(selected_filter_u);
         QDir selected_dir;
 
         QStringList file_names;
@@ -6230,7 +6230,7 @@ static PyObject *Widget_removeWidget(PyObject * /*self*/, PyObject *args)
 
     {
         Python_ThreadAllow thread_allow;
-        
+
         delete widget;
     }
 
