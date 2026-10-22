@@ -1493,8 +1493,9 @@ QFont ParseFontString(const QString &font_string, float display_scaling = 1.0)
                 font.setStyleHint(QFont::System);
             else if (font_part.endsWith("pt") && font_part.left(font_part.length() - 2).toFloat() > 0)
                 font.setPointSizeF(font_part.left(font_part.length() - 2).toFloat() * display_scaling);
+            // setPixelSize takes an int. round half up to match how Qt rounds fractional pt sizes and how PyQtProxy rounds px.
             else if (font_part.endsWith("px") && font_part.left(font_part.length() - 2).toFloat() > 0)
-                font.setPixelSize(font_part.left(font_part.length() - 2).toFloat() * display_scaling);
+                font.setPixelSize(qRound(font_part.left(font_part.length() - 2).toFloat() * display_scaling));
             else
                 is_family = true;
         }
