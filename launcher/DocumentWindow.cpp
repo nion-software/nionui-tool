@@ -1671,7 +1671,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
             else
             {
                 QPen pen(line_color);
-                pen.setWidth(line_width * display_scaling);
+                pen.setWidthF(line_width * display_scaling);
                 pen.setJoinStyle(line_join);
                 pen.setCapStyle(line_cap);
                 painter.strokePath(path, pen);
@@ -2314,7 +2314,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
                     QPainterPath path;
                     path.addText(text_pos, text_font, text);
                     QPen pen(line_color);
-                    pen.setWidth(line_width * display_scaling);
+                    pen.setWidthF(line_width * display_scaling);
                     pen.setJoinStyle(line_join);
                     pen.setCapStyle(line_cap);
                     painter->strokePath(path, pen);
