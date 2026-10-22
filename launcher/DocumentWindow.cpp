@@ -3660,7 +3660,7 @@ void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const Q
     else if (property == "font-size")
     {
         QFont font = widget->font();
-        font.setPointSize(int(variant.toInt() * GetDisplayScaling()));
+        font.setPointSizeF(variant.toFloat() * GetDisplayScaling());
         widget->setFont(font);
     }
     else if (property == "stylesheet")
