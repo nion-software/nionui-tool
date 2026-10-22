@@ -3557,52 +3557,52 @@ void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const Q
 {
     if (property == "margin")
     {
-        int margin = int(variant.toInt() * GetDisplayScaling());
+        int margin = qRound(variant.toFloat() * GetDisplayScaling());
         widget->setContentsMargins(margin, margin, margin, margin);
     }
     else if (property == "margin-top")
     {
-        int value = int(variant.toInt() * GetDisplayScaling());
+        int value = qRound(variant.toFloat() * GetDisplayScaling());
         QMargins margin = widget->contentsMargins();
         margin.setTop(value);
         widget->setContentsMargins(margin);
     }
     else if (property == "margin-left")
     {
-        int value = int(variant.toInt() * GetDisplayScaling());
+        int value = qRound(variant.toFloat() * GetDisplayScaling());
         QMargins margin = widget->contentsMargins();
         margin.setLeft(value);
         widget->setContentsMargins(margin);
     }
     else if (property == "margin-bottom")
     {
-        int value = int(variant.toInt() * GetDisplayScaling());
+        int value = qRound(variant.toFloat() * GetDisplayScaling());
         QMargins margin = widget->contentsMargins();
         margin.setBottom(value);
         widget->setContentsMargins(margin);
     }
     else if (property == "margin-right")
     {
-        int value = int(variant.toInt() * GetDisplayScaling());
+        int value = qRound(variant.toFloat() * GetDisplayScaling());
         QMargins margin = widget->contentsMargins();
         margin.setRight(value);
         widget->setContentsMargins(margin);
     }
     else if (property == "min-width")
     {
-        widget->setMinimumWidth(int(variant.toInt() * GetDisplayScaling()));
+        widget->setMinimumWidth(qRound(variant.toFloat() * GetDisplayScaling()));
     }
     else if (property == "max-width")
     {
-        widget->setMaximumWidth(int(variant.toInt() * GetDisplayScaling()));
+        widget->setMaximumWidth(qRound(variant.toFloat() * GetDisplayScaling()));
     }
     else if (property == "min-height")
     {
-        widget->setMinimumHeight(int(variant.toInt() * GetDisplayScaling()));
+        widget->setMinimumHeight(qRound(variant.toFloat() * GetDisplayScaling()));
     }
     else if (property == "max-height")
     {
-        widget->setMaximumHeight(int(variant.toInt() * GetDisplayScaling()));
+        widget->setMaximumHeight(qRound(variant.toFloat() * GetDisplayScaling()));
     }
     else if (property == "preferred-width")
     {
@@ -3610,7 +3610,7 @@ void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const Q
         PreferredSizeHint *preferred_size_hint = dynamic_cast<PreferredSizeHint *>(widget);
         if (preferred_size_hint)
         {
-            preferred_size_hint->setPreferredWidth(int(variant.toInt() * GetDisplayScaling()));
+            preferred_size_hint->setPreferredWidth(qRound(variant.toFloat() * GetDisplayScaling()));
             widget->updateGeometry();
         }
     }
@@ -3619,7 +3619,7 @@ void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const Q
         PreferredSizeHint *preferred_size_hint = dynamic_cast<PreferredSizeHint *>(widget);
         if (preferred_size_hint)
         {
-            preferred_size_hint->setPreferredHeight(int(variant.toInt() * GetDisplayScaling()));
+            preferred_size_hint->setPreferredHeight(qRound(variant.toFloat() * GetDisplayScaling()));
             widget->updateGeometry();
         }
     }
@@ -3643,19 +3643,19 @@ void Widget_setWidgetProperty_(QWidget *widget, const QString &property, const Q
     }
     else if (property == "width")
     {
-        widget->setMinimumWidth(int(variant.toInt() * GetDisplayScaling()));
-        widget->setMaximumWidth(int(variant.toInt() * GetDisplayScaling()));
+        widget->setMinimumWidth(qRound(variant.toFloat() * GetDisplayScaling()));
+        widget->setMaximumWidth(qRound(variant.toFloat() * GetDisplayScaling()));
     }
     else if (property == "height")
     {
-        widget->setMinimumHeight(int(variant.toInt() * GetDisplayScaling()));
-        widget->setMaximumHeight(int(variant.toInt() * GetDisplayScaling()));
+        widget->setMinimumHeight(qRound(variant.toFloat() * GetDisplayScaling()));
+        widget->setMaximumHeight(qRound(variant.toFloat() * GetDisplayScaling()));
     }
     else if (property == "spacing")
     {
         QBoxLayout *layout = dynamic_cast<QBoxLayout *>(widget->layout());
         if (layout)
-            layout->setSpacing(int(variant.toInt() * GetDisplayScaling()));
+            layout->setSpacing(qRound(variant.toFloat() * GetDisplayScaling()));
     }
     else if (property == "font-size")
     {
