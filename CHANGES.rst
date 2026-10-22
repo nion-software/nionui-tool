@@ -1,9 +1,12 @@
 Changelog (nionui-tool)
 =======================
 
-UNRELEASED
-----------
+5.5.0 (2026-10-22)
+------------------
 - Add a function to scroll a text edit to its end.
+- Add pictures, downloads, and other standard folders to the available locations.
+- Fix canvas drawing so that restoring the context keeps the current path and gradients.
+- Fix sizes, margins, spacing, and fonts to round to the nearest pixel and keep fractional values.
 
 5.4.0 (2026-10-10)
 ------------------
