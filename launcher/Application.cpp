@@ -385,7 +385,7 @@ QStringList GetOpenFileNames(QWidget *parent,
 float GetDisplayScaling()
 {
     float logical_dpi = qApp->primaryScreen()->logicalDotsPerInch();
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MACOS)
     return logical_dpi / 72.0;
 #else
     return logical_dpi / 96.0;
@@ -2140,7 +2140,7 @@ static PyObject *DocumentWindow_getDisplayScaling(PyObject * /*self*/, PyObject 
     //    << "," << document_window->physicalDpiX()
     //    << "," << document_window->physicalDpiY();
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MACOS)
     return PythonSupport::instance()->build()("f", document_window->logicalDpiY() / 72.0);
 #else
     return PythonSupport::instance()->build()("f", document_window->logicalDpiY() / 96.0);
@@ -7177,7 +7177,7 @@ void Application::aboutToQuit()
 
 QString Application::resourcesPath() const
 {
-#if defined(Q_OS_MAC)
+#if defined(Q_OS_MACOS)
     return qApp->applicationDirPath()+"/../Resources/";
 #endif
 #if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
