@@ -5384,6 +5384,12 @@ static PyObject *TextEdit_setTextColor(PyObject * /*self*/, PyObject *args)
 
     text_edit->setTextColor(QColor(r, g, b));
 
+    // Qt 6.12 draws the text cursor in the palette's text color, so set it too, or the cursor is invisible on a
+    // background close to the default text color.
+    QPalette palette = text_edit->palette();
+    palette.setColor(QPalette::Text, QColor(r, g, b));
+    text_edit->setPalette(palette);
+
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
