@@ -1,6 +1,10 @@
 Changelog (nionui-tool)
 =======================
 
+5.5.1 (2026-10-27)
+------------------
+- Fix the text edit cursor being invisible on a dark background with Qt 6.12.
+
 5.5.0 (2026-10-22)
 ------------------
 - Add a function to scroll a text edit to its end.
