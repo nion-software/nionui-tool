@@ -3724,6 +3724,7 @@ PyMenu::PyMenu()
 {
     connect(this, SIGNAL(aboutToShow()), this, SLOT(aboutToShow()));
     connect(this, SIGNAL(aboutToHide()), this, SLOT(aboutToHide()));
+    setToolTipsVisible(true);
 }
 
 void PyMenu::aboutToShow()
