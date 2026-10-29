@@ -685,6 +685,28 @@ static PyObject *Action_setTitle(PyObject * /*self*/, PyObject *args)
     return PythonSupport::instance()->getNoneReturnValue();
 }
 
+static PyObject *Action_setToolTip(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    PyObject *tool_tip_u = NULL;
+
+    if (!PythonSupport::instance()->parse()(args, "OO", &obj0, &tool_tip_u))
+        return NULL;
+
+    QAction *action = Unwrap<QAction>(obj0);
+    if (action == NULL)
+        return NULL;
+
+    action->setToolTip(PyObjectToQString(tool_tip_u));
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *Application_close(PyObject * /*self*/, PyObject *args)
 {
     Q_UNUSED(args)
@@ -6646,6 +6668,7 @@ static PyMethodDef Methods[] = {
     {"Action_setChecked", Action_setChecked, METH_VARARGS, "Action_setChecked."},
     {"Action_setEnabled", Action_setEnabled, METH_VARARGS, "Action_setEnabled."},
     {"Action_setTitle", Action_setTitle, METH_VARARGS, "Action_setTitle."},
+    {"Action_setToolTip", Action_setToolTip, METH_VARARGS, "Action_setToolTip."},
 
     {"Application_close", Application_close, METH_VARARGS, "Application_close."},
     {"Application_getKeyboardModifiers", Application_getKeyboardModifiers, METH_VARARGS, "Application_getKeyboardModifiers."},
