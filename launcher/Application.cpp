@@ -1948,6 +1948,30 @@ static PyObject *DockWidget_getToggleAction(PyObject * /*self*/, PyObject *args)
     return WrapQObject(dock_widget->toggleViewAction());
 }
 
+static PyObject *DockWidget_setFloating(PyObject * /*self*/, PyObject *args)
+{
+    if (qApp->thread() != QThread::currentThread())
+    {
+        PythonSupport::instance()->setErrorString("Must be called on UI thread.");
+        return NULL;
+    }
+
+    PyObject *obj0 = NULL;
+    bool floating;
+
+    if (!PythonSupport::instance()->parse()(args, "Ob", &obj0, &floating))
+        return NULL;
+
+    // Grab the dock widget
+    QDockWidget *dock_widget = Unwrap<QDockWidget>(obj0);
+    if (dock_widget == NULL)
+        return NULL;
+
+    dock_widget->setFloating(floating);
+
+    return PythonSupport::instance()->getNoneReturnValue();
+}
+
 static PyObject *DocumentWindow_activate(PyObject * /*self*/, PyObject *args)
 {
     if (qApp->thread() != QThread::currentThread())
@@ -6706,6 +6730,7 @@ static PyMethodDef Methods[] = {
 
     {"DockWidget_connect", DockWidget_connect, METH_VARARGS, "DockWidget_connect."},
     {"DockWidget_getToggleAction", DockWidget_getToggleAction, METH_VARARGS, "DockWidget_getToggleAction."},
+    {"DockWidget_setFloating", DockWidget_setFloating, METH_VARARGS, "DockWidget_setFloating."},
 
     {"DocumentWindow_activate", DocumentWindow_activate, METH_VARARGS, "DocumentWindow_activate."},
     {"DocumentWindow_addDockWidget", DocumentWindow_addDockWidget, METH_VARARGS, "DocumentWindow_addDockWidget."},
