@@ -1747,7 +1747,7 @@ void PaintCommands(QPainter &painter, const QList<CanvasDrawingCommand> &command
         }
         else if (cmd == "colorStop")
         {
-            gradients[args[0].toInt()].setColorAt(args[1].toFloat(), QColor(args[2].toString()));
+            gradients[args[0].toInt()].setColorAt(args[1].toFloat(), ParseColorString(args[2].toString()));
         }
         else if (cmd == "sleep")
         {
@@ -2416,7 +2416,7 @@ RenderedTimeStamps PaintBinaryCommands(QPainter *rawPainter, const CommandsShare
                 int arg0 = read_uint32(commands, command_index);
                 float arg1 = read_float(commands, command_index);
                 QString arg2 = read_string(commands, command_index);
-                gradients[arg0].setColorAt(arg1, QColor(arg2));
+                gradients[arg0].setColorAt(arg1, ParseColorString(arg2));
                 break;
             }
             case 0x736c6570: // slep, sleep
