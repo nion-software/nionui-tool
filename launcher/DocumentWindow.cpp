@@ -79,8 +79,9 @@ QFont ParseFontString(const QString &font_string, float display_scaling = 1.0);
 QColor ParseColorString(const QString &color_string)
 {
     QColor color;
-    QRegularExpression re1("^rgba\\((\\d+),\\s*(\\d+),\\s*(\\d+),\\s*(\\d+\\.\\d+)\\)$");
-    QRegularExpression re2("^rgb\\((\\d+),\\s*(\\d+),\\s*(\\d+)\\)$");
+    // the expressions are compiled once for each thread which draws, rather than for each color.
+    static thread_local const QRegularExpression re1("^rgba\\((\\d+),\\s*(\\d+),\\s*(\\d+),\\s*(\\d+\\.\\d+)\\)$");
+    static thread_local const QRegularExpression re2("^rgb\\((\\d+),\\s*(\\d+),\\s*(\\d+)\\)$");
     QRegularExpressionMatch match1 = re1.match(color_string);
     QRegularExpressionMatch match2 = re2.match(color_string);
     if (match1.hasMatch())
