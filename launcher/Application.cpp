@@ -13,6 +13,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QDirIterator>
 #include <QtCore/QElapsedTimer>
+#include <QtCore/QLocale>
 #include <QtCore/QMetaType>
 #include <QtCore/QMimeData>
 #include <QtCore/QProcessEnvironment>
@@ -1670,6 +1671,72 @@ static PyObject *Core_getQtVersion(PyObject * /*self*/, PyObject *args)
     Q_UNUSED(args)
 
     return PythonSupport::instance()->build()("s", qVersion());
+}
+
+static PyObject *Core_getLocaleInfo(PyObject * /*self*/, PyObject *args)
+{
+    Q_UNUSED(args)
+
+    // the system locale's data, keyed by QLocale method name, matching PyQtProxy. formats and names have long and short
+    // forms, and weekdays start on Monday. the first day of the week and the measurement system are Qt enum values, such
+    // as 1 for Monday and 0 for metric. some keys are unused; they are included because adding a key needs a new launcher.
+    QLocale locale = QLocale::system();
+    const QList<QPair<QString, QLocale::FormatType>> format_types = {{"long", QLocale::LongFormat}, {"short", QLocale::ShortFormat}};
+
+    QVariantMap time_formats;
+    QVariantMap date_formats;
+    QVariantMap date_time_formats;
+    QVariantMap month_names;
+    QVariantMap standalone_month_names;
+    QVariantMap day_names;
+    QVariantMap standalone_day_names;
+    for (const auto &format_type : format_types)
+    {
+        time_formats[format_type.first] = locale.timeFormat(format_type.second);
+        date_formats[format_type.first] = locale.dateFormat(format_type.second);
+        date_time_formats[format_type.first] = locale.dateTimeFormat(format_type.second);
+        QStringList months;
+        QStringList standalone_months;
+        for (int month = 1; month <= 12; ++month)
+        {
+            months.append(locale.monthName(month, format_type.second));
+            standalone_months.append(locale.standaloneMonthName(month, format_type.second));
+        }
+        month_names[format_type.first] = months;
+        standalone_month_names[format_type.first] = standalone_months;
+        QStringList days;
+        QStringList standalone_days;
+        for (int day = 1; day <= 7; ++day)
+        {
+            days.append(locale.dayName(day, format_type.second));
+            standalone_days.append(locale.standaloneDayName(day, format_type.second));
+        }
+        day_names[format_type.first] = days;
+        standalone_day_names[format_type.first] = standalone_days;
+    }
+
+    QVariantMap locale_info;
+    locale_info["timeFormat"] = time_formats;
+    locale_info["dateFormat"] = date_formats;
+    locale_info["dateTimeFormat"] = date_time_formats;
+    locale_info["monthName"] = month_names;
+    locale_info["standaloneMonthName"] = standalone_month_names;
+    locale_info["dayName"] = day_names;
+    locale_info["standaloneDayName"] = standalone_day_names;
+    locale_info["amText"] = locale.amText();
+    locale_info["pmText"] = locale.pmText();
+    locale_info["zeroDigit"] = locale.zeroDigit();
+    locale_info["name"] = locale.name();
+    locale_info["bcp47Name"] = locale.bcp47Name();
+    locale_info["decimalPoint"] = locale.decimalPoint();
+    locale_info["groupSeparator"] = locale.groupSeparator();
+    locale_info["negativeSign"] = locale.negativeSign();
+    locale_info["exponential"] = locale.exponential();
+    locale_info["uiLanguages"] = locale.uiLanguages();
+    locale_info["firstDayOfWeek"] = static_cast<int>(locale.firstDayOfWeek());
+    locale_info["measurementSystem"] = static_cast<int>(locale.measurementSystem());
+
+    return QVariantToPyObject(locale_info);
 }
 
 #define Q0(x) x
@@ -6714,6 +6781,7 @@ static PyMethodDef Methods[] = {
     {"Core_getFontFamilies", Core_getFontFamilies, METH_VARARGS, "Core_getFontFamilies."},
     {"Core_getFontMetrics", Core_getFontMetrics, METH_VARARGS, "Core_getFontMetrics."},
     {"Core_getLineBreakOpportunities", Core_getLineBreakOpportunities, METH_VARARGS, "Core_getLineBreakOpportunities."},
+    {"Core_getLocaleInfo", Core_getLocaleInfo, METH_VARARGS, "Core_getLocaleInfo."},
     {"Core_getLocation", Core_getLocation, METH_VARARGS, "Core_getLocation."},
     {"Core_getQtVersion", Core_getQtVersion, METH_VARARGS, "Core_getQtVersion."},
     {"Core_getBuildVersion", Core_getBuildVersion, METH_VARARGS, "Core_getBuildVersion."},
