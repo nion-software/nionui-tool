@@ -138,9 +138,6 @@ def bootstrap_main(args):
     for path in list(sys.path):
         site.addsitedir(path)
 
-    version_info = sys.version_info
-    if version_info.major != 3 or version_info.minor < 6:
-        return None, "python36"
     # extract any "--key[=value]" style flags (e.g. the non-standard, dev/test only "--canvas"
     # flag) and forward them as bootstrap args. strip them out first so they do not shift the
     # positional argument handling below (args[2] is expected to be the app path/package).

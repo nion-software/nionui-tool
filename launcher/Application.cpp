@@ -41,7 +41,6 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLayout>
 #include <QtWidgets/QMenuBar>
-#include <QtWidgets/QMessageBox>
 #include <QtWidgets/QScrollArea>
 #include <QtWidgets/QScrollBar>
 #include <QtWidgets/QSplitter>
@@ -7210,8 +7209,6 @@ bool Application::initialize()
 
         PythonSupport::instance()->initialize(m_python_home.toStdString(), pythonPaths, m_python_library.toStdString());  // initialize Python support
 
-        QString bootstrap_error;
-
         {
             Python_ThreadBlock thread_block;
 
@@ -7231,15 +7228,9 @@ bool Application::initialize()
                 args << (QStringList() << arguments()[0] << m_python_home << m_python_app);
             QVariant bootstrap_result = invokePyMethod(m_bootstrap_module.get(), "bootstrap_main", args);
             m_py_application = std::unique_ptr<PyObjectPtr>(new PyObjectPtr(bootstrap_result.toList()[0].value<PyObjectPtr>()));
-            bootstrap_error = bootstrap_result.toList()[1].toString();
 
             if (m_py_application->isValid())
                 return invokePyMethod(m_py_application.get(), "start", QVariantList()).toBool();
-        }
-
-        if (bootstrap_error == "python36" || bootstrap_error == "python37")
-        {
-            QMessageBox::critical(NULL, "Unable to Launch", "Unable to launch Python application (requires Python 3.8 or later).\n\n" + m_python_home + "\n\nCheck the Python path passed on the command line or shortcut.");
         }
     }
     else
