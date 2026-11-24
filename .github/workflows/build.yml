@@ -11,7 +11,7 @@ env:
   tool-id: nionui-tool
   tool-package: nionui
   tool-exe: nionui
-  qt-version: "6.12.0"
+  qt-version: "6.12.1"
 
 jobs:
   build_linux:
